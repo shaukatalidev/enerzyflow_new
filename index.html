@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enerzyflow landing page</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">Enerzyflow</div>
+    <nav class="nav">
+      <a href="#products">Products</a>
+      <a href="#about">About</a>
+      <a href="#merch">Merch</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Brand your own branded</h1>
+      <p>Premium water bottles with attitude.</p>
+      <button onclick="openModal()">Shop Now</button>
+    </div>
+
+    <!-- Arrows -->
+    <button class="arrow left" onclick="prevSlide()">&#10094;</button>
+    <button class="arrow right" onclick="nextSlide()">&#10095;</button>
+  </section>
+
+  <!-- Section Two: Product Lineup -->
+  <section id="products" class="products">
+    <h2>PRODUCTS</h2>
+    <div class="products-container">
+      <!-- Card 1 -->
+      <a href="classic.html" class="product-card">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_25393ffe.jpg" alt="Killer Cola">
+        <h3>Classic</h3>
+      </a>
+
+      <!-- Card 2 -->
+      <div class="product-card">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.11_2a43d2a9.jpg" alt="Severed Lime">
+        <h3>Elite</h3>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="product-card">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.11_f2bb26ce.jpg" alt="Mountain Water">
+        <h3>Exclusive</h3>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="product-card">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_261294b6.jpg" alt="Rest in Peach">
+        <h3>Ultra</h3>
+      </div>
+
+
+      <!-- Card 5 -->
+      <div class="product-card">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_261294b6.jpg" alt="Rest in Peach">
+        <h3>Ultra</h3>
+      </div>
+      <!-- About Section -->
+      <section id="about" class="about">
+        <div class="about-container">
+          <div class="about-text">
+            <h4>About us</h4>
+            <p>
+              At <strong>Enerzyflow</strong>, we believe water doesn’t have to be boring.
+              We put it in bold cans, backed by sustainability and killer design.
+              Our mission: hydrate the world, kill plastic waste, and look metal doing it.
+            </p>
+            <p>
+              Every can you drink saves a plastic bottle from polluting our planet.
+              Join the revolution — quench your thirst with attitude.
+            </p>
+          </div>
+          <div class="about-image">
+            <img src="Bottles/IMG_20250803_140025862_HDR.jpg" alt="Enerzyflow">
+          </div>
+        </div>
+      </section>
+
+
+      <!-- Get in Touch Section -->
+      <section id="contact" class="contact-section">
+        <div class="contact-container">
+          <div class="contact-left">
+            <h5>CONTACT US</h5>
+            <h2>Have questions?<br>Get in touch!</h2>
+            <p><i class="fas fa-envelope"></i> support@enerzyflow.com</p>
+          </div>
+
+          <div class="contact-right">
+            <form class="contact-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <i class="fas fa-user"></i>
+                  <input type="text" placeholder="Name" required>
+                </div>
+                <div class="form-group">
+                  <i class="fas fa-envelope"></i>
+                  <input type="email" placeholder="Email Address" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <i class="fas fa-phone"></i>
+                  <input type="tel" placeholder="Phone">
+                </div>
+                <div class="form-group">
+                  <i class="fas fa-info-circle"></i>
+                  <input type="text" placeholder="Subject">
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <i class="fas fa-pencil-alt"></i>
+                <textarea placeholder="How can we help you? Feel free to get in touch!" rows="4"></textarea>
+              </div>
+
+              <div class="form-footer">
+                <button type="submit" class="btn-submit">
+                  <i class="fas fa-paper-plane"></i> GET IN TOUCH
+                </button>
+                <label class="privacy">
+                  <input type="checkbox" required>
+                  I agree to the <a href="#">Privacy Policy</a>.
+                </label>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-container">
+
+          <!-- About -->
+          <div class="footer-about">
+            <h6>Enerzyflow</h6>
+            <p>Premium hydration with attitude. Bold taste, sustainable mission.</p>
+          </div>
+
+          <!-- Links -->
+          <div class="footer-links">
+            <h6>Quick Links</h6>
+            <ul>
+              <li><a href="#products">Products</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#merch">Merch</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </div>
+
+          <!-- Social (Dynamic) -->
+          <div class="footer-social">
+            <h6>Follow Us</h6>
+            <div class="social-icons" id="socialIcons"></div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>&copy; 2025 Enerzyflow. All rights reserved.</p>
+        </div>
+      </footer>
+
+      <!-- Modal -->
+      <div id="modal" class="modal">
+        <div class="modal-content">
+          <span class="close" onclick="closeModal()">&times;</span>
+          <h2>Shop Coming Soon</h2>
+          <p>Stay tuned for the official launch!</p>
+        </div>
+      </div>
+
+      <script src="index.js"></script>
+</body>
+
+</html>
