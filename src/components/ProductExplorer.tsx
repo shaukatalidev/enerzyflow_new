@@ -147,61 +147,66 @@ const ProductExplorer: React.FC = () => {
           <h2 className="text-4xl font-bold text-gray-800 mb-8">
             Explore our Bottles
           </h2>
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
+          <div className="flex flex-wrap justify-center gap-8 mb-12">
             <button
               onClick={() => handleCategoryChange('')}
-              className={`px-6 py-2 rounded-full transition-colors ${
+              className={`px-2 py-2 font-medium transition-colors relative ${
                 activeCategory === ''
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'text-gray-900'
+                  : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               All Bottles
+              {activeCategory === '' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+              )}
             </button>
             {categoryButtons.map((category: string) => (
               <button
                 key={category}
                 onClick={() => handleCategoryChange(category)}
-                className={`px-6 py-2 rounded-full transition-colors ${
+                className={`px-2 py-2 font-medium transition-colors relative ${
                   activeCategory === category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'text-gray-900'
+                    : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
                 {category}
+                {activeCategory === category && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+                )}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Carousel Container */}
-        <div className="relative max-w-6xl mx-auto"> {/* Reduced from max-w-7xl to max-w-6xl */}
+        <div className="relative max-w-6xl mx-auto">
           {totalSlides > 1 && (
             <>
               <button
                 onClick={prevSlide}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition-colors md:-left-6"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -mt-8 z-10 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition-colors md:-left-6"
               >
                 <ChevronLeft size={28} className="text-gray-600" />
               </button>
               <button
                 onClick={nextSlide}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition-colors md:-right-6"
+                className="absolute right-0 top-1/2 -translate-y-1/2 -mt-8 z-10 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition-colors md:-right-6"
               >
                 <ChevronRight size={28} className="text-gray-600" />
               </button>
             </>
           )}
 
-          {/* Products Grid - REDUCED SIZE */}
+          {/* Products Grid */}
           <div className="overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4"> {/* Increased gap back to 6 for better spacing */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
               {getCurrentSlideProducts().map((product: Product, index: number) => (
                 <div key={product.id} className="group text-center">
-                  {/* SMALLER image container */}
+                  {/* Image container */}
                   <div
-                    className="relative w-full max-w-xs bg-gray-50 rounded-lg cursor-pointer mx-auto overflow-hidden" /* Added max-w-xs for smaller size */
-                    style={{ aspectRatio: '3/4' }} /* Changed to 3/4 for more reasonable proportions */
+                    className="relative w-full max-w-xs bg-gray-50 rounded-lg cursor-pointer mx-auto overflow-hidden"
+                    style={{ aspectRatio: '3/4' }}
                     onClick={() => openModal(index)}
                   >
                     <Image
@@ -209,12 +214,12 @@ const ProductExplorer: React.FC = () => {
                       alt={product.name}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      sizes="(max-width: 768px) 80vw, 300px" /* Reduced sizes */
+                      sizes="(max-width: 768px) 80vw, 300px"
                     />
                     {/* Zoom icon overlay */}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <ZoomIn
-                        size={32} /* Reduced icon size */
+                        size={32}
                         className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded-full p-1"
                       />
                     </div>
@@ -242,7 +247,7 @@ const ProductExplorer: React.FC = () => {
                   key={index}
                   onClick={() => setCurrentSlide(index)}
                   className={`w-3 h-3 rounded-full transition-colors ${
-                    index === currentSlide ? 'bg-blue-600' : 'bg-gray-300'
+                    index === currentSlide ? 'bg-gray-800' : 'bg-gray-300'
                   }`}
                 />
               ))}
