@@ -19,8 +19,8 @@ export default function MainDashboard() {
     const fetchOrders = async () => {
       try {
         setIsLoading(true);
-        // Fetch all orders with a large limit to get all orders
-        const response = await orderService.getOrders(100, 0);
+        // Fetch all orders without pagination
+        const response = await orderService.getOrders();
         
         console.log('📦 Fetched orders:', response);
 

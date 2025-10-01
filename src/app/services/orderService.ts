@@ -29,9 +29,6 @@ export interface CreateOrderResponse {
 
 export interface GetOrdersResponse {
   orders: Order[];
-  total: number;
-  limit: number;
-  offset: number;
 }
 
 export interface GetOrderResponse {
@@ -53,21 +50,18 @@ export class OrderService {
     }
   }
 
-  /**
-   * Get all orders with pagination
-   */
-  static async getOrders(limit: number = 10, offset: number = 0): Promise<GetOrdersResponse> {
+  static async getOrders(): Promise<GetOrdersResponse> {
     try {
-      const response = await axiosInstance.get<GetOrdersResponse>('/orders', {
-        params: { limit, offset },
-      });
+      const response = await axiosInstance.get<GetOrdersResponse>('/orders');
       return response.data;
     } catch (error: any) {
+      console.error('❌ Order service error:', error.response || error);
       throw new Error(
         error?.response?.data?.error || 'Failed to fetch orders'
       );
     }
   }
+
 
   /**
    * Get a specific order by ID
