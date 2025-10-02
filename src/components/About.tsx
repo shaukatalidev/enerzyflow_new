@@ -22,7 +22,8 @@ const About = () => {
             </h2>
             
             <p className="text-lg text-gray-300 leading-relaxed mb-6">
-              At <span className="font-semibold text-white">Enerzyflow</span>, we believe water doesn't have to be boring. We
+              {/* ✅ FIX: Escaped apostrophe */}
+              At <span className="font-semibold text-white">Enerzyflow</span>, we believe water doesn&apos;t have to be boring. We
               put it in bold cans, backed by a simple promise: sustainability and killer design. Our
               mission: hydrate the world, kill plastic waste, and look good
               doing it.

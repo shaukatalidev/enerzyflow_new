@@ -38,7 +38,6 @@ type AuthAction =
   | { type: "LOGIN_SUCCESS"; payload: { user: User; tokens: AuthTokens } }
   | { type: "UPDATE_PROFILE"; payload: ProfileResponse }
   | { type: "LOGOUT" };
-// 🚩 Removed 'UPDATE_TOKENS' as it's no longer needed
 
 const initialState: AuthState = {
   user: null,
@@ -90,7 +89,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         profileLoading: false,
         profileLoaded: false,
       };
-    // 🚩 Removed 'UPDATE_TOKENS' case
     default:
       return state;
   }
@@ -151,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken"); // Keep this to clear old values
+      localStorage.removeItem("refreshToken");
       dispatch({ type: "LOGOUT" });
     }
   }, []);
@@ -164,14 +162,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const profileData = await profileService.getProfile();
-      dispatch({ type: "UPDATE_PROFILE", payload: profileData });
+      
+      // ✅ Convert null to undefined for labels
+      const profileResponse: ProfileResponse = {
+        user: profileData.user,
+        company: profileData.company,
+        labels: profileData.labels || undefined,
+      };
+      
+      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
       const updatedUser: ExtendedUser = {
         ...currentUser,
         profile: profileData.user,
         company: profileData.company,
-        labels: profileData.labels,
+        labels: profileData.labels || undefined,
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
     } catch (error) {
@@ -188,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const storedUser = localStorage.getItem("user");
         const storedAccessToken = localStorage.getItem("accessToken");
-        // 🚩 We no longer need to check for refreshToken here
+        
         if (storedUser && storedAccessToken) {
           const user: User = JSON.parse(storedUser);
           const tokens: AuthTokens = {
@@ -217,18 +223,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (state.isAuthenticated && !state.profileLoaded && !state.user?.profile) {
       loadProfile();
     }
-  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, loadProfile]); // Added loadProfile to dependencies
+  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, loadProfile]);
 
   const updateProfile = useCallback(
     async (profileData: SaveProfileRequest): Promise<void> => {
       dispatch({ type: "SET_PROFILE_LOADING", payload: true });
       try {
         const result = await profileService.saveProfile(profileData);
+        
+        // ✅ Convert null to undefined for labels
         const profileResponse: ProfileResponse = {
           user: result.user,
           company: result.company,
-          labels: result.labels,
+          labels: result.labels || undefined,
         };
+        
         dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
         const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -236,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ...currentUser,
           profile: result.user,
           company: result.company,
-          labels: result.labels,
+          labels: result.labels || undefined,
         };
         localStorage.setItem("user", JSON.stringify(updatedUser));
       } catch (error) {
@@ -276,14 +285,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const response = await authService.verifyOTP(email, otp);
         const user: User = response.user;
         
-        // 🚩 Correctly create tokens object without refreshToken
         const tokens: AuthTokens = {
           accessToken: response.accessToken,
         };
 
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("accessToken", tokens.accessToken);
-        // 🚩 Ensure any old refreshToken is removed
         localStorage.removeItem("refreshToken");
 
         dispatch({ type: "LOGIN_SUCCESS", payload: { user, tokens } });
@@ -309,8 +316,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     [loadProfile]
   );
-
-  // 🚩 Removed the entire refreshToken function as it's no longer usable
 
   const value: ExtendedAuthContextType = useMemo(
     () => ({

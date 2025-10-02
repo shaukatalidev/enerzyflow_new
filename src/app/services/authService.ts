@@ -36,7 +36,6 @@ export const authService = {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userEmail');
       
-      console.log('Logout successful: All tokens cleared from localStorage');
     } catch (error) {
       console.error('Error during logout cleanup:', error);
       // Even if there's an error, we should still clear what we can

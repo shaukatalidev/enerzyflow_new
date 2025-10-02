@@ -1,4 +1,5 @@
 import { axiosInstance } from '../lib/axios';
+import { AxiosError } from 'axios';
 
 export interface UserProfile {
   name?: string;
@@ -10,11 +11,10 @@ export interface UserProfile {
   profilePhoto?: string;
   logo?: string;
   role?: 'user' | 'plant' | 'printing';
-  labels?: Array<{name: string, url: string}>;
-  outlets?: Array<{name: string, address: string}>; // ✅ Added outlets
+  labels?: Array<{label_id?: string; name: string; url: string}>;
+  outlets?: Array<{id?: string; name: string; address: string}>;
 }
 
-// ✅ Updated to match backend struct tags
 export interface SaveProfileRequest {
   profile: {
     name?: string;
@@ -27,17 +27,18 @@ export interface SaveProfileRequest {
     address?: string;
     logo_url?: string;
     outlets?: Array<{
+      id?: string;
       name?: string;
       address?: string;
     }>;
   };
   labels?: Array<{
+    label_id?: string;
     name?: string;
     label_url?: string;
   }>;
 }
 
-// ✅ Updated to match backend response tags
 export interface ProfileResponse {
   user?: {
     user_id?: string;
@@ -92,7 +93,29 @@ export interface SaveProfileResponse {
     label_id?: string;
     name?: string;
     label_url?: string;
+  }> | null; 
+  blocked_labels?: Array<{  
+    label_id: string;
+    name: string;
   }>;
+}
+
+// ✅ Define error response type
+interface ApiErrorResponse {
+  error?: string;
+}
+
+// ✅ Define types for outlet and label data
+interface OutletData {
+  id?: string;
+  name?: string;
+  address?: string;
+}
+
+interface LabelData {
+  label_id?: string;
+  name?: string;
+  label_url?: string;
 }
 
 class ProfileService {
@@ -100,16 +123,19 @@ class ProfileService {
     try {
       const response = await axiosInstance.get<ProfileResponse>('/users/profile');
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      // ✅ FIX 1: Removed `: any` and added proper error handling
       console.error('Error fetching profile:', error);
-      throw new Error(error.response?.data?.error || 'Failed to fetch profile');
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to fetch profile');
+      }
+      throw new Error('Failed to fetch profile');
     }
   }
 
   async saveProfile(profileData: SaveProfileRequest): Promise<SaveProfileResponse> {
     try {
-      console.log('Sending payload:', JSON.stringify(profileData, null, 2));
-      
       const response = await axiosInstance.post<SaveProfileResponse>(
         '/users/profile', 
         profileData,
@@ -120,13 +146,17 @@ class ProfileService {
         }
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      // ✅ FIX 2: Removed `: any` and added proper error handling
       console.error('Error saving profile:', error);
-      throw new Error(error.response?.data?.error || 'Failed to save profile');
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to save profile');
+      }
+      throw new Error('Failed to save profile');
     }
   }
 
-  // ✅ Updated to include outlets
   async saveProfileWithImages(
     baseProfileData: {
       profile?: {
@@ -138,6 +168,7 @@ class ProfileService {
         name?: string;
         address?: string;
         outlets?: Array<{
+          id?: string;
           name?: string;
           address?: string;
         }>;
@@ -145,8 +176,8 @@ class ProfileService {
     },
     profileImageUrl?: string,
     companyLogoUrl?: string,
-    labelsData?: Array<{name: string, url: string}>,
-    outletsData?: Array<{name: string, address: string}> // ✅ Added outlets parameter
+    labelsData?: Array<{label_id?: string; name: string; url: string}>,
+    outletsData?: Array<{id?: string; name: string; address: string}>
   ): Promise<SaveProfileResponse> {
     try {
       const requestData: SaveProfileRequest = {
@@ -157,18 +188,42 @@ class ProfileService {
         company: {
           ...baseProfileData.company,
           logo_url: companyLogoUrl,
-          outlets: outletsData || baseProfileData.company?.outlets || [],
+          outlets: outletsData?.map(outlet => {
+            // ✅ FIX 3: Changed from `any` to proper type
+            const outletData: OutletData = {
+              name: outlet.name,
+              address: outlet.address
+            };
+            // Include id only if it exists (for updates)
+            if (outlet.id) {
+              outletData.id = outlet.id;
+            }
+            return outletData;
+          }) || baseProfileData.company?.outlets || [],
         },
-        labels: labelsData?.map(label => ({
-          name: label.name,
-          label_url: label.url
-        })) || [],
+        labels: labelsData?.map(label => {
+          // ✅ FIX 4: Changed from `any` to proper type
+          const labelData: LabelData = {
+            name: label.name,
+            label_url: label.url
+          };
+          // Include label_id only if it exists (for updates)
+          if (label.label_id) {
+            labelData.label_id = label.label_id;
+          }
+          return labelData;
+        }) || [],
       };
 
       return await this.saveProfile(requestData);
-    } catch (error: any) {
+    } catch (error) {
+      // ✅ FIX 5: Removed `: any` and added proper error handling
       console.error('Error saving profile with images:', error);
-      throw new Error(error.response?.data?.error || 'Failed to save profile');
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to save profile');
+      }
+      throw new Error('Failed to save profile');
     }
   }
 

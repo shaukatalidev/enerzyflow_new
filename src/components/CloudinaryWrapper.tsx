@@ -18,26 +18,54 @@ type CloudinarySource =
   | "unsplash" 
   | "url";
 
-// Define types for upload widget props
-interface CloudinaryUploadWidgetProps {
-  onSuccess: (result: any) => void;
-  children: ({ open }: { open: () => void }) => ReactNode;
-  uploadPreset?: string;
-  options?: {
-    multiple?: boolean;
-    maxFiles?: number;
-    sources?: CloudinarySource[];
-    [key: string]: any;
+// Define proper type for Cloudinary upload result
+interface CloudinaryUploadResult {
+  event?: string;
+  info?: {
+    secure_url?: string;
+    public_id?: string;
+    format?: string;
+    width?: number;
+    height?: number;
+    [key: string]: unknown;
   };
 }
 
-// Define types for image wrapper props  
+// Define proper type for upload options
+interface CloudinaryUploadOptions {
+  multiple?: boolean;
+  maxFiles?: number;
+  sources?: CloudinarySource[];
+  clientAllowedFormats?: string[];
+  maxImageFileSize?: number;
+  maxVideoFileSize?: number;
+  folder?: string;
+  tags?: string[];
+  resourceType?: string;
+  [key: string]: unknown;
+}
+
+// Define types for upload widget props
+interface CloudinaryUploadWidgetProps {
+  onSuccess: (result: CloudinaryUploadResult) => void;
+  children: ({ open }: { open: () => void }) => ReactNode;
+  uploadPreset?: string;
+  options?: CloudinaryUploadOptions;
+}
+
+// ✅ FIX: Simplified interface - let Cloudinary handle complex types via index signature
 interface CloudinaryImageProps {
   src: string;
   width: number;
   height: number;
   alt: string;
-  [key: string]: any;
+  className?: string;
+  sizes?: string;
+  priority?: boolean;
+  fill?: boolean;
+  quality?: number;
+  // ✅ Removed crop and gravity - they have complex types in Cloudinary
+  [key: string]: unknown; // Allow additional Cloudinary props
 }
 
 // Upload Widget Wrapper
@@ -57,7 +85,7 @@ export const CloudinaryUploadWidget = ({
         ...options
       }}
       onSuccess={(result) => {
-        onSuccess(result);
+        onSuccess(result as CloudinaryUploadResult);
       }}
     >
       {children}

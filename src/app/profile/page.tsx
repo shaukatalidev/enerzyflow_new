@@ -1,36 +1,66 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/app/context/AuthContext';
-import { profileService} from '@/app/services/profileService';
-import MyProfile from '@/app/profile/components/MyProfile';
+import { useEffect, useState } from "react";
+import { useAuth } from "@/app/context/AuthContext";
+import { profileService } from "@/app/services/profileService";
+import MyProfile from "@/app/profile/components/MyProfile";
+
+interface Label {
+  label_id?: string;
+  name: string;
+  url: string;
+}
+
+interface Outlet {
+  id?: string;
+  name: string;
+  address: string;
+}
+
+interface UserProfile {
+  name?: string;
+  contactNo?: string;
+  email?: string;
+  designation?: string;
+  brandCompanyName?: string;
+  businessAddress?: string;
+  profilePhoto?: string;
+  logo?: string;
+  role?: "user" | "plant" | "printing"; // ✅ FIX: Changed from string to specific union type
+  labels?: Label[];
+  outlets?: Outlet[];
+}
+
+// ✅ Define the return type matching MyProfile's expectation
+interface ProfileUpdateResult {
+  blocked_labels?: Array<{
+    label_id: string;
+    name: string;
+  }>;
+}
 
 export default function ProfilePage() {
-  const { user, loadProfile, profileLoaded } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
+  const { user, loadProfile } = useAuth();
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Load profile on mount and update context
+  // ✅ Load profile on mount
   useEffect(() => {
-    
     const initProfile = async () => {
       try {
-        await loadProfile(); // ✅ This updates the AuthContext
+        await loadProfile();
       } catch (err) {
         console.error("Failed to load profile:", err);
         setError("Failed to load profile data");
       }
     };
-
     initProfile();
-  }, []); // Empty dependency - only run on mount
+  }, [loadProfile]);
 
-  // ✅ Watch for user changes from context
+  // ✅ Watch for user changes
   useEffect(() => {
     if (user?.profile) {
-      
-      // Map the context data to profile format
-      const mappedProfile = {
+      const mappedProfile: UserProfile = {
         name: user.profile.name,
         contactNo: user.profile.phone,
         email: user.email,
@@ -38,32 +68,33 @@ export default function ProfilePage() {
         brandCompanyName: user.company?.name,
         businessAddress: user.company?.address,
         profilePhoto: user.profile.profile_url,
-        logo: user.company?.logo, // ✅ This is the important one
-        role: user.role as any,
-        labels: user.labels?.map(l => ({
-          name: l.name || '',
-          url: l.label_url || ''
+        logo: user.company?.logo,
+        role: user.role as "user" | "plant" | "printing" | undefined, // ✅ Type assertion
+        labels: user.labels?.map((l) => ({
+          label_id: l.label_id,
+          name: l.name || "",
+          url: l.label_url || "",
         })),
-        outlets: user.company?.outlets?.map(o => ({
-          name: o.name || '',
-          address: o.address || ''
-        })) || []
+        outlets:
+          user.company?.outlets?.map((o) => ({
+            id: o.id,
+            name: o.name || "",
+            address: o.address || "",
+          })) || [],
       };
-
       setProfileData(mappedProfile);
     }
-  }, [user]); // Run whenever user changes
+  }, [user]);
 
-  // ✅ Handle profile update
+  // ✅ Handle profile update with proper return type
   const handleProfileUpdate = async (
-    updatedProfile: any,
+    updatedProfile: UserProfile,
     profileImageUrl?: string,
     logoUrl?: string,
-    labelsData?: Array<{ name: string; url: string }>,
-    outletsData?: Array<{ name: string; address: string }>
-  ) => {
+    labelsData?: Label[],
+    outletsData?: Outlet[]
+  ): Promise<ProfileUpdateResult> => {
     try {
-      
       const result = await profileService.saveProfileWithImages(
         {
           profile: {
@@ -83,20 +114,23 @@ export default function ProfilePage() {
         outletsData
       );
 
-      // ✅ CRITICAL: Reload profile to update AuthContext and Header
-      await loadProfile();
+      await loadProfile(); // ✅ reload context
       
-      return result;
-    } catch (err: any) {
-      console.error("❌ Failed to save profile:", err);
-      setError(err.message || "Failed to update profile");
+      // ✅ Return the result with blocked_labels
+      return {
+        blocked_labels: result.blocked_labels || [],
+      };
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to update profile");
+      }
       throw err;
     }
   };
 
-  const handleClearError = () => {
-    setError(null);
-  };
+  const handleClearError = () => setError(null);
 
   if (!profileData) {
     return (

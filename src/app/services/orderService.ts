@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import { AxiosError } from 'axios';
 
 // Types for the order API
 export interface CreateOrderRequest {
@@ -35,33 +36,44 @@ export interface GetOrderResponse {
   order: Order;
 }
 
+// ✅ Define error response type
+interface ApiErrorResponse {
+  error?: string;
+}
+
 export class OrderService {
   /**
    * Create a new order
    */
   static async createOrder(orderData: CreateOrderRequest): Promise<CreateOrderResponse> {
     try {
-      const response = await axiosInstance.post<CreateOrderResponse>('/orders', orderData);
+      const response = await axiosInstance.post<CreateOrderResponse>('/orders/create', orderData);
       return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.error || 'Failed to create order'
-      );
+    } catch (error) {
+      // ✅ FIX 1: Removed `: any` and added proper error handling
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to create order');
+      }
+      throw new Error('Failed to create order');
     }
   }
 
   static async getOrders(): Promise<GetOrdersResponse> {
     try {
-      const response = await axiosInstance.get<GetOrdersResponse>('/orders');
+      const response = await axiosInstance.get<GetOrdersResponse>('/orders/get-all');
       return response.data;
-    } catch (error: any) {
-      console.error('❌ Order service error:', error.response || error);
-      throw new Error(
-        error?.response?.data?.error || 'Failed to fetch orders'
-      );
+    } catch (error) {
+      // ✅ FIX 2: Removed `: any` and added proper error handling
+      console.error('❌ Order service error:', error instanceof AxiosError ? error.response : error);
+      
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to fetch orders');
+      }
+      throw new Error('Failed to fetch orders');
     }
   }
-
 
   /**
    * Get a specific order by ID
@@ -70,10 +82,13 @@ export class OrderService {
     try {
       const response = await axiosInstance.get<GetOrderResponse>(`/orders/${orderId}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.error || 'Failed to fetch order'
-      );
+    } catch (error) {
+      // ✅ FIX 3: Removed `: any` and added proper error handling
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to fetch order');
+      }
+      throw new Error('Failed to fetch order');
     }
   }
 }

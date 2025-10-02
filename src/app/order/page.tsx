@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   ChevronDown,
@@ -129,13 +130,12 @@ export default function CreateOrderPage() {
     return userLabels.find((l) => l.label_id === selectedLabelId);
   }, [userLabels, selectedLabelId]);
 
-  // Load profile if not loaded
+  // ✅ FIX 1: Load profile if not loaded - Added 'user' to dependencies
   useEffect(() => {
     let mounted = true;
 
     const loadUserProfile = async () => {
       if (user && !user.labels && !profileLoading && mounted) {
-        console.log("📡 Loading profile to get labels...");
         try {
           await loadProfile();
         } catch (error) {
@@ -149,18 +149,17 @@ export default function CreateOrderPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.email, profileLoading, loadProfile]);
+  }, [user, profileLoading, loadProfile]); // ✅ Added 'user' to dependencies
 
-  // Set default label when labels become available
+  // ✅ FIX 2: Set default label when labels become available - Added 'userLabels' to dependencies
   useEffect(() => {
     if (userLabels.length > 0 && !selectedLabelId) {
       const firstLabel = userLabels[0];
-      console.log("🏷️ Setting default label:", firstLabel.name);
       if (firstLabel.label_id) {
         setSelectedLabelId(firstLabel.label_id);
       }
     }
-  }, [userLabels.length, selectedLabelId]);
+  }, [userLabels, selectedLabelId]); // ✅ Added 'userLabels' instead of 'userLabels.length'
 
   // --- Data for Form Elements ---
   const capColorOptions = [
@@ -231,17 +230,17 @@ export default function CreateOrderPage() {
         volume: volume,
       };
 
-      console.log("📦 Creating order with data:", orderData);
       const result = await orderService.createOrder(orderData);
 
-      console.log("✅ Order created successfully:", result);
       setCreatedOrderId(result.order.order_id);
 
       setTimeout(() => {
         router.push(`/order/invoice?orderId=${result.order.order_id}`);
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to create order");
+    } catch (err) {
+      // ✅ FIX 3: Removed `: any` and added proper error handling
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create order';
+      setError(errorMessage);
       console.error("❌ Failed to create order:", err);
       setLoading(false);
     }
@@ -371,14 +370,19 @@ export default function CreateOrderPage() {
           <div className="space-y-6">
             {/* Label Preview */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-              <div className="w-full h-64 bg-gray-100/70 rounded-lg flex flex-col items-center justify-center">
+              <div className="w-full h-64 bg-gray-100/70 rounded-lg flex flex-col items-center justify-center relative">
                 {selectedLabel?.label_url ? (
                   <div className="text-center">
-                    <img
-                      src={selectedLabel.label_url}
-                      alt={selectedLabel.name || "Label"}
-                      className="w-32 h-32 object-cover rounded-lg mx-auto mb-2"
-                    />
+                    <div className="relative w-32 h-32 mx-auto mb-2">
+                      <Image
+                        src={selectedLabel.label_url}
+                        alt={selectedLabel.name || "Label"}
+                        width={128}
+                        height={128}
+                        className="object-cover rounded-lg"
+                        unoptimized
+                      />
+                    </div>
                     <p className="text-sm font-medium text-gray-700">
                       {selectedLabel.name || "Unnamed Label"}
                     </p>

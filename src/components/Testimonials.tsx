@@ -41,7 +41,8 @@ const Testimonials = () => {
                   <Star key={i} className="text-yellow-400 fill-current" size={20} />
                 ))}
               </div>
-              <p className="mt-4 text-gray-600">"{testimonial.quote}"</p>
+              {/* ✅ FIX: Escaped quotes */}
+              <p className="mt-4 text-gray-600">&quot;{testimonial.quote}&quot;</p>
               <div className="mt-6">
                 <p className="font-semibold text-gray-800">{testimonial.name}</p>
                 <p className="text-sm text-gray-500">{testimonial.company}</p>

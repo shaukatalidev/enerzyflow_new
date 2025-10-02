@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   User,
   Edit3,
@@ -26,20 +27,27 @@ interface UserProfile {
   labelName?: string;
   logo?: string;
   role?: "user" | "plant" | "printing";
-  labels?: Array<{ name: string; url: string }>;
-  outlets?: Array<{ name: string; address: string }>; // ✅ Added outlets
+  labels?: Array<{ label_id?: string; name: string; url: string }>;
+  outlets?: Array<{ id?: string; name: string; address: string }>;
 }
 
-// ✅ Updated interface to include outlets
+// ✅ FIX 1: Define proper return type instead of any
+interface ProfileUpdateResult {
+  blocked_labels?: Array<{
+    label_id: string;
+    name: string;
+  }>;
+}
+
 interface MyProfileProps {
   userProfile: UserProfile;
   onProfileUpdate: (
     updatedProfile: UserProfile,
     profileImageUrl?: string,
     logoUrl?: string,
-    labelsData?: Array<{ name: string; url: string }>,
-    outletsData?: Array<{ name: string; address: string }>
-  ) => Promise<any>;
+    labelsData?: Array<{ label_id?: string; name: string; url: string }>,
+    outletsData?: Array<{ id?: string; name: string; address: string }>
+  ) => Promise<ProfileUpdateResult>; // ✅ Changed from Promise<any>
   error?: string | null;
   onClearError?: () => void;
 }
@@ -100,6 +108,13 @@ const ErrorAlert = ({
   </div>
 );
 
+// ✅ FIX 8, 9, 10: Define Cloudinary result type
+interface CloudinaryUploadResult {
+  info?: {
+    secure_url?: string;
+  };
+}
+
 export default function MyProfile({
   userProfile,
   onProfileUpdate,
@@ -111,16 +126,16 @@ export default function MyProfile({
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // ✅ Updated state management
   const [profileImageUrl, setProfileImageUrl] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [labelsData, setLabelsData] = useState<
-    Array<{ name: string; url: string }>
+    Array<{ label_id?: string; name: string; url: string }>
   >([]);
   const [outletsData, setOutletsData] = useState<
-    Array<{ name: string; address: string }>
-  >([]); // ✅ Added outlets state
+    Array<{ id?: string; name: string; address: string }>
+  >([]);
   const [hasMultipleOutlets, setHasMultipleOutlets] = useState(false);
+  const [lockedLabels, setLockedLabels] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setFormData(userProfile);
@@ -128,7 +143,7 @@ export default function MyProfile({
     setProfileImageUrl(userProfile.profilePhoto || "");
     setLogoUrl(userProfile.logo || "");
     setLabelsData(userProfile.labels || []);
-    setOutletsData(userProfile.outlets || []); // ✅ Set outlets data
+    setOutletsData(userProfile.outlets || []);
     setHasMultipleOutlets((userProfile.outlets?.length || 0) > 0);
   }, [userProfile]);
 
@@ -136,14 +151,12 @@ export default function MyProfile({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ✅ Handle label changes
   const handleLabelNameChange = (index: number, name: string) => {
     setLabelsData((prev) =>
       prev.map((label, i) => (i === index ? { ...label, name } : label))
     );
   };
 
-  // ✅ Handle outlet changes
   const handleOutletChange = (
     index: number,
     field: "name" | "address",
@@ -161,10 +174,18 @@ export default function MyProfile({
   };
 
   const removeLabel = (index: number) => {
+    const label = labelsData[index];
+
+    if (label.label_id && lockedLabels.has(label.label_id)) {
+      alert(
+        "This label cannot be deleted because it is attached to existing orders."
+      );
+      return;
+    }
+
     setLabelsData((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ✅ Outlet management functions
   const addNewOutlet = () => {
     setOutletsData((prev) => [...prev, { name: "", address: "" }]);
   };
@@ -194,13 +215,62 @@ export default function MyProfile({
         profileImageUrl || undefined,
         logoUrl || undefined,
         labelsData.length > 0 ? labelsData : undefined,
-        outletsData.length > 0 ? outletsData : undefined // ✅ Pass outlets data
+        outletsData.length > 0 ? outletsData : undefined
       );
+
+      // ✅ Handle labels that couldn't be deleted (attached to orders)
+      if (result?.blocked_labels && result.blocked_labels.length > 0) {
+        // ✅ FIX 2 & 3: Removed any types
+        const lockedLabelIds = new Set<string>(
+          result.blocked_labels
+            .map((l) => l.label_id)
+            .filter((id): id is string => Boolean(id))
+        );
+        setLockedLabels(lockedLabelIds);
+
+        // ✅ FIX 4: Removed any type
+        const blockedLabelsData = result.blocked_labels.map((l) => ({
+          label_id: l.label_id,
+          name: l.name,
+          url: "", // Backend doesn't return URL for blocked labels, keep existing
+        }));
+
+        // Check if these labels are already in labelsData
+        const existingIds = new Set(
+          labelsData.map((l) => l.label_id).filter(Boolean)
+        );
+
+        // ✅ FIX 5: Removed any type
+        // Add back blocked labels that were removed from UI
+        const newBlockedLabels = blockedLabelsData.filter(
+          (l) => !existingIds.has(l.label_id)
+        );
+
+        if (newBlockedLabels.length > 0) {
+          // ✅ FIX 6: Removed any type
+          // For blocked labels without URL, try to find original URL from originalData
+          const labelsWithUrls = newBlockedLabels.map((blockedLabel) => {
+            const originalLabel = originalData.labels?.find(
+              (ol) => ol.label_id === blockedLabel.label_id
+            );
+            return {
+              ...blockedLabel,
+              url: originalLabel?.url || "", // Restore original URL if exists
+            };
+          });
+
+          setLabelsData((prev) => [...prev, ...labelsWithUrls]);
+          alert(
+            `Note: ${newBlockedLabels.length} label(s) could not be deleted because they are attached to existing orders.`
+          );
+        }
+      }
 
       setOriginalData(formData);
       setIsEditing(false);
       alert("Profile updated successfully!");
-    } catch (error: any) {
+    } catch (error) {
+      // ✅ FIX 7: Removed any type
       console.error("Failed to update profile:", error);
     } finally {
       setIsLoading(false);
@@ -212,14 +282,15 @@ export default function MyProfile({
     setProfileImageUrl(originalData.profilePhoto || "");
     setLogoUrl(originalData.logo || "");
     setLabelsData(originalData.labels || []);
-    setOutletsData(originalData.outlets || []); // ✅ Reset outlets
+    setOutletsData(originalData.outlets || []);
     setHasMultipleOutlets((originalData.outlets?.length || 0) > 0);
     setIsEditing(false);
+    setLockedLabels(new Set());
     onClearError?.();
   };
 
-  // Upload handlers (same as before)
-  const handleProfileUploadSuccess = (result: any) => {
+  // ✅ FIX 8: Changed from any to CloudinaryUploadResult
+  const handleProfileUploadSuccess = (result: CloudinaryUploadResult) => {
     if (result.info && result.info.secure_url) {
       const newUrl = result.info.secure_url;
       setProfileImageUrl(newUrl);
@@ -232,10 +303,10 @@ export default function MyProfile({
     }
   };
 
-  const handleLogoUploadSuccess = (result: any) => {
+  // ✅ FIX 9: Changed from any to CloudinaryUploadResult
+  const handleLogoUploadSuccess = (result: CloudinaryUploadResult) => {
     if (result.info && result.info.secure_url) {
       const newUrl = result.info.secure_url;
-  
       setLogoUrl(newUrl);
       setProfileImageUrl(newUrl);
       setFormData((prev) => ({
@@ -246,10 +317,10 @@ export default function MyProfile({
     }
   };
 
-  const handleLabelUploadSuccess = (result: any, index: number) => {
+  // ✅ FIX 10: Changed from any to CloudinaryUploadResult
+  const handleLabelUploadSuccess = (result: CloudinaryUploadResult, index: number) => {
     if (result.info && result.info.secure_url) {
       const newUrl = result.info.secure_url;
-  
       setLabelsData((prev) =>
         prev.map((label, i) =>
           i === index ? { ...label, url: newUrl } : label
@@ -286,19 +357,15 @@ export default function MyProfile({
                 <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                   {(() => {
                     const imageUrl = profileImageUrl || formData.profilePhoto;
-                
+
                     return imageUrl ? (
-                      <img
+                      <Image
                         src={imageUrl}
                         alt="Profile"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error(
-                            "Profile image failed to load:",
-                            imageUrl
-                          );
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
+                        width={96}
+                        height={96}
+                        className="w-full h-full object-cover rounded-full"
+                        unoptimized
                       />
                     ) : (
                       <User className="w-12 h-12 text-gray-400" />
@@ -467,7 +534,6 @@ export default function MyProfile({
                   )}
                 </div>
 
-                {/* ✅ Multiple Outlets Checkbox */}
                 {isEditing && (
                   <div className="flex items-center gap-3">
                     <input
@@ -487,7 +553,7 @@ export default function MyProfile({
                 )}
               </div>
 
-              {/* ✅ Outlets Section */}
+              {/* Outlets Section */}
               {(hasMultipleOutlets || outletsData.length > 0) && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -509,12 +575,17 @@ export default function MyProfile({
                     <div className="space-y-4">
                       {outletsData.map((outlet, index) => (
                         <div
-                          key={index}
+                          key={outlet.id || index}
                           className="p-4 border border-gray-200 rounded-lg"
                         >
                           <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-medium text-gray-800">
                               Outlet {index + 1} (Landmark)
+                              {outlet.id && (
+                                <span className="text-xs text-gray-400 ml-2">
+                                  (Existing)
+                                </span>
+                              )}
                             </h3>
                             {isEditing && outletsData.length > 1 && (
                               <button
@@ -591,7 +662,9 @@ export default function MyProfile({
                   ) : (
                     <div className="text-center py-8">
                       <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">No outlets added yet</p>
+                      <p className="text-gray-500 text-sm">
+                        No outlets added yet
+                      </p>
                       {isEditing && (
                         <button
                           onClick={addNewOutlet}
@@ -615,14 +688,17 @@ export default function MyProfile({
                     {({ open }) => (
                       <button
                         onClick={() => open()}
-                        className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors"
+                        className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors hover:border-[#4A90E2]"
                       >
                         {logoUrl ? (
-                          <div className="w-full max-h-32 flex items-center justify-center mb-2">
-                            <img
+                          <div className="w-full max-h-32 flex items-center justify-center mb-2 relative">
+                            <Image
                               src={logoUrl}
                               alt="Logo preview"
-                              className="max-h-20 max-w-full object-contain"
+                              width={200}
+                              height={80}
+                              className="max-h-20 w-auto object-contain"
+                              unoptimized
                             />
                           </div>
                         ) : (
@@ -643,10 +719,13 @@ export default function MyProfile({
                 ) : (
                   <div className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-lg">
                     {logoUrl || formData.logo ? (
-                      <img
-                        src={logoUrl || formData.logo}
+                      <Image
+                        src={logoUrl || formData.logo || ""}
                         alt="Logo"
-                        className="max-h-20 max-w-full object-contain"
+                        width={200}
+                        height={80}
+                        className="max-h-20 w-auto object-contain"
+                        unoptimized
                       />
                     ) : (
                       <>
@@ -679,79 +758,125 @@ export default function MyProfile({
 
                 {labelsData.length > 0 ? (
                   <div className="space-y-4">
-                    {labelsData.map((label, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                          {label.url ? (
-                            <img
-                              src={label.url}
-                              alt={`Label ${index + 1}`}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                          ) : (
-                            <ImageIcon className="w-6 h-6 text-gray-400" />
-                          )}
-                        </div>
+                    {labelsData.map((label, index) => {
+                      const isLocked = Boolean(
+                        label.label_id && lockedLabels.has(label.label_id)
+                      );
 
-                        <div className="flex-grow">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={label.name}
-                                onChange={(e) =>
-                                  handleLabelNameChange(index, e.target.value)
-                                }
-                                placeholder={`Label ${index + 1} name`}
-                                className="w-full px-3 py-2 bg-white rounded-md border border-gray-200 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A90E2]"
-                                disabled={isLoading}
+                      return (
+                        <div
+                          key={label.label_id || index}
+                          className={`flex items-center gap-4 p-3 rounded-lg ${
+                            isLocked
+                              ? "bg-amber-50 border border-amber-200"
+                              : "bg-gray-50"
+                          }`}
+                        >
+                          <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden relative">
+                            {label.url ? (
+                              <Image
+                                src={label.url}
+                                alt={`Label ${index + 1}`}
+                                width={64}
+                                height={64}
+                                className="w-full h-full object-cover rounded-lg"
+                                unoptimized
                               />
+                            ) : (
+                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                            )}
+                          </div>
 
-                              <div className="flex gap-2">
-                                <CloudinaryUploadWidget
-                                  onSuccess={(result) =>
-                                    handleLabelUploadSuccess(result, index)
+                          <div className="flex-grow">
+                            {isEditing ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={label.name}
+                                  onChange={(e) =>
+                                    handleLabelNameChange(index, e.target.value)
                                   }
-                                >
-                                  {({ open }) => (
-                                    <button
-                                      onClick={() => open()}
-                                      className="text-xs text-[#4A90E2] hover:text-[#357ABD]"
-                                    >
-                                      {label.url
-                                        ? "Change Image"
-                                        : "Upload Image"}
-                                    </button>
-                                  )}
-                                </CloudinaryUploadWidget>
+                                  placeholder={`Label ${index + 1} name`}
+                                  className="w-full px-3 py-2 bg-white rounded-md border border-gray-200 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A90E2] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  disabled={isLoading || isLocked}
+                                />
 
-                                {labelsData.length > 1 && (
-                                  <button
-                                    onClick={() => removeLabel(index)}
-                                    className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                    Remove
-                                  </button>
+                                <div className="flex gap-2 items-center flex-wrap">
+                                  {label.label_id && (
+                                    <span
+                                      className={`text-xs ${
+                                        isLocked
+                                          ? "text-amber-600 font-medium"
+                                          : "text-gray-400"
+                                      }`}
+                                    >
+                                      {isLocked
+                                        ? "⚠️ In Use (Cannot Delete)"
+                                        : "(Existing)"}
+                                    </span>
+                                  )}
+
+                                  {!isLocked && (
+                                    <>
+                                      <CloudinaryUploadWidget
+                                        onSuccess={(result) =>
+                                          handleLabelUploadSuccess(
+                                            result,
+                                            index
+                                          )
+                                        }
+                                      >
+                                        {({ open }) => (
+                                          <button
+                                            onClick={() => open()}
+                                            className="text-xs text-[#4A90E2] hover:text-[#357ABD]"
+                                          >
+                                            {label.url
+                                              ? "Change Image"
+                                              : "Upload Image"}
+                                          </button>
+                                        )}
+                                      </CloudinaryUploadWidget>
+
+                                      {labelsData.length > 1 && (
+                                        <button
+                                          onClick={() => removeLabel(index)}
+                                          className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                          Remove
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+
+                                {isLocked && (
+                                  <p className="text-xs text-amber-700 mt-1">
+                                    This label is attached to existing orders
+                                    and cannot be deleted.
+                                  </p>
                                 )}
                               </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <p className="text-sm font-medium text-gray-800">
-                                {label.name || `Label ${index + 1}`}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {label.url ? "Image uploaded" : "No image"}
-                              </p>
-                            </div>
-                          )}
+                            ) : (
+                              <div>
+                                <p className="text-sm font-medium text-gray-800">
+                                  {label.name || `Label ${index + 1}`}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {label.url ? "Image uploaded" : "No image"}
+                                </p>
+                                {isLocked && (
+                                  <p className="text-xs text-amber-600 mt-1">
+                                    ⚠️ In use with orders
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8">

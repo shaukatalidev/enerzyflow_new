@@ -24,9 +24,10 @@ export default function Login() {
     try {
       await sendOTP(email);
       setCurrentStep(2);
-      console.log(`📧 OTP sent to ${email}`);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
+      // ✅ FIX 1: Removed `: any`
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
+      setError(errorMessage);
       console.error("❌ Send OTP error:", error);
     } finally {
       setIsLoading(false);
@@ -69,22 +70,19 @@ export default function Login() {
     setIsRedirecting(true);
 
     try {
-      console.log('🔐 Starting OTP verification...');
-      
       // Wait for login and profile loading to complete
       await login(email, otpCode);
       
-      console.log("✅ Login successful! Profile loaded. Making redirect decision...");
-      
       // Now that login is complete and profile is loaded, get redirect path
       const redirectPath = getPostLoginRedirectPath();
-      
-      console.log('🚀 Final redirect decision:', redirectPath);
+  
       router.push(redirectPath);
       
-    } catch (error: any) {
+    } catch (error) {
+      // ✅ FIX 2: Removed `: any`
       console.error("❌ Login error:", error);
-      setError(error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      setError(errorMessage);
       setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
       setIsRedirecting(false);
@@ -100,9 +98,10 @@ export default function Login() {
       await sendOTP(email);
       setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
-      console.log('📧 OTP resent');
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
+      // ✅ FIX 3: Removed `: any`
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend OTP';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -340,7 +339,8 @@ export default function Login() {
                   disabled={isLoading || isRedirecting}
                   className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 transition-colors duration-200"
                 >
-                  Didn't receive the code? Resend OTP
+                  {/* ✅ FIX 4: Escaped apostrophe */}
+                  Didn&apos;t receive the code? Resend OTP
                 </button>
 
                 <button

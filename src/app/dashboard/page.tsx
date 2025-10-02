@@ -3,11 +3,8 @@
 import { useState, useEffect } from 'react';
 import ProfileCompletion from './components/ProfileCompletion';
 import MainDashboard from './components/MainDashboard';
-import PlantDashboard from './components/PlantDashboard';
-import PrintDashboard from './components/PrintDashboard';
 
 import { profileService, ProfileResponse } from '../services/profileService'; 
-import { Main } from 'next/document';
 
 interface UserProfile {
   name?: string;
