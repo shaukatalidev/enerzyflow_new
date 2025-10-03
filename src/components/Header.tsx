@@ -340,7 +340,7 @@ const Header = () => {
                 </div>
               ) : (
                 <Link href="/login">
-                  <button className="bg-blue-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">
+                  <button className="bg-cyan-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-cyan-600 transition-colors">
                     Sign In
                   </button>
                 </Link>
@@ -540,7 +540,7 @@ const Header = () => {
                   </button>
                 ) : (
                   <Link href="/login" onClick={handleLinkClick}>
-                    <button className="w-full bg-blue-500 text-white px-6 py-3 rounded-full text-base font-medium hover:bg-blue-700 transition-colors">
+                    <button className="w-full bg-cyan-500 text-white px-6 py-3 rounded-full text-base font-medium hover:bg-cyan-600 transition-colors">
                       Sign In
                     </button>
                   </Link>
