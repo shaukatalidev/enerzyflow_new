@@ -1,4 +1,3 @@
-// src/components/Footer.tsx
 import Image from "next/image";
 import Link from "next/link";
 
@@ -17,8 +16,9 @@ const Footer = () => {
             />
           </div>
           <p className="mt-4 md:mt-0 text-gray-500 max-w-sm">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-            eiusmod tempor incididunt
+            Transforming bottles into branding powerhouses. We help businesses 
+            elevate their brand through premium custom water bottles with 
+            innovative design and QR code integration.
           </p>
         </div>
 
@@ -157,8 +157,8 @@ const Footer = () => {
               Subscribe to our newsletter
             </h3>
             <p className="mt-4 text-gray-600 text-sm">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit aliquam
-              mauris sed ma
+              Stay updated with the latest trends in custom branding, exclusive 
+              offers, and innovative solutions for your business.
             </p>
             <form className="mt-4 space-y-3">
               <input
@@ -182,16 +182,11 @@ const Footer = () => {
             Copyright © 2024 Enerzyflow | All Rights Reserved
           </p>
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-            <Link href="#">
-              <Image
-                src="/images/brands/x_logo.png"
-                alt="X"
-                width={24}
-                height={24}
-                className="hover:opacity-75"
-              />
-            </Link>
-            <Link href="https://www.facebook.com/share/19obQzdUev/">
+            <Link 
+              href="https://www.facebook.com/share/19obQzdUev/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
               <Image
                 src="/images/brands/f.png"
                 alt="Facebook"
@@ -200,7 +195,11 @@ const Footer = () => {
                 className="hover:opacity-75"
               />
             </Link>
-            <Link href="https://www.linkedin.com/company/106605789/admin/page-posts/published/">
+            <Link 
+              href="https://www.linkedin.com/company/106605789/admin/page-posts/published/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
               <Image
                 src="/images/brands/linkedin.png"
                 alt="LinkedIn"
@@ -209,16 +208,11 @@ const Footer = () => {
                 className="hover:opacity-75"
               />
             </Link>
-            <Link href="#">
-              <Image
-                src="/images/brands/utube.png"
-                alt="YouTube"
-                width={24}
-                height={24}
-                className="hover:opacity-75"
-              />
-            </Link>
-            <Link href="https://www.instagram.com/enerzyflow?igsh=MTRiZzkwMGs1dHNvNQ==">
+            <Link 
+              href="https://www.instagram.com/enerzyflow?igsh=MTRiZzkwMGs1dHNvNQ==" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
               <Image
                 src="/images/brands/insta.png"
                 alt="Instagram"
