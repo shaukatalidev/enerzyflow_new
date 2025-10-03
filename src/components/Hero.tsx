@@ -1,23 +1,23 @@
 // src/components/Hero.tsx
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const heroImages = [
   {
-    src: '/images/hero/b1.jpg',
-    alt: 'Premium water bottle with a classic design on a clean background',
+    src: "/images/hero/b1.jpg",
+    alt: "Premium water bottle with a classic design on a clean background",
   },
   {
-    src: '/images/hero/b3.jpeg',
-    alt: 'Modern style premium water bottle with sleek lines',
+    src: "/images/hero/b3.jpeg",
+    alt: "Modern style premium water bottle with sleek lines",
   },
   {
-    src: '/images/hero/b4.jpg',
-    alt: 'Ergonomically designed premium water bottle held in hand',
+    src: "/images/hero/b4.jpg",
+    alt: "Ergonomically designed premium water bottle held in hand",
   },
 ];
 
@@ -36,7 +36,7 @@ const Hero = () => {
   };
 
   useEffect(() => {
-    const timer = setInterval(goToNext, 5000); // Change image every 5 seconds
+    const timer = setInterval(goToNext, 4000); // Change image every 5 seconds
     return () => clearInterval(timer);
   }, [goToNext]);
 
@@ -73,7 +73,7 @@ const Hero = () => {
             Premium water bottles with attitude.
           </p>
           <button
-            onClick={() => router.push('/products')}
+            onClick={() => router.push("/products")}
             className="mt-8 bg-cyan-500 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-cyan-600 transition-colors"
           >
             Shop Now
@@ -103,7 +103,7 @@ const Hero = () => {
               key={index}
               onClick={() => setCurrentIndex(index)}
               className={`h-3 w-3 rounded-full transition-all ${
-                index === currentIndex ? 'bg-white scale-125' : 'bg-white/50'
+                index === currentIndex ? "bg-white scale-125" : "bg-white/50"
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />
