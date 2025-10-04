@@ -1,96 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import ProfileCompletion from './components/ProfileCompletion';
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import MainDashboard from './components/MainDashboard';
-
-import { profileService, ProfileResponse } from '../services/profileService'; 
-
-interface UserProfile {
-  name?: string;
-  contactNo?: string;
-  email?: string;
-  designation?: string;
-  brandCompanyName?: string;
-  businessAddress?: string;
-  profilePhoto?: string;
-  labelName?: string;
-  logo?: string;
-  role?: 'user' | 'plant' | 'printing';
-}
-
-const requiredProfileFields: (keyof UserProfile)[] = [
-  'name',
-  'contactNo',
-  'email',
-  'designation',
-  'brandCompanyName',
-  'businessAddress',
-];
-
-// Helper to check completeness with proper typing
-const isProfileCompleteCheck = (profile: UserProfile): boolean => {
-  return requiredProfileFields.every((field) => {
-    const value = profile[field];
-    return typeof value === 'string' ? value.trim().length > 0 : !!value;
-  });
-};
-
-// Helper to map backend ProfileResponse to UserProfile shape
-const mapProfileResponseToUserProfile = (data: ProfileResponse): UserProfile => {
-  return {
-    name: data.user?.name,
-    contactNo: data.user?.phone,
-    email: data.user?.email,
-    designation: data.user?.designation,
-    brandCompanyName: data.company?.name,
-    businessAddress: data.company?.address,
-    profilePhoto: data.user?.profile_url,
-    logo: data.company?.logo,
-    role: data.user?.role as UserProfile['role'], 
-    labelName: data.labels && data.labels.length > 0 ? data.labels[0].name : undefined,
-  };
-};
+// import PrintDashboard from './components/PrintDashboard';
+// import PlantDashboard from './components/PlantDashboard';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function DashboardPage() {
-  const [userProfile, setUserProfile] = useState<UserProfile>({});
-  const [isProfileComplete, setIsProfileComplete] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const router = useRouter();
+  const { isLoading, isAuthenticated, profileLoaded, isProfileComplete, user } = useAuth();
+  
+  const redirectAttempted = useRef(false);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const profileData = await profileService.getProfile();
-        
-        const mappedProfile = mapProfileResponseToUserProfile(profileData);
-        const complete = isProfileCompleteCheck(mappedProfile);
+    if (redirectAttempted.current || isLoading || !profileLoaded) {
+      return;
+    }
 
-        setUserProfile(mappedProfile);
-        setIsProfileComplete(complete);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        setFetchError('Failed to load user profile. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    redirectAttempted.current = true;
 
-    fetchUserProfile();
-  }, []);
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
 
-  const handleProfileComplete = (updatedProfile: UserProfile) => {
-    setUserProfile(updatedProfile);
-    setIsProfileComplete(true);
-  };
+    if (!isProfileComplete()) {
+      router.push('/profile');
+      return;
+    }
+  }, [isLoading, isAuthenticated, profileLoaded, isProfileComplete, router]);
 
-  if (isLoading) {
+  if (isLoading || !profileLoaded) {
     return (
-      <div
-        className="min-h-screen bg-gray-50 flex items-center justify-center"
-        role="status"
-        aria-live="polite"
-      >
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -99,21 +42,19 @@ export default function DashboardPage() {
     );
   }
 
-  if (fetchError) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-red-600">{fetchError}</p>
-      </div>
-    );
+  if (!isAuthenticated || !isProfileComplete()) {
+    return null;
   }
 
-  if (!isProfileComplete) {
-    return <ProfileCompletion onProfileComplete={handleProfileComplete} userProfile={userProfile} />;
+  const userRole = user?.role || 'business_owner';
+
+  switch (userRole) {
+    // case 'printing':
+    //   return <PrintDashboard />;
+    // case 'plant':
+    //   return <PlantDashboard />;
+    case 'business_owner':
+    default:
+      return <MainDashboard />;
   }
-
-  const RenderDashboard = () => {
-    return <MainDashboard/>
-  };
-
-  return <RenderDashboard />;
 }

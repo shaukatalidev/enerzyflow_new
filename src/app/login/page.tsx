@@ -30,7 +30,6 @@ export default function Login() {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to send OTP";
       setError(errorMessage);
-      console.error("❌ Send OTP error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +75,6 @@ export default function Login() {
       const redirectPath = getPostLoginRedirectPath();
       router.push(redirectPath);
     } catch (error) {
-      console.error("❌ Login error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Login failed";
       setError(errorMessage);
@@ -113,9 +111,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      {/* Container for the entire login element, including the back link */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md lg:max-w-5xl">
-        {/* Back to Home Link - positioned relative to the container */}
         <div className="mb-4 px-4 sm:px-0">
           <Link
             href="/"
@@ -138,9 +134,7 @@ export default function Login() {
           </Link>
         </div>
 
-        {/* Main card - becomes a grid container on large screens */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 lg:grid lg:grid-cols-2 overflow-hidden">
-          {/* Decorative Image Column (Visible on large screens) */}
           <div className="hidden lg:block relative h-full min-h-[600px]">
             <Image
               src="/images/hero/auth.jpg"
@@ -152,7 +146,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Form Column */}
           <div className="p-6 sm:p-10 md:p-12">
             <div className="text-center">
               <div className="mx-auto h-20 w-20 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
@@ -181,7 +174,6 @@ export default function Login() {
               </p>
             </div>
 
-            {/* ERROR DISPLAY */}
             {error && (
               <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
                 <div className="flex">
@@ -205,7 +197,6 @@ export default function Login() {
               </div>
             )}
 
-            {/* REDIRECTING INDICATOR */}
             {isRedirecting && (
               <div className="mb-6 p-4 bg-cyan-50 border-l-4 border-cyan-400 rounded-r-lg">
                 <div className="flex">
@@ -223,7 +214,6 @@ export default function Login() {
               </div>
             )}
 
-            {/* Step 1: Email Input */}
             {currentStep === 1 && (
               <form className="space-y-6" onSubmit={handleEmailSubmit}>
                 <div className="space-y-2">
@@ -299,7 +289,6 @@ export default function Login() {
               </form>
             )}
 
-            {/* Step 2: OTP Verification */}
             {currentStep === 2 && (
               <form className="space-y-6" onSubmit={handleOtpSubmit}>
                 <div className="space-y-4">

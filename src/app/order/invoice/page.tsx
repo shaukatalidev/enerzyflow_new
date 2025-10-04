@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image'; // ✅ Import Next.js Image
+import Image from 'next/image';
 import { orderService, Order } from '@/app/services/orderService';
 
 export default function InvoiceDownloadPage() {
@@ -16,27 +16,34 @@ export default function InvoiceDownloadPage() {
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
+  // ✅ FIX: Add ref to track if fetch has been attempted
+  const fetchAttempted = useRef(false);
+
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      if (!orderId) return;
+      // ✅ Prevent multiple fetches
+      if (!orderId || fetchAttempted.current) return;
+      
+      fetchAttempted.current = true;
       
       try {
         const response = await orderService.getOrder(orderId);
         setOrder(response.order);
       } catch (error) {
         console.error('Failed to fetch order:', error);
+        fetchAttempted.current = false; // ✅ Reset on error to allow retry
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchOrderDetails();
-  }, [orderId]);
+  }, [orderId]); // ✅ orderId is stable from searchParams
 
   // Calculate expected delivery date (order date + 5 days)
   const getExpectedDeliveryDate = (orderDate: string): string => {
     const date = new Date(orderDate);
-    date.setDate(date.getDate() + 5); // Add 5 days
+    date.setDate(date.getDate() + 5);
     
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
@@ -100,6 +107,7 @@ export default function InvoiceDownloadPage() {
   const handleDownloadInvoice = () => {
     // Implement invoice download logic
     // window.open(`${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}/invoice`, '_blank');
+    console.log('Downloading invoice for order:', orderId);
   };
 
   if (isLoading) {

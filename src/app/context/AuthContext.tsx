@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { authService } from "../services/authService";
 import {
@@ -98,7 +99,7 @@ interface ExtendedAuthContextType extends AuthContextType {
   user: ExtendedUser | null;
   profileLoading: boolean;
   profileLoaded: boolean;
-  loadProfile: () => Promise<void>;
+  loadProfile: (force?: boolean) => Promise<void>;
   updateProfile: (profileData: SaveProfileRequest) => Promise<void>;
   getUserLabelId: () => string | null;
   isProfileComplete: () => boolean;
@@ -122,6 +123,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  const profileLoadAttempted = useRef(false);
+  const profileLoadingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const loadProfileRef = useRef<
+    ((force?: boolean) => Promise<void>) | undefined
+  >(undefined);
+
   const isProfileComplete = useCallback(
     (user: ExtendedUser | null = state.user): boolean => {
       if (!user?.profile) return false;
@@ -144,57 +152,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = useCallback(async (): Promise<void> => {
     try {
       await authService.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      dispatch({ type: "LOGOUT" });
+      if (mountedRef.current) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        profileLoadAttempted.current = false;
+        profileLoadingRef.current = false;
+        dispatch({ type: "LOGOUT" });
+      }
     }
   }, []);
 
-  const loadProfile = useCallback(async (): Promise<void> => {
-    const accessToken = localStorage.getItem("accessToken");
-    if (!accessToken) return;
-
-    dispatch({ type: "SET_PROFILE_LOADING", payload: true });
-
-    try {
-      const profileData = await profileService.getProfile();
-      
-      // ✅ Convert null to undefined for labels
-      const profileResponse: ProfileResponse = {
-        user: profileData.user,
-        company: profileData.company,
-        labels: profileData.labels || undefined,
-      };
-      
-      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
-
-      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-      const updatedUser: ExtendedUser = {
-        ...currentUser,
-        profile: profileData.user,
-        company: profileData.company,
-        labels: profileData.labels || undefined,
-      };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-    } catch (error) {
-      console.error("❌ Failed to load profile:", error);
-      dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-      if (error instanceof Error && error.message.includes("401")) {
-        logout();
+  const loadProfile = useCallback(
+    async (force: boolean = false): Promise<void> => {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        return;
       }
-    }
-  }, [logout]);
+
+      if (
+        !force &&
+        (profileLoadingRef.current || profileLoadAttempted.current)
+      ) {
+        return;
+      }
+
+      if (force) {
+        profileLoadAttempted.current = false;
+        profileLoadingRef.current = false;
+      }
+
+      profileLoadingRef.current = true;
+      profileLoadAttempted.current = true;
+
+      if (mountedRef.current) {
+        dispatch({ type: "SET_PROFILE_LOADING", payload: true });
+      }
+
+      try {
+        const profileData = await profileService.getProfile();
+
+        if (!mountedRef.current) return;
+
+        const profileResponse: ProfileResponse = {
+          user: profileData.user,
+          company: profileData.company,
+          labels: profileData.labels || undefined,
+        };
+
+        dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
+
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const updatedUser: ExtendedUser = {
+          ...currentUser,
+          profile: profileData.user,
+          company: profileData.company,
+          labels: profileData.labels || undefined,
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      } catch (err) {
+        if (mountedRef.current) {
+          dispatch({ type: "SET_PROFILE_LOADING", payload: false });
+          profileLoadAttempted.current = false;
+        }
+
+        if (err instanceof Error && err.message.includes("401")) {
+          logout();
+        }
+      } finally {
+        if (mountedRef.current) {
+          profileLoadingRef.current = false;
+        }
+      }
+    },
+    [logout]
+  );
+
+  loadProfileRef.current = loadProfile;
 
   useEffect(() => {
     const loadStoredAuth = async (): Promise<void> => {
       try {
         const storedUser = localStorage.getItem("user");
         const storedAccessToken = localStorage.getItem("accessToken");
-        
+
         if (storedUser && storedAccessToken) {
           const user: User = JSON.parse(storedUser);
           const tokens: AuthTokens = {
@@ -203,41 +245,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
           dispatch({ type: "LOGIN_SUCCESS", payload: { user, tokens } });
 
-          if ((user as ExtendedUser).profile) {
+          const extendedUser = user as ExtendedUser;
+          if (extendedUser.profile && extendedUser.company) {
             dispatch({ type: "SET_PROFILE_LOADED", payload: true });
+            profileLoadAttempted.current = true;
           }
         }
-      } catch (error) {
-        console.error("Error loading stored auth:", error);
+      } catch {
         localStorage.removeItem("user");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
       } finally {
-        dispatch({ type: "SET_LOADING", payload: false });
+        if (mountedRef.current) {
+          dispatch({ type: "SET_LOADING", payload: false });
+        }
       }
     };
+
     loadStoredAuth();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (state.isAuthenticated && !state.profileLoaded && !state.user?.profile) {
-      loadProfile();
+    if (
+      state.isAuthenticated &&
+      !state.profileLoaded &&
+      !state.user?.profile &&
+      !profileLoadAttempted.current &&
+      !profileLoadingRef.current
+    ) {
+      loadProfileRef.current?.();
     }
-  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, loadProfile]);
+  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile]);
 
   const updateProfile = useCallback(
     async (profileData: SaveProfileRequest): Promise<void> => {
       dispatch({ type: "SET_PROFILE_LOADING", payload: true });
       try {
         const result = await profileService.saveProfile(profileData);
-        
-        // ✅ Convert null to undefined for labels
+
         const profileResponse: ProfileResponse = {
           user: result.user,
           company: result.company,
           labels: result.labels || undefined,
         };
-        
+
         dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
         const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -248,9 +303,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           labels: result.labels || undefined,
         };
         localStorage.setItem("user", JSON.stringify(updatedUser));
-      } catch (error) {
+      } catch (err) {
         dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-        throw error;
+        throw err;
       }
     },
     []
@@ -264,27 +319,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [state.user?.labels]);
 
   const sendOTP = useCallback(async (email: string): Promise<void> => {
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    if (!sanitizedEmail) {
+      throw new Error("Email is required");
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+      throw new Error("Invalid email format");
+    }
+
     try {
-      await authService.sendOTP(email);
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(error.message || "Failed to send OTP");
+      await authService.sendOTP(sanitizedEmail);
+    } catch (err) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as {
+          response?: {
+            status?: number;
+            data?: { message?: string; error?: string };
+          };
+          message?: string;
+        };
+
+        if (axiosError.response?.data) {
+          const msg =
+            axiosError.response.data.message ||
+            axiosError.response.data.error ||
+            "Failed to send OTP";
+          throw new Error(msg);
+        }
       }
-      if (typeof error === "object" && error !== null && "response" in error) {
-        const apiError = error as { response?: { data?: { error?: string } } };
-        throw new Error(apiError.response?.data?.error || "Failed to send OTP");
-      }
-      throw new Error("Failed to send OTP");
+
+      throw err instanceof Error ? err : new Error("Failed to send OTP");
     }
   }, []);
 
   const login = useCallback(
     async (email: string, otp: string): Promise<void> => {
+      const sanitizedEmail = email.trim().toLowerCase();
+      const sanitizedOtp = otp.trim();
+
+      if (!sanitizedEmail || !sanitizedOtp) {
+        throw new Error("Email and OTP are required");
+      }
+
+      if (!/^\d{6}$/.test(sanitizedOtp)) {
+        throw new Error("OTP must be 6 digits");
+      }
+
       try {
         dispatch({ type: "SET_LOADING", payload: true });
-        const response = await authService.verifyOTP(email, otp);
+
+        const response = await authService.verifyOTP(
+          sanitizedEmail,
+          sanitizedOtp
+        );
+
         const user: User = response.user;
-        
         const tokens: AuthTokens = {
           accessToken: response.accessToken,
         };
@@ -295,23 +386,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         dispatch({ type: "LOGIN_SUCCESS", payload: { user, tokens } });
 
+        profileLoadAttempted.current = false;
+        profileLoadingRef.current = false;
+
         await loadProfile();
-      } catch (error) {
+      } catch (err) {
         dispatch({ type: "SET_LOADING", payload: false });
-        if (error instanceof Error) {
-          throw new Error(error.message || "Login failed");
-        }
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "response" in error
-        ) {
-          const apiError = error as {
-            response?: { data?: { error?: string } };
+
+        if (err && typeof err === "object" && "response" in err) {
+          const axiosError = err as {
+            response?: {
+              status?: number;
+              data?: { message?: string; error?: string };
+            };
           };
-          throw new Error(apiError.response?.data?.error || "Login failed");
+
+          if (
+            axiosError.response?.status === 400 ||
+            axiosError.response?.status === 401
+          ) {
+            throw new Error("Incorrect OTP. Please try again.");
+          }
+
+          if (axiosError.response?.data) {
+            const backendError = axiosError.response.data;
+            const errorMessage =
+              backendError.message || backendError.error || "Login failed";
+            throw new Error(errorMessage);
+          }
         }
-        throw new Error("Login failed");
+
+        throw err instanceof Error ? err : new Error("Login failed");
       }
     },
     [loadProfile]

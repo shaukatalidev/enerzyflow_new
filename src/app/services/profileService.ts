@@ -10,7 +10,7 @@ export interface UserProfile {
   businessAddress?: string;
   profilePhoto?: string;
   logo?: string;
-  role?: 'user' | 'plant' | 'printing';
+  role?: 'business_owner' | 'plant' | 'printing';
   labels?: Array<{label_id?: string; name: string; url: string}>;
   outlets?: Array<{id?: string; name: string; address: string}>;
 }

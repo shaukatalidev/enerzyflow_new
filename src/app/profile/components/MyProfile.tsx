@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   User,
@@ -31,7 +31,6 @@ interface UserProfile {
   outlets?: Array<{ id?: string; name: string; address: string }>;
 }
 
-// ✅ FIX 1: Define proper return type instead of any
 interface ProfileUpdateResult {
   blocked_labels?: Array<{
     label_id: string;
@@ -47,7 +46,7 @@ interface MyProfileProps {
     logoUrl?: string,
     labelsData?: Array<{ label_id?: string; name: string; url: string }>,
     outletsData?: Array<{ id?: string; name: string; address: string }>
-  ) => Promise<ProfileUpdateResult>; // ✅ Changed from Promise<any>
+  ) => Promise<ProfileUpdateResult>;
   error?: string | null;
   onClearError?: () => void;
 }
@@ -108,7 +107,6 @@ const ErrorAlert = ({
   </div>
 );
 
-// ✅ FIX 8, 9, 10: Define Cloudinary result type
 interface CloudinaryUploadResult {
   info?: {
     secure_url?: string;
@@ -137,15 +135,47 @@ export default function MyProfile({
   const [hasMultipleOutlets, setHasMultipleOutlets] = useState(false);
   const [lockedLabels, setLockedLabels] = useState<Set<string>>(new Set());
 
+  const initialDataSet = useRef(false);
+
   useEffect(() => {
-    setFormData(userProfile);
-    setOriginalData(userProfile);
-    setProfileImageUrl(userProfile.profilePhoto || "");
-    setLogoUrl(userProfile.logo || "");
-    setLabelsData(userProfile.labels || []);
-    setOutletsData(userProfile.outlets || []);
-    setHasMultipleOutlets((userProfile.outlets?.length || 0) > 0);
-  }, [userProfile]);
+    if (!userProfile) {
+      console.log("⏭️ userProfile is null/undefined, skipping");
+      return;
+    }
+
+    if (isEditing) {
+      console.log("⏭️ Currently editing, skipping update");
+      return;
+    }
+
+    const hasChanged =
+      !initialDataSet.current ||
+      userProfile.name !== formData.name ||
+      userProfile.email !== formData.email ||
+      userProfile.contactNo !== formData.contactNo ||
+      userProfile.designation !== formData.designation ||
+      userProfile.brandCompanyName !== formData.brandCompanyName ||
+      userProfile.businessAddress !== formData.businessAddress ||
+      userProfile.profilePhoto !== formData.profilePhoto ||
+      userProfile.logo !== formData.logo ||
+      JSON.stringify(userProfile.labels) !== JSON.stringify(labelsData) ||
+      JSON.stringify(userProfile.outlets) !== JSON.stringify(outletsData);
+
+    if (hasChanged) {
+      console.log("🔄 Props changed, updating MyProfile state");
+      setFormData(userProfile);
+      setOriginalData(userProfile);
+      setProfileImageUrl(userProfile.profilePhoto || "");
+      setLogoUrl(userProfile.logo || "");
+      setLabelsData(userProfile.labels || []);
+      setOutletsData(userProfile.outlets || []);
+      setHasMultipleOutlets((userProfile.outlets?.length || 0) > 0);
+      initialDataSet.current = true;
+    } else {
+      console.log("⏭️ No changes detected, keeping current state");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile, isEditing]);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -206,21 +236,89 @@ export default function MyProfile({
     }
   };
 
+  // ✅ VALIDATION FUNCTION
+  const validateFormData = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Validate Labels - must have BOTH name and URL
+    if (labelsData.length > 0) {
+      labelsData.forEach((label, index) => {
+        const hasName = label.name && label.name.trim() !== "";
+        const hasUrl = label.url && label.url.trim() !== "";
+
+        if (!hasName && !hasUrl) {
+          errors.push(
+            `Label ${index + 1}: Please either delete this label or add both name and image`
+          );
+        } else if (!hasName && hasUrl) {
+          errors.push(`Label ${index + 1}: Please add a name for this label`);
+        } else if (hasName && !hasUrl) {
+          errors.push(
+            `Label ${index + 1}: Please upload an image for "${label.name}"`
+          );
+        }
+      });
+    }
+
+    // Validate Outlets - must have BOTH name and address
+    if (outletsData.length > 0) {
+      outletsData.forEach((outlet, index) => {
+        const hasName = outlet.name && outlet.name.trim() !== "";
+        const hasAddress = outlet.address && outlet.address.trim() !== "";
+
+        if (!hasName && !hasAddress) {
+          errors.push(
+            `Outlet ${index + 1}: Please either delete this outlet or add both name and address`
+          );
+        } else if (!hasName && hasAddress) {
+          errors.push(
+            `Outlet ${index + 1}: Please add a name for this outlet`
+          );
+        } else if (hasName && !hasAddress) {
+          errors.push(
+            `Outlet ${index + 1}: Please add an address for "${outlet.name}"`
+          );
+        }
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  };
+
   const handleSubmit = async () => {
+    // ✅ Validate before submission
+    const validation = validateFormData();
+
+    if (!validation.isValid) {
+      const errorMessage = validation.errors.join("\n\n");
+      alert(errorMessage);
+      return;
+    }
+
     try {
       setIsLoading(true);
+
+      // ✅ Filter out empty labels and outlets before sending
+      const validLabels = labelsData.filter(
+        (label) => label.name.trim() !== "" && label.url.trim() !== ""
+      );
+
+      const validOutlets = outletsData.filter(
+        (outlet) => outlet.name.trim() !== "" && outlet.address.trim() !== ""
+      );
 
       const result = await onProfileUpdate(
         formData,
         profileImageUrl || undefined,
         logoUrl || undefined,
-        labelsData.length > 0 ? labelsData : undefined,
-        outletsData.length > 0 ? outletsData : undefined
+        validLabels.length > 0 ? validLabels : undefined,
+        validOutlets.length > 0 ? validOutlets : undefined
       );
 
-      // ✅ Handle labels that couldn't be deleted (attached to orders)
       if (result?.blocked_labels && result.blocked_labels.length > 0) {
-        // ✅ FIX 2 & 3: Removed any types
         const lockedLabelIds = new Set<string>(
           result.blocked_labels
             .map((l) => l.label_id)
@@ -228,34 +326,28 @@ export default function MyProfile({
         );
         setLockedLabels(lockedLabelIds);
 
-        // ✅ FIX 4: Removed any type
         const blockedLabelsData = result.blocked_labels.map((l) => ({
           label_id: l.label_id,
           name: l.name,
-          url: "", // Backend doesn't return URL for blocked labels, keep existing
+          url: "",
         }));
 
-        // Check if these labels are already in labelsData
         const existingIds = new Set(
           labelsData.map((l) => l.label_id).filter(Boolean)
         );
 
-        // ✅ FIX 5: Removed any type
-        // Add back blocked labels that were removed from UI
         const newBlockedLabels = blockedLabelsData.filter(
           (l) => !existingIds.has(l.label_id)
         );
 
         if (newBlockedLabels.length > 0) {
-          // ✅ FIX 6: Removed any type
-          // For blocked labels without URL, try to find original URL from originalData
           const labelsWithUrls = newBlockedLabels.map((blockedLabel) => {
             const originalLabel = originalData.labels?.find(
               (ol) => ol.label_id === blockedLabel.label_id
             );
             return {
               ...blockedLabel,
-              url: originalLabel?.url || "", // Restore original URL if exists
+              url: originalLabel?.url || "",
             };
           });
 
@@ -266,12 +358,19 @@ export default function MyProfile({
         }
       }
 
-      setOriginalData(formData);
+      setOriginalData({
+        ...formData,
+        labels: validLabels,
+        outlets: validOutlets,
+        profilePhoto: profileImageUrl,
+        logo: logoUrl,
+      });
+
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (error) {
-      // ✅ FIX 7: Removed any type
       console.error("Failed to update profile:", error);
+      alert("Failed to update profile. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -289,7 +388,6 @@ export default function MyProfile({
     onClearError?.();
   };
 
-  // ✅ FIX 8: Changed from any to CloudinaryUploadResult
   const handleProfileUploadSuccess = (result: CloudinaryUploadResult) => {
     if (result.info && result.info.secure_url) {
       const newUrl = result.info.secure_url;
@@ -303,7 +401,6 @@ export default function MyProfile({
     }
   };
 
-  // ✅ FIX 9: Changed from any to CloudinaryUploadResult
   const handleLogoUploadSuccess = (result: CloudinaryUploadResult) => {
     if (result.info && result.info.secure_url) {
       const newUrl = result.info.secure_url;
@@ -317,8 +414,10 @@ export default function MyProfile({
     }
   };
 
-  // ✅ FIX 10: Changed from any to CloudinaryUploadResult
-  const handleLabelUploadSuccess = (result: CloudinaryUploadResult, index: number) => {
+  const handleLabelUploadSuccess = (
+    result: CloudinaryUploadResult,
+    index: number
+  ) => {
     if (result.info && result.info.secure_url) {
       const newUrl = result.info.secure_url;
       setLabelsData((prev) =>
@@ -573,91 +672,108 @@ export default function MyProfile({
 
                   {outletsData.length > 0 ? (
                     <div className="space-y-4">
-                      {outletsData.map((outlet, index) => (
-                        <div
-                          key={outlet.id || index}
-                          className="p-4 border border-gray-200 rounded-lg"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-medium text-gray-800">
-                              Outlet {index + 1} (Landmark)
-                              {outlet.id && (
-                                <span className="text-xs text-gray-400 ml-2">
-                                  (Existing)
-                                </span>
+                      {outletsData.map((outlet, index) => {
+                        // ✅ Check if outlet is incomplete
+                        const hasName = outlet.name && outlet.name.trim() !== "";
+                        const hasAddress =
+                          outlet.address && outlet.address.trim() !== "";
+                        const isIncomplete =
+                          (!hasName || !hasAddress) && (hasName || hasAddress);
+
+                        return (
+                          <div
+                            key={outlet.id || index}
+                            className={`p-4 border rounded-lg ${
+                              isIncomplete
+                                ? "border-red-300 bg-red-50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-sm font-medium text-gray-800">
+                                Outlet {index + 1} (Landmark)
+                                {outlet.id && (
+                                  <span className="text-xs text-gray-400 ml-2">
+                                    (Existing)
+                                  </span>
+                                )}
+                              </h3>
+                              {isEditing && outletsData.length > 1 && (
+                                <button
+                                  onClick={() => removeOutlet(index)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               )}
-                            </h3>
-                            {isEditing && outletsData.length > 1 && (
-                              <button
-                                onClick={() => removeOutlet(index)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                            </div>
+
+                            {/* ✅ Show validation message */}
+                            {isIncomplete && isEditing && (
+                              <div className="mb-3 p-2 bg-red-100 border border-red-200 rounded text-xs text-red-700">
+                                ⚠️ Please complete both name and address, or
+                                remove this outlet
+                              </div>
                             )}
-                          </div>
 
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Outlet Name
-                              </label>
-                              {isEditing ? (
-                                <EditableInput
-                                  value={outlet.name}
-                                  onChange={(e) =>
-                                    handleOutletChange(
-                                      index,
-                                      "name",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder={`Enter Outlet ${
-                                    index + 1
-                                  } Name`}
-                                  disabled={isLoading}
-                                />
-                              ) : (
-                                <StaticField
-                                  value={outlet.name}
-                                  placeholder={`Enter Outlet ${
-                                    index + 1
-                                  } Name`}
-                                />
-                              )}
-                            </div>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Outlet Name {isEditing && "*"}
+                                </label>
+                                {isEditing ? (
+                                  <EditableInput
+                                    value={outlet.name}
+                                    onChange={(e) =>
+                                      handleOutletChange(
+                                        index,
+                                        "name",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder={`Enter Outlet ${index + 1} Name`}
+                                    disabled={isLoading}
+                                  />
+                                ) : (
+                                  <StaticField
+                                    value={outlet.name}
+                                    placeholder={`Enter Outlet ${index + 1} Name`}
+                                  />
+                                )}
+                              </div>
 
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Outlet Address
-                              </label>
-                              {isEditing ? (
-                                <EditableInput
-                                  value={outlet.address}
-                                  onChange={(e) =>
-                                    handleOutletChange(
-                                      index,
-                                      "address",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder={`Enter your Outlet ${
-                                    index + 1
-                                  } Address`}
-                                  disabled={isLoading}
-                                />
-                              ) : (
-                                <StaticField
-                                  value={outlet.address}
-                                  placeholder={`Enter your Outlet ${
-                                    index + 1
-                                  } Address`}
-                                />
-                              )}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Outlet Address {isEditing && "*"}
+                                </label>
+                                {isEditing ? (
+                                  <EditableInput
+                                    value={outlet.address}
+                                    onChange={(e) =>
+                                      handleOutletChange(
+                                        index,
+                                        "address",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder={`Enter your Outlet ${
+                                      index + 1
+                                    } Address`}
+                                    disabled={isLoading}
+                                  />
+                                ) : (
+                                  <StaticField
+                                    value={outlet.address}
+                                    placeholder={`Enter your Outlet ${
+                                      index + 1
+                                    } Address`}
+                                  />
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -685,56 +801,64 @@ export default function MyProfile({
                 </label>
                 {isEditing ? (
                   <CloudinaryUploadWidget onSuccess={handleLogoUploadSuccess}>
-                    {({ open }) => (
-                      <button
-                        onClick={() => open()}
-                        className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors hover:border-[#4A90E2]"
-                      >
-                        {logoUrl ? (
-                          <div className="w-full max-h-32 flex items-center justify-center mb-2 relative">
-                            <Image
-                              src={logoUrl}
-                              alt="Logo preview"
-                              width={200}
-                              height={80}
-                              className="max-h-20 w-auto object-contain"
-                              unoptimized
-                            />
-                          </div>
-                        ) : (
-                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                        )}
-                        <p className="text-sm text-gray-600">
-                          <span className="font-semibold text-[#4A90E2]">
-                            Click to upload
-                          </span>{" "}
-                          or drop logo
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Max File size up to 10 mb
-                        </p>
-                      </button>
-                    )}
+                    {({ open }) => {
+                      const currentLogo = logoUrl || formData.logo;
+
+                      return (
+                        <button
+                          onClick={() => open()}
+                          className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors hover:border-[#4A90E2]"
+                        >
+                          {currentLogo ? (
+                            <div className="w-full max-h-32 flex items-center justify-center mb-2 relative">
+                              <Image
+                                src={currentLogo}
+                                alt="Logo preview"
+                                width={200}
+                                height={80}
+                                className="max-h-20 w-auto object-contain"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                          )}
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold text-[#4A90E2]">
+                              Click to upload
+                            </span>{" "}
+                            or drop logo
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Max File size up to 10 mb
+                          </p>
+                        </button>
+                      );
+                    }}
                   </CloudinaryUploadWidget>
                 ) : (
                   <div className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-lg">
-                    {logoUrl || formData.logo ? (
-                      <Image
-                        src={logoUrl || formData.logo || ""}
-                        alt="Logo"
-                        width={200}
-                        height={80}
-                        className="max-h-20 w-auto object-contain"
-                        unoptimized
-                      />
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500">
-                          No logo uploaded
-                        </p>
-                      </>
-                    )}
+                    {(() => {
+                      const currentLogo = logoUrl || formData.logo;
+
+                      return currentLogo ? (
+                        <Image
+                          src={currentLogo}
+                          alt="Logo"
+                          width={200}
+                          height={80}
+                          className="max-h-20 w-auto object-contain"
+                          unoptimized
+                        />
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">
+                            No logo uploaded
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -763,12 +887,20 @@ export default function MyProfile({
                         label.label_id && lockedLabels.has(label.label_id)
                       );
 
+                      // ✅ Check if label is incomplete
+                      const hasName = label.name && label.name.trim() !== "";
+                      const hasUrl = label.url && label.url.trim() !== "";
+                      const isIncomplete =
+                        (!hasName || !hasUrl) && (hasName || hasUrl);
+
                       return (
                         <div
                           key={label.label_id || index}
                           className={`flex items-center gap-4 p-3 rounded-lg ${
                             isLocked
                               ? "bg-amber-50 border border-amber-200"
+                              : isIncomplete
+                              ? "bg-red-50 border border-red-200"
                               : "bg-gray-50"
                           }`}
                         >
@@ -783,7 +915,20 @@ export default function MyProfile({
                                 unoptimized
                               />
                             ) : (
-                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                              <div className="flex flex-col items-center justify-center">
+                                <ImageIcon
+                                  className={`w-6 h-6 ${
+                                    isIncomplete
+                                      ? "text-red-400"
+                                      : "text-gray-400"
+                                  }`}
+                                />
+                                {isIncomplete && isEditing && (
+                                  <span className="text-xs text-red-500 mt-1">
+                                    Required
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
 
@@ -796,10 +941,26 @@ export default function MyProfile({
                                   onChange={(e) =>
                                     handleLabelNameChange(index, e.target.value)
                                   }
-                                  placeholder={`Label ${index + 1} name`}
-                                  className="w-full px-3 py-2 bg-white rounded-md border border-gray-200 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#4A90E2] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  placeholder={`Label ${index + 1} name *`}
+                                  className={`w-full px-3 py-2 bg-white rounded-md border ${
+                                    isIncomplete && !hasName
+                                      ? "border-red-300 focus:ring-red-400"
+                                      : "border-gray-200 focus:ring-[#4A90E2]"
+                                  } text-gray-800 text-sm focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed`}
                                   disabled={isLoading || isLocked}
                                 />
+
+                                {/* ✅ Show validation message */}
+                                {isIncomplete && !hasUrl && hasName && (
+                                  <p className="text-xs text-red-600">
+                                    ⚠️ Please upload an image for this label
+                                  </p>
+                                )}
+                                {isIncomplete && !hasName && hasUrl && (
+                                  <p className="text-xs text-red-600">
+                                    ⚠️ Please add a name for this label
+                                  </p>
+                                )}
 
                                 <div className="flex gap-2 items-center flex-wrap">
                                   {label.label_id && (
@@ -829,11 +990,15 @@ export default function MyProfile({
                                         {({ open }) => (
                                           <button
                                             onClick={() => open()}
-                                            className="text-xs text-[#4A90E2] hover:text-[#357ABD]"
+                                            className={`text-xs ${
+                                              isIncomplete && !hasUrl
+                                                ? "text-red-500 hover:text-red-700 font-medium"
+                                                : "text-[#4A90E2] hover:text-[#357ABD]"
+                                            }`}
                                           >
                                             {label.url
                                               ? "Change Image"
-                                              : "Upload Image"}
+                                              : "Upload Image *"}
                                           </button>
                                         )}
                                       </CloudinaryUploadWidget>

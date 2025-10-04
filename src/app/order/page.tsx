@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -15,14 +15,12 @@ import {
 import { orderService, CreateOrderRequest } from "../services/orderService";
 import { useAuth } from "../context/AuthContext";
 
-// Match your ProfileResponse labels structure exactly
 interface Label {
   label_id?: string;
   name?: string;
   label_url?: string;
 }
 
-// Custom Dropdown Component
 const CustomDropdown = ({
   label,
   value,
@@ -65,7 +63,6 @@ const CustomDropdown = ({
   </div>
 );
 
-// Number Input Component
 const NumberInput = ({
   label,
   value,
@@ -96,7 +93,6 @@ const NumberInput = ({
   </div>
 );
 
-// Color Swatch Component for Radio Buttons
 const ColorSwatch = ({ color }: { color: string }) => (
   <span
     className="w-5 h-5 rounded-full border border-gray-300"
@@ -104,13 +100,14 @@ const ColorSwatch = ({ color }: { color: string }) => (
   ></span>
 );
 
-// --- Main Page Component ---
-
 export default function CreateOrderPage() {
   const router = useRouter();
-  const { user, profileLoading, loadProfile } = useAuth();
+  const { user, profileLoading, loadProfile, profileLoaded } = useAuth();
 
-  // --- State Management ---
+  // ✅ FIX: Add refs to track profile load attempts
+  const profileLoadAttempted = useRef(false);
+  const labelSelectedRef = useRef(false);
+
   const [selectedLabelId, setSelectedLabelId] = useState<string>("");
   const [bottleVariant, setBottleVariant] = useState("conical");
   const [capColor, setCapColor] = useState("red");
@@ -130,38 +127,55 @@ export default function CreateOrderPage() {
     return userLabels.find((l) => l.label_id === selectedLabelId);
   }, [userLabels, selectedLabelId]);
 
-  // ✅ FIX 1: Load profile if not loaded - Added 'user' to dependencies
+  // ✅ FIX 1: Load profile only once if needed
   useEffect(() => {
-    let mounted = true;
+    const shouldLoadProfile = 
+      user && 
+      !profileLoaded && 
+      !profileLoading && 
+      !profileLoadAttempted.current;
 
-    const loadUserProfile = async () => {
-      if (user && !user.labels && !profileLoading && mounted) {
+    if (shouldLoadProfile) {
+      profileLoadAttempted.current = true;
+      
+      const loadUserProfile = async () => {
         try {
           await loadProfile();
         } catch (error) {
           console.error("Failed to load profile:", error);
+          profileLoadAttempted.current = false; // Reset on error
         }
-      }
-    };
+      };
 
-    loadUserProfile();
+      loadUserProfile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profileLoaded, profileLoading]); // ✅ Removed loadProfile from dependencies
 
-    return () => {
-      mounted = false;
-    };
-  }, [user, profileLoading, loadProfile]); // ✅ Added 'user' to dependencies
-
-  // ✅ FIX 2: Set default label when labels become available - Added 'userLabels' to dependencies
+  // ✅ FIX 2: Set default label only once when labels become available
   useEffect(() => {
-    if (userLabels.length > 0 && !selectedLabelId) {
+    const shouldSetDefaultLabel = 
+      userLabels.length > 0 && 
+      !selectedLabelId && 
+      !labelSelectedRef.current;
+
+    if (shouldSetDefaultLabel) {
       const firstLabel = userLabels[0];
       if (firstLabel.label_id) {
         setSelectedLabelId(firstLabel.label_id);
+        labelSelectedRef.current = true;
       }
     }
-  }, [userLabels, selectedLabelId]); // ✅ Added 'userLabels' instead of 'userLabels.length'
+  }, [userLabels, selectedLabelId]); 
 
-  // --- Data for Form Elements ---
+  // ✅ Reset refs when user changes
+  useEffect(() => {
+    if (!user) {
+      profileLoadAttempted.current = false;
+      labelSelectedRef.current = false;
+    }
+  }, [user]);
+
   const capColorOptions = [
     {
       name: "white",
@@ -204,7 +218,6 @@ export default function CreateOrderPage() {
     { value: 2000, label: "2 Litre" },
   ];
 
-  // --- Event Handlers ---
   const handleGenerateOrder = async () => {
     setError(null);
     setCreatedOrderId(null);
@@ -238,7 +251,6 @@ export default function CreateOrderPage() {
         router.push(`/order/invoice?orderId=${result.order.order_id}`);
       }, 2000);
     } catch (err) {
-      // ✅ FIX 3: Removed `: any` and added proper error handling
       const errorMessage = err instanceof Error ? err.message : 'Failed to create order';
       setError(errorMessage);
       console.error("❌ Failed to create order:", err);
@@ -251,7 +263,7 @@ export default function CreateOrderPage() {
   };
 
   // Show loading if profile is still loading
-  if (profileLoading) {
+  if (profileLoading && !profileLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -364,7 +376,7 @@ export default function CreateOrderPage() {
           </div>
         )}
 
-        {/* Main Content Grid (Responsive) */}
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 md:gap-8 lg:gap-12">
           {/* Left Column: Preview & Initial Selection */}
           <div className="space-y-6">
