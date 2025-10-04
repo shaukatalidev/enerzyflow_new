@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { profileService } from "@/app/services/profileService";
 import MyProfile from "@/app/profile/components/MyProfile";
@@ -26,12 +26,11 @@ interface UserProfile {
   businessAddress?: string;
   profilePhoto?: string;
   logo?: string;
-  role?: "user" | "plant" | "printing"; // ✅ FIX: Changed from string to specific union type
+  role?: "user" | "plant" | "printing";
   labels?: Label[];
   outlets?: Outlet[];
 }
 
-// ✅ Define the return type matching MyProfile's expectation
 interface ProfileUpdateResult {
   blocked_labels?: Array<{
     label_id: string;
@@ -40,24 +39,36 @@ interface ProfileUpdateResult {
 }
 
 export default function ProfilePage() {
-  const { user, loadProfile } = useAuth();
+  const { user, loadProfile, profileLoaded, profileLoading } = useAuth();
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Load profile on mount
+  // ✅ FIX: Use ref to track if we've attempted to load
+  const loadAttempted = useRef(false);
+
+  // ✅ FIX: Load profile only if not already loaded and not currently loading
   useEffect(() => {
     const initProfile = async () => {
+      if (profileLoaded || profileLoading || loadAttempted.current) {
+        return;
+      }
+
+      loadAttempted.current = true;
+
       try {
         await loadProfile();
       } catch (err) {
         console.error("Failed to load profile:", err);
         setError("Failed to load profile data");
+        loadAttempted.current = false; // Allow retry on error
       }
     };
-    initProfile();
-  }, [loadProfile]);
 
-  // ✅ Watch for user changes
+    initProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Run only once on mount
+
+  // ✅ Map user data to profile format
   useEffect(() => {
     if (user?.profile) {
       const mappedProfile: UserProfile = {
@@ -69,7 +80,7 @@ export default function ProfilePage() {
         businessAddress: user.company?.address,
         profilePhoto: user.profile.profile_url,
         logo: user.company?.logo,
-        role: user.role as "user" | "plant" | "printing" | undefined, // ✅ Type assertion
+        role: user.role as "user" | "plant" | "printing" | undefined,
         labels: user.labels?.map((l) => ({
           label_id: l.label_id,
           name: l.name || "",
@@ -86,7 +97,6 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // ✅ Handle profile update with proper return type
   const handleProfileUpdate = async (
     updatedProfile: UserProfile,
     profileImageUrl?: string,
@@ -114,9 +124,8 @@ export default function ProfilePage() {
         outletsData
       );
 
-      await loadProfile(); // ✅ reload context
-      
-      // ✅ Return the result with blocked_labels
+      await loadProfile(true); 
+
       return {
         blocked_labels: result.blocked_labels || [],
       };
@@ -132,7 +141,8 @@ export default function ProfilePage() {
 
   const handleClearError = () => setError(null);
 
-  if (!profileData) {
+  // ✅ Show loading state
+  if (profileLoading || (!profileData && !error && !profileLoaded)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -143,9 +153,30 @@ export default function ProfilePage() {
     );
   }
 
+  // ✅ Show error state
+  if (error && !profileData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              loadAttempted.current = false;
+              loadProfile();
+            }}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <MyProfile
-      userProfile={profileData}
+      userProfile={profileData!}
       onProfileUpdate={handleProfileUpdate}
       error={error}
       onClearError={handleClearError}

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image'; // ✅ Import Next.js Image
+import Image from 'next/image';
 import { orderService, Order } from '@/app/services/orderService';
 
 interface OrderTimelineStep {
@@ -19,7 +19,9 @@ export default function OrderStatusPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Define the order status flow
+  const fetchAttempted = useRef(false);
+
+  // ✅ FIX: Updated status flow to include dispatch
   const statusFlow: OrderTimelineStep[] = [
     {
       status: 'placed',
@@ -37,21 +39,24 @@ export default function OrderStatusPage() {
       description: 'Order is being prepared for dispatch'
     },
     {
-      status: 'delivered',
-      label: 'ready to dispatch',
+      status: 'dispatch', // ✅ Added dispatch status
+      label: 'Ready to dispatch',
       description: 'Order has been delivered successfully'
     },
   ];
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      if (!orderId) return;
+      if (!orderId || fetchAttempted.current) return;
+      
+      fetchAttempted.current = true;
       
       try {
         const response = await orderService.getOrder(orderId);
         setOrder(response.order);
       } catch (error) {
         console.error('Failed to fetch order:', error);
+        fetchAttempted.current = false;
       } finally {
         setIsLoading(false);
       }
@@ -60,23 +65,41 @@ export default function OrderStatusPage() {
     fetchOrderDetails();
   }, [orderId]);
 
-  // Function to check if a step is completed based on current order status
+  // ✅ FIX: Updated function to handle dispatch/dispatched variations
   const isStepCompleted = (stepStatus: string): boolean => {
     if (!order) return false;
     
-    const currentStatusIndex = statusFlow.findIndex(step => step.status === order.status);
-    const stepIndex = statusFlow.findIndex(step => step.status === stepStatus);
+    // Normalize status names (handle both 'dispatch' and 'dispatched')
+    const normalizeStatus = (status: string) => {
+      if (status === 'dispatched' || status === 'dispatch') return 'dispatch';
+      if (status === 'delivered') return 'dispatch'; // Delivered is also considered as dispatch complete
+      return status;
+    };
+
+    const currentStatusNormalized = normalizeStatus(order.status);
+    const currentStatusIndex = statusFlow.findIndex(
+      step => normalizeStatus(step.status) === currentStatusNormalized
+    );
+    const stepIndex = statusFlow.findIndex(
+      step => normalizeStatus(step.status) === normalizeStatus(stepStatus)
+    );
     
-    // If current status index is >= step index, mark as completed (includes current)
     return currentStatusIndex >= stepIndex;
   };
 
-  // Function to check if a step is the current active step
+  // ✅ FIX: Updated to handle dispatch/dispatched variations
   const isCurrentStep = (stepStatus: string): boolean => {
-    return order?.status === stepStatus;
+    if (!order) return false;
+    
+    // Handle both 'dispatch' and 'dispatched'
+    if ((stepStatus === 'dispatch' || stepStatus === 'dispatched') &&
+        (order.status === 'dispatch' || order.status === 'dispatched')) {
+      return true;
+    }
+    
+    return order.status === stepStatus;
   };
 
-  // Calculate expected delivery date (order date + 5 days)
   const getExpectedDeliveryDate = (orderDate: string): string => {
     const date = new Date(orderDate);
     date.setDate(date.getDate() + 5);
@@ -88,11 +111,9 @@ export default function OrderStatusPage() {
     });
   };
 
-  // Get date for each timeline step (simulated based on order date)
   const getStepDate = (stepIndex: number, orderDate: string): string => {
     const date = new Date(orderDate);
-    // Add hours based on step index to simulate different timestamps
-    date.setHours(date.getHours() + (stepIndex * 2)); // Each step is 2 hours after previous
+    date.setHours(date.getHours() + (stepIndex * 2));
     
     return date.toLocaleDateString('en-US', {
       day: '2-digit',
@@ -101,7 +122,6 @@ export default function OrderStatusPage() {
     });
   };
 
-  // Get product name from order
   const getProductName = (order: Order) => {
     const variant = order.variant.charAt(0).toUpperCase() + order.variant.slice(1);
     const capColor = order.cap_color.charAt(0).toUpperCase() + order.cap_color.slice(1).replace('_', ' ');
@@ -172,7 +192,7 @@ export default function OrderStatusPage() {
                   unoptimized
                 />
               ) : (
-                <span className="text-white text-sm sm:text-base font-bold">spicy</span>
+                <span className="text-white text-sm sm:text-base font-bold">Label</span>
               )}
             </div>
 
@@ -185,7 +205,7 @@ export default function OrderStatusPage() {
                 Qty {order.qty.toLocaleString()} pcs
               </p>
               <p className="text-base sm:text-lg font-bold text-green-600">
-                ${order.qty * 1} {/* Replace with actual price calculation */}
+                ${order.qty * 1}
               </p>
             </div>
           </div>
@@ -264,7 +284,6 @@ export default function OrderStatusPage() {
                           }`}>
                             {step.label}
                           </h4>
-                          {/* ✅ FIX: Show different dates for each step */}
                           {isCompleted && (
                             <p className="text-xs sm:text-sm text-gray-600">
                               {getStepDate(index, order.created_at)}
@@ -282,7 +301,6 @@ export default function OrderStatusPage() {
                       }`}>
                         {step.description}
                       </p>
-                      {/* ✅ FIX: Show estimated arrival (order date + 5 days) for last step */}
                       {index === statusFlow.length - 1 && (
                         <p className="text-xs text-gray-400 mt-1">
                           estimated arrival time {getExpectedDeliveryDate(order.created_at)}

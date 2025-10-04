@@ -30,27 +30,30 @@ export interface CreateOrderResponse {
 
 export interface GetOrdersResponse {
   orders: Order[];
+  total?: number;
+  has_more?: boolean;
 }
 
 export interface GetOrderResponse {
   order: Order;
 }
 
-// ✅ Define error response type
 interface ApiErrorResponse {
   error?: string;
 }
 
+// ✅ Add pagination parameters interface
+export interface PaginationParams {
+  limit?: number;
+  offset?: number;
+}
+
 export class OrderService {
-  /**
-   * Create a new order
-   */
   static async createOrder(orderData: CreateOrderRequest): Promise<CreateOrderResponse> {
     try {
       const response = await axiosInstance.post<CreateOrderResponse>('/orders/create', orderData);
       return response.data;
     } catch (error) {
-      // ✅ FIX 1: Removed `: any` and added proper error handling
       if (error instanceof AxiosError && error.response?.data) {
         const errorData = error.response.data as ApiErrorResponse;
         throw new Error(errorData.error || 'Failed to create order');
@@ -59,12 +62,31 @@ export class OrderService {
     }
   }
 
-  static async getOrders(): Promise<GetOrdersResponse> {
+  // ✅ Updated to accept pagination parameters
+  static async getOrders(params?: PaginationParams): Promise<GetOrdersResponse> {
     try {
-      const response = await axiosInstance.get<GetOrdersResponse>('/orders/get-all');
-      return response.data;
+      const queryParams = new URLSearchParams();
+      
+      if (params?.limit) {
+        queryParams.append('limit', params.limit.toString());
+      }
+      
+      if (params?.offset !== undefined) {
+        queryParams.append('offset', params.offset.toString());
+      }
+
+      const url = `/orders/get-all${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      const response = await axiosInstance.get<GetOrdersResponse>(url);
+      
+      // ✅ Check if there are more orders (backend returns limit number, if less then no more)
+      const hasMore = response.data.orders.length === (params?.limit || 10);
+      
+      return {
+        ...response.data,
+        has_more: hasMore,
+      };
     } catch (error) {
-      // ✅ FIX 2: Removed `: any` and added proper error handling
       console.error('❌ Order service error:', error instanceof AxiosError ? error.response : error);
       
       if (error instanceof AxiosError && error.response?.data) {
@@ -75,15 +97,11 @@ export class OrderService {
     }
   }
 
-  /**
-   * Get a specific order by ID
-   */
   static async getOrder(orderId: string): Promise<GetOrderResponse> {
     try {
       const response = await axiosInstance.get<GetOrderResponse>(`/orders/${orderId}`);
       return response.data;
     } catch (error) {
-      // ✅ FIX 3: Removed `: any` and added proper error handling
       if (error instanceof AxiosError && error.response?.data) {
         const errorData = error.response.data as ApiErrorResponse;
         throw new Error(errorData.error || 'Failed to fetch order');
