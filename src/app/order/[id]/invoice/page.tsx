@@ -29,7 +29,8 @@ export default function InvoiceDownloadPage() {
         const response = await orderService.getOrder(orderId);
         setOrder(response.order);
         
-        if (response.order.payment_screenshot_url) {
+        // ✅ Changed to payment_url
+        if (response.order.payment_url) {
           setUploadSuccess(true);
         }
       } catch (error) {
@@ -106,14 +107,14 @@ export default function InvoiceDownloadPage() {
       
       setUploadSuccess(true);
       
+      // ✅ Changed to payment_url
       if (order) {
         setOrder({
           ...order,
-          payment_screenshot_url: response.url
+          payment_url: response.url
         });
       }
       
-      // ✅ Updated route
       setTimeout(() => {
         router.push(`/order/${orderId}/status`);
       }, 1500);
@@ -127,11 +128,12 @@ export default function InvoiceDownloadPage() {
 
   const handleDownloadInvoice = () => {
     console.log('Downloading invoice for order:', orderId);
+    // TODO: Implement invoice download
   };
 
-  // ✅ Updated route
   const handleTrackOrder = () => {
-    if (!uploadSuccess && !order?.payment_screenshot_url) {
+    // ✅ Changed to payment_url
+    if (!uploadSuccess && !order?.payment_url) {
       alert('Please upload payment screenshot before tracking your order');
       router.push('/dashboard');
       return;
@@ -244,11 +246,12 @@ export default function InvoiceDownloadPage() {
                 <span className="text-sm text-gray-600">Status</span>
                 <span className={`text-sm font-medium px-2 py-1 rounded-full capitalize ${
                   order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                  order.status === 'payment_uploaded' ? 'bg-indigo-100 text-indigo-700' :
                   order.status === 'processing' ? 'bg-orange-100 text-orange-700' :
                   order.status === 'printing' ? 'bg-blue-100 text-blue-700' :
                   'bg-purple-100 text-purple-700'
                 }`}>
-                  {order.status}
+                  {order.status === 'payment_uploaded' ? 'Payment Uploaded' : order.status}
                 </span>
               </div>
             </div>
@@ -301,10 +304,11 @@ export default function InvoiceDownloadPage() {
                     </svg>
                     <span className="text-green-700 font-medium">Payment screenshot uploaded successfully!</span>
                   </div>
-                  {order.payment_screenshot_url && (
+                  {/* ✅ Changed to payment_url */}
+                  {order.payment_url && (
                     <div className="mt-3">
                       <Image
-                        src={order.payment_screenshot_url}
+                        src={order.payment_url}
                         alt="Payment Screenshot"
                         width={200}
                         height={200}
@@ -316,7 +320,7 @@ export default function InvoiceDownloadPage() {
                 </div>
               ) : (
                 <>
-                  {/* ✅ Warning Banner */}
+                  {/* Warning Banner */}
                   <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
                     <div className="flex items-start space-x-2">
                       <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,7 +356,7 @@ export default function InvoiceDownloadPage() {
                     </label>
                   </div>
 
-                  {/* ✅ Error Message */}
+                  {/* Error Message */}
                   {uploadError && (
                     <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
                       <p className="text-sm text-red-700">{uploadError}</p>
@@ -380,14 +384,15 @@ export default function InvoiceDownloadPage() {
             {/* Track Order Link */}
             <button
               onClick={handleTrackOrder}
-              disabled={!uploadSuccess && !order.payment_screenshot_url}
+              disabled={!uploadSuccess && !order.payment_url}
               className={`w-full font-medium py-2 text-center cursor-pointer rounded-xl transition-colors ${
-                uploadSuccess || order.payment_screenshot_url
+                uploadSuccess || order.payment_url
                   ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
                   : 'text-gray-400 cursor-not-allowed'
               }`}
             >
-              {uploadSuccess || order.payment_screenshot_url 
+              {/* ✅ Changed to payment_url */}
+              {uploadSuccess || order.payment_url
                 ? 'Track your order now' 
                 : '🔒 Upload payment to track order'}
             </button>

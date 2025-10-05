@@ -27,6 +27,8 @@ const OrderCard = ({
     switch (status) {
       case "placed":
         return "text-purple-600 bg-purple-50";
+      case "payment_uploaded": // ✅ Added new status from backend
+        return "text-indigo-600 bg-indigo-50";
       case "processing":
         return "text-orange-500 bg-orange-50";
       case "printing":
@@ -85,15 +87,17 @@ const OrderCard = ({
                   order.status
                 )}`}
               >
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                {order.status === "payment_uploaded" 
+                  ? "Payment Uploaded"
+                  : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </span>
               <span className="text-xs text-gray-500">
                 Qty: {order.qty.toLocaleString()}
               </span>
             </div>
 
-            {/* ✅ Show payment indicator if not uploaded */}
-            {!order.payment_screenshot_url && (
+            {/* ✅ Changed to payment_url */}
+            {!order.payment_url && (
               <div className="mt-2 flex items-center text-xs text-amber-600">
                 <svg
                   className="w-3 h-3 mr-1"
@@ -185,6 +189,7 @@ export default function MainDashboard() {
     const active = orders.filter(
       (order) =>
         order.status === "placed" ||
+        order.status === "payment_uploaded" || // ✅ Added new status
         order.status === "printing" ||
         order.status === "processing"
     );
@@ -218,11 +223,10 @@ export default function MainDashboard() {
         return;
       }
 
-      // Check if payment screenshot is uploaded
-      if (!order.payment_screenshot_url) {
+      // ✅ Changed to payment_url
+      if (!order.payment_url) {
         setShowPaymentAlert(true);
 
-        // ✅ Updated route
         setTimeout(() => {
           router.push(`/order/${orderId}/invoice`);
           setShowPaymentAlert(false);

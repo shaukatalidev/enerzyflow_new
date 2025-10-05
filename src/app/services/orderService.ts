@@ -10,6 +10,7 @@ export interface CreateOrderRequest {
   volume: number;
 }
 
+// ✅ Updated to match backend field names
 export interface Order {
   order_id: string;
   company_id: string;
@@ -19,7 +20,8 @@ export interface Order {
   cap_color: string;
   volume: number;
   status: string;
-  payment_screenshot_url?: string;
+  payment_url?: string;        // ✅ Changed from payment_screenshot_url
+  invoice_url?: string;         // ✅ Added invoice_url
   created_at: string;
   updated_at: string;
 }
@@ -39,10 +41,10 @@ export interface GetOrderResponse {
   order: Order;
 }
 
-// ✅ Updated to match actual backend response
+// Backend response for payment upload
 export interface UploadPaymentScreenshotResponse {
   message: string;
-  url: string;  // ✅ Changed from screenshot_url to url
+  url: string;
 }
 
 interface ApiErrorResponse {
@@ -114,7 +116,6 @@ export class OrderService {
     }
   }
 
-  // ✅ Updated to match actual backend response
   static async uploadPaymentScreenshot(
     orderId: string, 
     file: File

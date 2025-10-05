@@ -21,12 +21,17 @@ export default function OrderStatusPage() {
 
   const fetchAttempted = useRef(false);
 
-  // ✅ Updated status flow to include dispatch
+  // ✅ Updated status flow to include payment_uploaded
   const statusFlow: OrderTimelineStep[] = [
     {
       status: 'placed',
       label: 'Order Placed',
       description: 'Your order has been received'
+    },
+    {
+      status: 'payment_uploaded',
+      label: 'Payment Uploaded',
+      description: 'Payment screenshot has been uploaded'
     },
     {
       status: 'printing',
@@ -41,55 +46,52 @@ export default function OrderStatusPage() {
     {
       status: 'dispatch', 
       label: 'Ready to dispatch',
-      description: 'Order has been delivered successfully'
+      description: 'Order is ready for delivery'
     },
   ];
 
-  // In app/order/[id]/status/page.tsx
-useEffect(() => {
-  const fetchOrderDetails = async () => {
-    if (!orderId || fetchAttempted.current) return;
-    
-    fetchAttempted.current = true;
-    
-    try {
-      const response = await orderService.getOrder(orderId);
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      if (!orderId || fetchAttempted.current) return;
       
-      // ✅ ADD THIS: Log the full response to see what fields exist
-      console.log('📦 Full order response:', response);
-      console.log('📦 Order data:', response.order);
-      console.log('🔍 Payment screenshot URL:', response.order.payment_screenshot_url);
+      fetchAttempted.current = true;
       
-      setOrder(response.order);
-      
-      // Check if payment screenshot exists
-      if (!response.order.payment_screenshot_url) {
-        console.log('❌ No payment screenshot found, redirecting...');
-        alert('Please upload payment screenshot before tracking your order');
-        router.push(`/order/${orderId}/invoice`);
-        return;
+      try {
+        const response = await orderService.getOrder(orderId);
+        
+        console.log('📦 Full order response:', response);
+        console.log('📦 Order data:', response.order);
+        console.log('🔍 Payment URL:', response.order.payment_url); // ✅ Changed
+        
+        setOrder(response.order);
+        
+        // ✅ Changed to payment_url
+        if (!response.order.payment_url) {
+          console.log('❌ No payment screenshot found, redirecting...');
+          alert('Please upload payment screenshot before tracking your order');
+          router.push(`/order/${orderId}/invoice`);
+          return;
+        }
+        
+        console.log('✅ Payment screenshot exists, allowing access');
+      } catch (error) {
+        console.error('Failed to fetch order:', error);
+        fetchAttempted.current = false;
+      } finally {
+        setIsLoading(false);
       }
-      
-      console.log('✅ Payment screenshot exists, allowing access');
-    } catch (error) {
-      console.error('Failed to fetch order:', error);
-      fetchAttempted.current = false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  fetchOrderDetails();
-}, [orderId, router]);
+    fetchOrderDetails();
+  }, [orderId, router]);
 
-  // ✅ Updated function to handle dispatch/dispatched variations
+  // ✅ Updated to handle all status variations
   const isStepCompleted = (stepStatus: string): boolean => {
     if (!order) return false;
     
-    // Normalize status names (handle both 'dispatch' and 'dispatched')
     const normalizeStatus = (status: string) => {
       if (status === 'dispatched' || status === 'dispatch') return 'dispatch';
-      if (status === 'delivered') return 'dispatch'; // Delivered is also considered as dispatch complete
+      if (status === 'delivered') return 'dispatch';
       return status;
     };
 
@@ -104,11 +106,10 @@ useEffect(() => {
     return currentStatusIndex >= stepIndex;
   };
 
-  // ✅ Updated to handle dispatch/dispatched variations
   const isCurrentStep = (stepStatus: string): boolean => {
     if (!order) return false;
     
-    // Handle both 'dispatch' and 'dispatched'
+    // Handle dispatch variations
     if ((stepStatus === 'dispatch' || stepStatus === 'dispatched') &&
         (order.status === 'dispatch' || order.status === 'dispatched')) {
       return true;
@@ -221,8 +222,8 @@ useEffect(() => {
               <p className="text-xs sm:text-sm text-gray-600 mb-1">
                 Qty {order.qty.toLocaleString()} pcs
               </p>
-              <p className="text-base sm:text-lg font-bold text-green-600">
-                ${order.qty * 1}
+              <p className="text-xs sm:text-sm text-gray-600">
+                <span className="capitalize">{order.variant}</span> | {order.volume}ml
               </p>
             </div>
           </div>
@@ -242,10 +243,23 @@ useEffect(() => {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Invoice No.</span>
               <span className="text-sm font-medium text-gray-900 font-mono break-all text-right">
-                {order.order_id}
+                {order.order_id.slice(0, 13)}...
               </span>
             </div>
-            {/* ✅ Show payment screenshot status */}
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Order Status</span>
+              <span className={`text-sm font-medium px-2 py-1 rounded-full capitalize ${
+                order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                order.status === 'payment_uploaded' ? 'bg-indigo-100 text-indigo-700' :
+                order.status === 'processing' ? 'bg-orange-100 text-orange-700' :
+                order.status === 'printing' ? 'bg-blue-100 text-blue-700' :
+                order.status === 'dispatch' || order.status === 'dispatched' ? 'bg-cyan-100 text-cyan-700' :
+                'bg-purple-100 text-purple-700'
+              }`}>
+                {order.status === 'payment_uploaded' ? 'Payment Uploaded' : order.status}
+              </span>
+            </div>
+            {/* ✅ Payment status indicator */}
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Payment Status</span>
               <span className="text-sm font-medium text-green-600 flex items-center">
