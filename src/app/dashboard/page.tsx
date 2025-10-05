@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainDashboard from './components/MainDashboard';
-// import PrintDashboard from './components/PrintDashboard';
+import PrintDashboard from './components/PrintDashboard';
 // import PlantDashboard from './components/PlantDashboard';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -49,8 +49,8 @@ export default function DashboardPage() {
   const userRole = user?.role || 'business_owner';
 
   switch (userRole) {
-    // case 'printing':
-    //   return <PrintDashboard />;
+    case 'printing':
+      return <PrintDashboard />;
     // case 'plant':
     //   return <PlantDashboard />;
     case 'business_owner':

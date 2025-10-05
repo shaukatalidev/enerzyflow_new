@@ -115,7 +115,7 @@ export default function Login() {
         <div className="mb-4 px-4 sm:px-0">
           <Link
             href="/"
-            className="inline-flex items-center space-x-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors duration-200 group"
+            className="inline-flex items-center space-x-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors duration-200 group cursor-pointer"
           >
             <svg
               className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform duration-200"
@@ -164,13 +164,14 @@ export default function Login() {
                 </svg>
               </div>
 
+              {/* ✅ UPDATED: Changed heading to reflect OTP login instead of account creation */}
               <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-700 bg-clip-text text-transparent mb-3">
-                Create New Account
+                {currentStep === 1 ? "Welcome Back" : "Verify Your Identity"}
               </h1>
               <p className="text-gray-600 text-sm sm:text-base mb-8">
                 {currentStep === 1
-                  ? "Enter your email to get started with secure access"
-                  : "Move ahead towards Dashboard - verify your identity"}
+                  ? "Sign in securely with passwordless authentication"
+                  : "Enter the verification code sent to your email"}
               </p>
             </div>
 
@@ -206,8 +207,8 @@ export default function Login() {
                   <div className="ml-3">
                     <p className="text-sm text-cyan-700">
                       {profileLoaded
-                        ? "Redirecting..."
-                        : "Loading profile data..."}
+                        ? "Redirecting to dashboard..."
+                        : "Loading your profile..."}
                     </p>
                   </div>
                 </div>
@@ -256,7 +257,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center space-x-2">
@@ -324,7 +325,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading || isRedirecting}
-                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 >
                   {isLoading || isRedirecting ? (
                     <div className="flex items-center justify-center space-x-2">
@@ -362,7 +363,7 @@ export default function Login() {
                     type="button"
                     onClick={handleResendOtp}
                     disabled={isLoading || isRedirecting}
-                    className="text-sm sm:text-base text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200"
+                    className="text-sm sm:text-base text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200 cursor-pointer"
                   >
                     Didn&apos;t receive the code? Resend OTP
                   </button>
@@ -371,7 +372,7 @@ export default function Login() {
                     type="button"
                     onClick={handleBackToEmail}
                     disabled={isRedirecting}
-                    className="text-sm sm:text-base text-gray-500 hover:text-gray-700 transition-colors duration-200 disabled:opacity-50"
+                    className="text-sm sm:text-base text-gray-500 hover:text-gray-700 transition-colors duration-200 disabled:opacity-50 cursor-pointer"
                   >
                     ← Change Email Address
                   </button>

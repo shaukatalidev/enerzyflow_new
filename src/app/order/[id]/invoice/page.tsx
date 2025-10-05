@@ -1,27 +1,26 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { orderService, Order } from '@/app/services/orderService';
 
 export default function InvoiceDownloadPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId') || '';
+  const params = useParams();
+  const orderId = params.id as string; 
   
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingPayment, setIsUploadingPayment] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // ✅ FIX: Add ref to track if fetch has been attempted
   const fetchAttempted = useRef(false);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      // ✅ Prevent multiple fetches
       if (!orderId || fetchAttempted.current) return;
       
       fetchAttempted.current = true;
@@ -29,16 +28,20 @@ export default function InvoiceDownloadPage() {
       try {
         const response = await orderService.getOrder(orderId);
         setOrder(response.order);
+        
+        if (response.order.payment_screenshot_url) {
+          setUploadSuccess(true);
+        }
       } catch (error) {
         console.error('Failed to fetch order:', error);
-        fetchAttempted.current = false; // ✅ Reset on error to allow retry
+        fetchAttempted.current = false;
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchOrderDetails();
-  }, [orderId]); // ✅ orderId is stable from searchParams
+  }, [orderId]);
 
   // Calculate expected delivery date (order date + 5 days)
   const getExpectedDeliveryDate = (orderDate: string): string => {
@@ -69,10 +72,24 @@ export default function InvoiceDownloadPage() {
     return `${variant} Bottle ${capColor} Cap - ${order.volume}ml`;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+
+      if (!validTypes.includes(file.type)) {
+        setUploadError('Please upload a valid image file (JPG, PNG)');
+        return;
+      }
+
+      if (file.size > maxSize) {
+        setUploadError('File size must be less than 10MB');
+        return;
+      }
+
       setPaymentFile(file);
+      setUploadError(null);
     }
   };
 
@@ -80,34 +97,50 @@ export default function InvoiceDownloadPage() {
     if (!paymentFile) return;
 
     setIsUploadingPayment(true);
+    setUploadError(null);
     
     try {
-      // Simulate upload
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await orderService.uploadPaymentScreenshot(orderId, paymentFile);
       
-      // Replace with actual upload logic
-      // const formData = new FormData();
-      // formData.append('payment_screenshot', paymentFile);
-      // formData.append('order_id', orderId);
-      // await axiosInstance.post('/orders/upload-payment', formData);
+      console.log('✅ Upload successful:', response);
       
       setUploadSuccess(true);
       
-      // Redirect to order status after successful upload
+      if (order) {
+        setOrder({
+          ...order,
+          payment_screenshot_url: response.url
+        });
+      }
+      
+      // ✅ Updated route
       setTimeout(() => {
-        router.push(`/order/status?orderId=${orderId}`);
+        router.push(`/order/${orderId}/status`);
       }, 1500);
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error('❌ Upload failed:', error);
+      setUploadError(error instanceof Error ? error.message : 'Failed to upload payment screenshot');
     } finally {
       setIsUploadingPayment(false);
     }
   };
 
   const handleDownloadInvoice = () => {
-    // Implement invoice download logic
-    // window.open(`${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}/invoice`, '_blank');
     console.log('Downloading invoice for order:', orderId);
+  };
+
+  // ✅ Updated route
+  const handleTrackOrder = () => {
+    if (!uploadSuccess && !order?.payment_screenshot_url) {
+      alert('Please upload payment screenshot before tracking your order');
+      router.push('/dashboard');
+      return;
+    }
+    router.push(`/order/${orderId}/status`);
+  };
+
+  const handleBack = () => {
+    router.push('/dashboard');
   };
 
   if (isLoading) {
@@ -128,7 +161,7 @@ export default function InvoiceDownloadPage() {
           <p className="text-gray-600">Order not found</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="mt-4 text-blue-600 hover:text-blue-700"
+            className="mt-4 text-blue-600 hover:text-blue-700 cursor-pointer"
           >
             Back to Dashboard
           </button>
@@ -144,8 +177,8 @@ export default function InvoiceDownloadPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center">
             <button
-              onClick={() => router.back()}
-              className="mr-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              onClick={handleBack}
+              className="mr-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -245,7 +278,7 @@ export default function InvoiceDownloadPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Download your PI / Invoice</h3>
               <button
                 onClick={handleDownloadInvoice}
-                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center"
+                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -256,7 +289,9 @@ export default function InvoiceDownloadPage() {
 
             {/* Upload Payment Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Upload payment screenshot</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Upload payment screenshot {uploadSuccess && '✓'}
+              </h3>
               
               {uploadSuccess ? (
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4">
@@ -266,9 +301,33 @@ export default function InvoiceDownloadPage() {
                     </svg>
                     <span className="text-green-700 font-medium">Payment screenshot uploaded successfully!</span>
                   </div>
+                  {order.payment_screenshot_url && (
+                    <div className="mt-3">
+                      <Image
+                        src={order.payment_screenshot_url}
+                        alt="Payment Screenshot"
+                        width={200}
+                        height={200}
+                        className="rounded-lg border border-green-200"
+                        unoptimized
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
+                  {/* ✅ Warning Banner */}
+                  <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <div className="flex items-start space-x-2">
+                      <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <p className="text-sm text-amber-800">
+                        <strong>Required:</strong> You must upload payment screenshot to track your order
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="mb-4">
                     <label className="block w-full">
                       <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
@@ -293,10 +352,17 @@ export default function InvoiceDownloadPage() {
                     </label>
                   </div>
 
+                  {/* ✅ Error Message */}
+                  {uploadError && (
+                    <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                      <p className="text-sm text-red-700">{uploadError}</p>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleUploadPayment}
                     disabled={!paymentFile || isUploadingPayment}
-                    className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isUploadingPayment ? (
                       <div className="flex items-center justify-center space-x-2">
@@ -313,10 +379,17 @@ export default function InvoiceDownloadPage() {
 
             {/* Track Order Link */}
             <button
-              onClick={() => router.push(`/order/status?orderId=${orderId}`)}
-              className="w-full text-blue-600 hover:text-blue-700 font-medium py-2 text-center"
+              onClick={handleTrackOrder}
+              disabled={!uploadSuccess && !order.payment_screenshot_url}
+              className={`w-full font-medium py-2 text-center cursor-pointer rounded-xl transition-colors ${
+                uploadSuccess || order.payment_screenshot_url
+                  ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                  : 'text-gray-400 cursor-not-allowed'
+              }`}
             >
-              Track your order now
+              {uploadSuccess || order.payment_screenshot_url 
+                ? 'Track your order now' 
+                : '🔒 Upload payment to track order'}
             </button>
           </div>
         </div>

@@ -13,14 +13,12 @@ const Header = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { user, isAuthenticated, logout, isLoading} = useAuth();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -199,7 +197,7 @@ const Header = () => {
               {isAuthenticated && user ? (
                 <div className="flex items-center space-x-4">
                   {/* Notification Bell */}
-                  <button className="p-2 rounded-full hover:bg-gray-100 relative">
+                  <button className="p-2 rounded-full hover:bg-gray-100 relative cursor-pointer transition-colors">
                     <Bell className="h-6 w-6 text-gray-600" />
                     <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                       3
@@ -213,7 +211,6 @@ const Header = () => {
                       <p className="text-sm font-medium text-gray-900">
                         Hi {getDisplayName()}!
                       </p>
-                      {/* ✅ FIX: Escaped apostrophe */}
                       <p className="text-xs text-gray-500">
                         Let&apos;s get your orders rolling
                       </p>
@@ -225,7 +222,7 @@ const Header = () => {
                         onClick={() =>
                           setShowProfileDropdown(!showProfileDropdown)
                         }
-                        className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+                        className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
                       >
                         {/* Profile Picture - Company Logo or Initials */}
                         <div className="h-10 w-10 rounded-full flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600">
@@ -299,7 +296,7 @@ const Header = () => {
                           <div className="py-1">
                             <button
                               onClick={handleDashboard}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2 cursor-pointer transition-colors"
                             >
                               <svg
                                 className="h-4 w-4"
@@ -316,18 +313,23 @@ const Header = () => {
                               </svg>
                               <span>Dashboard</span>
                             </button>
-                            <Link
-                              href="/profile"
-                              onClick={() => setShowProfileDropdown(false)}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                            >
-                              <User className="h-4 w-4" />
-                              <span>Profile</span>
-                            </Link>
+
+                            {/* Only show Profile link for non-printing users */}
+                            {user.role !== "printing" && (
+                              <Link
+                                href="/profile"
+                                onClick={() => setShowProfileDropdown(false)}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2 cursor-pointer transition-colors"
+                              >
+                                <User className="h-4 w-4" />
+                                <span>Profile</span>
+                              </Link>
+                            )}
+
                             <hr className="my-1" />
                             <button
                               onClick={handleLogout}
-                              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 cursor-pointer transition-colors"
                             >
                               <LogOut className="h-4 w-4" />
                               <span>Sign Out</span>
@@ -340,7 +342,7 @@ const Header = () => {
                 </div>
               ) : (
                 <Link href="/login">
-                  <button className="bg-cyan-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-cyan-600 transition-colors">
+                  <button className="bg-cyan-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-cyan-600 transition-colors cursor-pointer">
                     Sign In
                   </button>
                 </Link>
@@ -371,7 +373,7 @@ const Header = () => {
               {/* Hamburger / Close Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? (
@@ -398,7 +400,7 @@ const Header = () => {
         <>
           {/* Backdrop - covers entire screen including header */}
           <div
-            className="fixed inset-0 bg-black/50 z-[60] md:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 z-[60] md:hidden backdrop-blur-sm cursor-pointer"
             onClick={() => setIsMobileMenuOpen(false)}
             aria-hidden="true"
           />
@@ -410,7 +412,7 @@ const Header = () => {
               <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
                 aria-label="Close menu"
               >
                 <X className="h-6 w-6" />
@@ -455,7 +457,7 @@ const Header = () => {
                   <div className="space-y-2">
                     <button
                       onClick={handleDashboard}
-                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-3 transition-colors"
+                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-3 transition-colors cursor-pointer"
                     >
                       <svg
                         className="h-5 w-5"
@@ -475,12 +477,12 @@ const Header = () => {
                     <Link
                       href="/profile"
                       onClick={handleLinkClick}
-                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-3 transition-colors"
+                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-3 transition-colors cursor-pointer"
                     >
                       <User className="h-5 w-5" />
                       <span>Profile</span>
                     </Link>
-                    <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-3 transition-colors">
+                    <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-3 transition-colors cursor-pointer">
                       <Bell className="h-5 w-5" />
                       <span>Notifications</span>
                       <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
@@ -495,7 +497,7 @@ const Header = () => {
               <nav className="space-y-1">
                 <button
                   onClick={handleAboutClick}
-                  className="w-full text-left px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-lg transition-colors"
+                  className="w-full text-left px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-lg transition-colors cursor-pointer"
                 >
                   About Us
                 </button>
@@ -508,7 +510,7 @@ const Header = () => {
                 </Link>
                 <button
                   onClick={handlePartnersClick}
-                  className="w-full text-left px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-lg transition-colors"
+                  className="w-full text-left px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded-lg transition-colors cursor-pointer"
                 >
                   Partners
                 </button>
@@ -533,14 +535,14 @@ const Header = () => {
                 {isAuthenticated && user ? (
                   <button
                     onClick={handleLogout}
-                    className="w-full px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center space-x-3 transition-colors"
+                    className="w-full px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center space-x-3 transition-colors cursor-pointer"
                   >
                     <LogOut className="h-5 w-5" />
                     <span>Sign Out</span>
                   </button>
                 ) : (
                   <Link href="/login" onClick={handleLinkClick}>
-                    <button className="w-full bg-cyan-500 text-white px-6 py-3 rounded-full text-base font-medium hover:bg-cyan-600 transition-colors">
+                    <button className="w-full bg-cyan-500 text-white px-6 py-3 rounded-full text-base font-medium hover:bg-cyan-600 transition-colors cursor-pointer">
                       Sign In
                     </button>
                   </Link>

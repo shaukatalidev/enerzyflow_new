@@ -104,7 +104,6 @@ export default function CreateOrderPage() {
   const router = useRouter();
   const { user, profileLoading, loadProfile, profileLoaded } = useAuth();
 
-  // ✅ FIX: Add refs to track profile load attempts
   const profileLoadAttempted = useRef(false);
   const labelSelectedRef = useRef(false);
 
@@ -117,17 +116,14 @@ export default function CreateOrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
-  // Memoize user labels to prevent unnecessary re-renders
   const userLabels: Label[] = useMemo(() => {
     return (user?.labels || []) as Label[];
   }, [user?.labels]);
 
-  // Get selected label details
   const selectedLabel = useMemo(() => {
     return userLabels.find((l) => l.label_id === selectedLabelId);
   }, [userLabels, selectedLabelId]);
 
-  // ✅ FIX 1: Load profile only once if needed
   useEffect(() => {
     const shouldLoadProfile = 
       user && 
@@ -143,16 +139,15 @@ export default function CreateOrderPage() {
           await loadProfile();
         } catch (error) {
           console.error("Failed to load profile:", error);
-          profileLoadAttempted.current = false; // Reset on error
+          profileLoadAttempted.current = false;
         }
       };
 
       loadUserProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profileLoaded, profileLoading]); // ✅ Removed loadProfile from dependencies
+  }, [user, profileLoaded, profileLoading]);
 
-  // ✅ FIX 2: Set default label only once when labels become available
   useEffect(() => {
     const shouldSetDefaultLabel = 
       userLabels.length > 0 && 
@@ -168,7 +163,6 @@ export default function CreateOrderPage() {
     }
   }, [userLabels, selectedLabelId]); 
 
-  // ✅ Reset refs when user changes
   useEffect(() => {
     if (!user) {
       profileLoadAttempted.current = false;
@@ -247,8 +241,9 @@ export default function CreateOrderPage() {
 
       setCreatedOrderId(result.order.order_id);
 
+      // ✅ UPDATED: Use dynamic route instead of query params
       setTimeout(() => {
-        router.push(`/order/invoice?orderId=${result.order.order_id}`);
+        router.push(`/order/${result.order.order_id}/invoice`);
       }, 2000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create order';
@@ -262,7 +257,6 @@ export default function CreateOrderPage() {
     router.push("/dashboard");
   };
 
-  // Show loading if profile is still loading
   if (profileLoading && !profileLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -274,7 +268,6 @@ export default function CreateOrderPage() {
     );
   }
 
-  // Show message if no labels available
   if (!profileLoading && userLabels.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -282,7 +275,7 @@ export default function CreateOrderPage() {
           <header className="flex items-center gap-4 mb-8">
             <button
               onClick={handleBack}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-6 h-6 text-gray-700" />
             </button>
@@ -303,7 +296,7 @@ export default function CreateOrderPage() {
                 </p>
                 <button
                   onClick={() => router.push("/profile")}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer"
                 >
                   Go to Profile
                 </button>
@@ -322,7 +315,7 @@ export default function CreateOrderPage() {
         <header className="flex items-center gap-4 mb-8">
           <button
             onClick={handleBack}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-6 h-6 text-gray-700" />
           </button>
@@ -610,7 +603,7 @@ export default function CreateOrderPage() {
                 className={`w-full py-4 text-lg font-semibold text-white rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${
                   loading || !selectedLabelId || createdOrderId
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#4A90E2] hover:bg-[#357ABD] hover:shadow-xl transform hover:-translate-y-0.5"
+                    : "bg-[#4A90E2] hover:bg-[#357ABD] hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer"
                 }`}
               >
                 {loading && <Loader2 className="w-5 h-5 animate-spin" />}

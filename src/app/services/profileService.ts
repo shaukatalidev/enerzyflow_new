@@ -124,7 +124,6 @@ class ProfileService {
       const response = await axiosInstance.get<ProfileResponse>('/users/profile');
       return response.data;
     } catch (error) {
-      // ✅ FIX 1: Removed `: any` and added proper error handling
       console.error('Error fetching profile:', error);
       if (error instanceof AxiosError && error.response?.data) {
         const errorData = error.response.data as ApiErrorResponse;
@@ -147,7 +146,6 @@ class ProfileService {
       );
       return response.data;
     } catch (error) {
-      // ✅ FIX 2: Removed `: any` and added proper error handling
       console.error('Error saving profile:', error);
       if (error instanceof AxiosError && error.response?.data) {
         const errorData = error.response.data as ApiErrorResponse;
@@ -189,7 +187,6 @@ class ProfileService {
           ...baseProfileData.company,
           logo_url: companyLogoUrl,
           outlets: outletsData?.map(outlet => {
-            // ✅ FIX 3: Changed from `any` to proper type
             const outletData: OutletData = {
               name: outlet.name,
               address: outlet.address
@@ -202,7 +199,6 @@ class ProfileService {
           }) || baseProfileData.company?.outlets || [],
         },
         labels: labelsData?.map(label => {
-          // ✅ FIX 4: Changed from `any` to proper type
           const labelData: LabelData = {
             name: label.name,
             label_url: label.url

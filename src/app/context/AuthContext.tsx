@@ -133,6 +133,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const isProfileComplete = useCallback(
     (user: ExtendedUser | null = state.user): boolean => {
       if (!user?.profile) return false;
+
+      // ✅ Printing users don't need complete profile
+      if (user.role === "printing") {
+        return true;
+      }
+
+      // Business owner profile requirements
       if (!hasValidValue(user.profile.name)) return false;
       if (!hasValidValue(user.profile.phone)) return false;
       if (!hasValidValue(user.profile.designation)) return false;
@@ -145,6 +152,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const getPostLoginRedirectPath = useCallback((): string => {
+    // ✅ Printing users always go to dashboard
+    if (state.user?.role === "printing") {
+      return "/dashboard";
+    }
+
+    // ✅ Business owners go to profile if incomplete, otherwise dashboard
     const isComplete = isProfileComplete(state.user);
     return isComplete ? "/dashboard" : "/profile";
   }, [state.user, isProfileComplete]);

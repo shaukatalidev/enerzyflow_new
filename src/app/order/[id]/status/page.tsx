@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { orderService, Order } from '@/app/services/orderService';
 
@@ -13,15 +13,15 @@ interface OrderTimelineStep {
 
 export default function OrderStatusPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId') || '';
+  const params = useParams();
+  const orderId = params.id as string; 
   
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAttempted = useRef(false);
 
-  // ✅ FIX: Updated status flow to include dispatch
+  // ✅ Updated status flow to include dispatch
   const statusFlow: OrderTimelineStep[] = [
     {
       status: 'placed',
@@ -39,33 +39,50 @@ export default function OrderStatusPage() {
       description: 'Order is being prepared for dispatch'
     },
     {
-      status: 'dispatch', // ✅ Added dispatch status
+      status: 'dispatch', 
       label: 'Ready to dispatch',
       description: 'Order has been delivered successfully'
     },
   ];
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!orderId || fetchAttempted.current) return;
+  // In app/order/[id]/status/page.tsx
+useEffect(() => {
+  const fetchOrderDetails = async () => {
+    if (!orderId || fetchAttempted.current) return;
+    
+    fetchAttempted.current = true;
+    
+    try {
+      const response = await orderService.getOrder(orderId);
       
-      fetchAttempted.current = true;
+      // ✅ ADD THIS: Log the full response to see what fields exist
+      console.log('📦 Full order response:', response);
+      console.log('📦 Order data:', response.order);
+      console.log('🔍 Payment screenshot URL:', response.order.payment_screenshot_url);
       
-      try {
-        const response = await orderService.getOrder(orderId);
-        setOrder(response.order);
-      } catch (error) {
-        console.error('Failed to fetch order:', error);
-        fetchAttempted.current = false;
-      } finally {
-        setIsLoading(false);
+      setOrder(response.order);
+      
+      // Check if payment screenshot exists
+      if (!response.order.payment_screenshot_url) {
+        console.log('❌ No payment screenshot found, redirecting...');
+        alert('Please upload payment screenshot before tracking your order');
+        router.push(`/order/${orderId}/invoice`);
+        return;
       }
-    };
+      
+      console.log('✅ Payment screenshot exists, allowing access');
+    } catch (error) {
+      console.error('Failed to fetch order:', error);
+      fetchAttempted.current = false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchOrderDetails();
-  }, [orderId]);
+  fetchOrderDetails();
+}, [orderId, router]);
 
-  // ✅ FIX: Updated function to handle dispatch/dispatched variations
+  // ✅ Updated function to handle dispatch/dispatched variations
   const isStepCompleted = (stepStatus: string): boolean => {
     if (!order) return false;
     
@@ -87,7 +104,7 @@ export default function OrderStatusPage() {
     return currentStatusIndex >= stepIndex;
   };
 
-  // ✅ FIX: Updated to handle dispatch/dispatched variations
+  // ✅ Updated to handle dispatch/dispatched variations
   const isCurrentStep = (stepStatus: string): boolean => {
     if (!order) return false;
     
@@ -146,7 +163,7 @@ export default function OrderStatusPage() {
           <p className="text-gray-600">Order not found</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="mt-4 text-blue-600 hover:text-blue-700"
+            className="mt-4 text-blue-600 hover:text-blue-700 cursor-pointer"
           >
             Back to Dashboard
           </button>
@@ -163,7 +180,7 @@ export default function OrderStatusPage() {
           <div className="flex items-center">
             <button
               onClick={() => router.push('/dashboard')}
-              className="mr-3 sm:mr-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="mr-3 sm:mr-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
               aria-label="Back to dashboard"
             >
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,6 +243,16 @@ export default function OrderStatusPage() {
               <span className="text-sm text-gray-600">Invoice No.</span>
               <span className="text-sm font-medium text-gray-900 font-mono break-all text-right">
                 {order.order_id}
+              </span>
+            </div>
+            {/* ✅ Show payment screenshot status */}
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Payment Status</span>
+              <span className="text-sm font-medium text-green-600 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Verified
               </span>
             </div>
           </div>
@@ -318,13 +345,13 @@ export default function OrderStatusPage() {
         <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex-1 bg-white border-2 border-gray-200 text-gray-900 font-medium py-3 px-4 sm:px-6 rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base"
+            className="flex-1 bg-white border-2 border-gray-200 text-gray-900 font-medium py-3 px-4 sm:px-6 rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base cursor-pointer"
           >
             Back to Dashboard
           </button>
           <button
             onClick={() => router.push('/order')}
-            className="flex-1 bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 sm:px-6 rounded-xl transition-colors text-sm sm:text-base"
+            className="flex-1 bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 sm:px-6 rounded-xl transition-colors text-sm sm:text-base cursor-pointer"
           >
             Create New Order
           </button>

@@ -19,6 +19,7 @@ export interface Order {
   cap_color: string;
   volume: number;
   status: string;
+  payment_screenshot_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -38,11 +39,16 @@ export interface GetOrderResponse {
   order: Order;
 }
 
+// ✅ Updated to match actual backend response
+export interface UploadPaymentScreenshotResponse {
+  message: string;
+  url: string;  // ✅ Changed from screenshot_url to url
+}
+
 interface ApiErrorResponse {
   error?: string;
 }
 
-// ✅ Add pagination parameters interface
 export interface PaginationParams {
   limit?: number;
   offset?: number;
@@ -62,7 +68,6 @@ export class OrderService {
     }
   }
 
-  // ✅ Updated to accept pagination parameters
   static async getOrders(params?: PaginationParams): Promise<GetOrdersResponse> {
     try {
       const queryParams = new URLSearchParams();
@@ -79,7 +84,6 @@ export class OrderService {
       
       const response = await axiosInstance.get<GetOrdersResponse>(url);
       
-      // ✅ Check if there are more orders (backend returns limit number, if less then no more)
       const hasMore = response.data.orders.length === (params?.limit || 10);
       
       return {
@@ -107,6 +111,37 @@ export class OrderService {
         throw new Error(errorData.error || 'Failed to fetch order');
       }
       throw new Error('Failed to fetch order');
+    }
+  }
+
+  // ✅ Updated to match actual backend response
+  static async uploadPaymentScreenshot(
+    orderId: string, 
+    file: File
+  ): Promise<UploadPaymentScreenshotResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('screenshot', file);
+
+      const response = await axiosInstance.post<UploadPaymentScreenshotResponse>(
+        `/orders/${orderId}/payment-screenshot`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('❌ Payment screenshot upload error:', error instanceof AxiosError ? error.response : error);
+      
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to upload payment screenshot');
+      }
+      throw new Error('Failed to upload payment screenshot');
     }
   }
 }

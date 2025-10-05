@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { profileService } from "@/app/services/profileService";
 import MyProfile from "@/app/profile/components/MyProfile";
+import toast from "react-hot-toast";
 
 interface Label {
   label_id?: string;
@@ -39,17 +41,42 @@ interface ProfileUpdateResult {
 }
 
 export default function ProfilePage() {
-  const { user, loadProfile, profileLoaded, profileLoading } = useAuth();
+  const router = useRouter();
+  const { user, loadProfile, profileLoaded, profileLoading, isAuthenticated } =
+    useAuth();
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ FIX: Use ref to track if we've attempted to load
   const loadAttempted = useRef(false);
 
-  // ✅ FIX: Load profile only if not already loaded and not currently loading
+  // ✅ Role-based access control
+useEffect(() => {
+  // Wait for auth to fully load
+  if (profileLoading) return;
+
+  // Only redirect if explicitly not authenticated (not during loading)
+  if (!profileLoading && !isAuthenticated && !user) {
+    router.push("/login");
+    return;
+  }
+
+  // Check role only if authenticated
+  if (isAuthenticated && user && user.role !== "business_owner") {
+    toast.error("Access denied. Only business owners can access this page.");
+    router.push("/");
+  }
+}, [user, profileLoading, isAuthenticated, router]);
+
+
+  // ✅ Load profile only if not already loaded and not currently loading
   useEffect(() => {
     const initProfile = async () => {
       if (profileLoaded || profileLoading || loadAttempted.current) {
+        return;
+      }
+
+      // Only load if user has correct role
+      if (user?.role !== "business_owner") {
         return;
       }
 
@@ -60,13 +87,13 @@ export default function ProfilePage() {
       } catch (err) {
         console.error("Failed to load profile:", err);
         setError("Failed to load profile data");
-        loadAttempted.current = false; // Allow retry on error
+        loadAttempted.current = false;
       }
     };
 
     initProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ Run only once on mount
+  }, [user?.role]);
 
   // ✅ Map user data to profile format
   useEffect(() => {
@@ -124,7 +151,7 @@ export default function ProfilePage() {
         outletsData
       );
 
-      await loadProfile(true); 
+      await loadProfile(true);
 
       return {
         blocked_labels: result.blocked_labels || [],
@@ -140,6 +167,11 @@ export default function ProfilePage() {
   };
 
   const handleClearError = () => setError(null);
+
+  // ✅ Don't render anything if wrong role (will redirect)
+  if (user && user.role !== "business_owner") {
+    return null;
+  }
 
   // ✅ Show loading state
   if (profileLoading || (!profileData && !error && !profileLoaded)) {
@@ -157,18 +189,36 @@ export default function ProfilePage() {
   if (error && !profileData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              loadAttempted.current = false;
-              loadProfile();
-            }}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
-          >
-            Retry
-          </button>
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <svg
+              className="w-12 h-12 text-red-500 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p className="text-red-700 font-semibold mb-2">
+              Failed to Load Profile
+            </p>
+            <p className="text-red-600 text-sm mb-4">{error}</p>
+            <button
+              onClick={() => {
+                setError(null);
+                loadAttempted.current = false;
+                loadProfile();
+              }}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
