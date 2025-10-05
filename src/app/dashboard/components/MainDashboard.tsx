@@ -598,7 +598,6 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* ✅ Add Modal */}
       <OrdersModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
