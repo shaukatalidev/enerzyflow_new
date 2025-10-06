@@ -1,7 +1,6 @@
 import axiosInstance from '../lib/axios';
 import { AxiosError } from 'axios';
 
-// Types for the order API
 export interface CreateOrderRequest {
   label_id: string;
   variant: string;
@@ -10,7 +9,6 @@ export interface CreateOrderRequest {
   volume: number;
 }
 
-// ✅ Updated to match backend field names
 export interface Order {
   order_id: string;
   company_id: string;

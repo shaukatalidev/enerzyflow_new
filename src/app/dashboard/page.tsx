@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainDashboard from './components/MainDashboard';
 import PrintDashboard from './components/PrintDashboard';
+// import PlantDashboard from './components/PlantDashboard';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function DashboardPage() {
@@ -27,7 +29,13 @@ export default function DashboardPage() {
       return;
     }
 
-    if (user?.role === "printing") {
+    // Super admin doesn't need profile completion
+    if (user?.role === 'admin') {
+      return;
+    }
+
+    // Printing and plant roles don't need profile completion
+    if (user?.role === 'printing' || user?.role === 'plant') {
       return;
     }
 
@@ -40,7 +48,7 @@ export default function DashboardPage() {
       router.push('/profile');
       return;
     }
-  }, [isLoading, isAuthenticated, profileLoaded, isProfileComplete, user?.role, user?.email, router]);
+  }, [isLoading, isAuthenticated, profileLoaded, isProfileComplete, user?.role, router]);
 
   if (isLoading) {
     return (
@@ -64,7 +72,10 @@ export default function DashboardPage() {
     );
   }
 
-  if (user?.role !== "printing" && !profileLoaded) {
+  // Skip profile loading check for admin, printing, and plant roles
+  const skipProfileCheck = user?.role === 'admin' || user?.role === 'printing' || user?.role === 'plant';
+  
+  if (!skipProfileCheck && !profileLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -75,7 +86,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (user?.role !== "printing" && !isProfileComplete()) {
+  if (!skipProfileCheck && !isProfileComplete()) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -88,9 +99,14 @@ export default function DashboardPage() {
 
   const userRole = user?.role || 'business_owner';
 
+  // Role-based dashboard rendering
   switch (userRole) {
+    case 'admin':
+      return <SuperAdminDashboard />;
     case 'printing':
       return <PrintDashboard />;
+    // case 'plant':
+    //   return <PlantDashboard />;
     case 'business_owner':
     default:
       return <MainDashboard />;

@@ -133,67 +133,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const router = useRouter();
 
- // Add at the top of isProfileComplete function
-const isProfileComplete = useCallback(
-  (user: ExtendedUser | null = state.user): boolean => {
-    
-    if (!user) {
-      return false;
-    }
+  // ✅ Updated: Add admin and plant roles
+  const isProfileComplete = useCallback(
+    (user: ExtendedUser | null = state.user): boolean => {
+      
+      if (!user) {
+        return false;
+      }
 
-    if (user.role === "printing") {
+      // ✅ Admin, printing, and plant roles don't need profile completion
+      if (user.role === "admin" || user.role === "printing" || user.role === "plant") {
+        return true;
+      }
+
+      const hasProfile = !!user.profile;
+      const hasName = hasValidValue(user.profile?.name);
+      const hasPhone = hasValidValue(user.profile?.phone);
+      const hasDesignation = hasValidValue(user.profile?.designation);
+      const hasCompany = !!user.company;
+      const hasCompanyName = hasValidValue(user.company?.name);
+      const hasCompanyAddress = hasValidValue(user.company?.address);
+
+      if (!hasProfile || !hasName || !hasPhone || !hasDesignation || !hasCompany || !hasCompanyName || !hasCompanyAddress) {
+        return false;
+      }
+
       return true;
+    },
+    [state.user]
+  );
+
+  // ✅ Updated: Add admin and plant roles
+  const getPostLoginRedirectPath = useCallback((): string => {
+    
+    // ✅ Admin, printing, and plant roles go directly to dashboard
+    if (state.user?.role === "admin" || state.user?.role === "printing" || state.user?.role === "plant") {
+      return "/dashboard";
     }
 
-    const hasProfile = !!user.profile;
-    const hasName = hasValidValue(user.profile?.name);
-    const hasPhone = hasValidValue(user.profile?.phone);
-    const hasDesignation = hasValidValue(user.profile?.designation);
-    const hasCompany = !!user.company;
-    const hasCompanyName = hasValidValue(user.company?.name);
-    const hasCompanyAddress = hasValidValue(user.company?.address);
-
-    if (!hasProfile || !hasName || !hasPhone || !hasDesignation || !hasCompany || !hasCompanyName || !hasCompanyAddress) {
-      return false;
-    }
-
-    return true;
-  },
-  [state.user]
-);
-
-const getPostLoginRedirectPath = useCallback((): string => {
-  
-  if (state.user?.role === "printing") {
-    return "/dashboard";
-  }
-
-  const isComplete = isProfileComplete(state.user);
-  const path = isComplete ? "/dashboard" : "/profile";
-  return path;
-}, [state.user, isProfileComplete]);
-
-
+    const isComplete = isProfileComplete(state.user);
+    const path = isComplete ? "/dashboard" : "/profile";
+    return path;
+  }, [state.user, isProfileComplete]);
 
   const logout = useCallback(async (): Promise<void> => {
-  try {
-    await authService.logout();
-  } catch (error) {
-    console.error('Backend logout error:', error);
-  } finally {
-    if (mountedRef.current) {
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      profileLoadAttempted.current = false;
-      profileLoadingRef.current = false;
-      dispatch({ type: "LOGOUT" });
-      
-      // ✅ Redirect to home page after logout
-      router.replace('/');
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Backend logout error:', error);
+    } finally {
+      if (mountedRef.current) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        profileLoadAttempted.current = false;
+        profileLoadingRef.current = false;
+        dispatch({ type: "LOGOUT" });
+        
+        router.replace('/');
+      }
     }
-  }
-}, [router]);
+  }, [router]);
 
   const loadProfile = useCallback(
     async (force: boolean = false): Promise<void> => {
@@ -300,18 +300,21 @@ const getPostLoginRedirectPath = useCallback((): string => {
     };
   }, []);
 
+  // ✅ Updated: Skip profile loading for admin, printing, and plant roles
   useEffect(() => {
-  if (
-    state.isAuthenticated &&
-    state.user?.role !== "printing" && 
-    !state.profileLoaded &&
-    !state.user?.profile &&
-    !profileLoadAttempted.current &&
-    !profileLoadingRef.current
-  ) {
-    loadProfileRef.current?.();
-  }
-}, [state.isAuthenticated, state.profileLoaded, state.user?.profile, state.user?.role]);
+    if (
+      state.isAuthenticated &&
+      state.user?.role !== "admin" && // ✅ Added
+      state.user?.role !== "printing" && 
+      state.user?.role !== "plant" && // ✅ Added
+      !state.profileLoaded &&
+      !state.user?.profile &&
+      !profileLoadAttempted.current &&
+      !profileLoadingRef.current
+    ) {
+      loadProfileRef.current?.();
+    }
+  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, state.user?.role]);
 
   const updateProfile = useCallback(
     async (profileData: SaveProfileRequest): Promise<void> => {
@@ -421,7 +424,10 @@ const getPostLoginRedirectPath = useCallback((): string => {
         profileLoadAttempted.current = false;
         profileLoadingRef.current = false;
 
-        await loadProfile();
+        // ✅ Only load profile for business_owner role
+        if (user.role === "business_owner") {
+          await loadProfile();
+        }
       } catch (err) {
         dispatch({ type: "SET_LOADING", payload: false });
 
