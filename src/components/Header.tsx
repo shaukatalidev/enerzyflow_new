@@ -103,11 +103,11 @@ const Header = () => {
   };
 
   const handleLogout = async () => {
-    setShowProfileDropdown(false);
-    setIsMobileMenuOpen(false);
-    await logout();
-    router.push("/");
-  };
+  setShowProfileDropdown(false);
+  setIsMobileMenuOpen(false);
+  await logout(); 
+};
+
 
   const handleDashboard = () => {
     setShowProfileDropdown(false);

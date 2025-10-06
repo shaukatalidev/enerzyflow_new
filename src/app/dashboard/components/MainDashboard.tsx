@@ -24,10 +24,10 @@ const OrderCard = ({
   }, []);
 
   const getStatusColor = useCallback((status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "placed":
         return "text-purple-600 bg-purple-50";
-      case "payment_uploaded": // ✅ Added new status from backend
+      case "payment_uploaded":
         return "text-indigo-600 bg-indigo-50";
       case "processing":
         return "text-orange-500 bg-orange-50";
@@ -40,6 +40,27 @@ const OrderCard = ({
         return "text-green-500 bg-green-50";
       default:
         return "text-gray-500 bg-gray-50";
+    }
+  }, []);
+
+  // ✅ Format status label for display
+  const getStatusLabel = useCallback((status: string) => {
+    switch (status.toLowerCase()) {
+      case "placed":
+        return "Placed";
+      case "payment_uploaded":
+        return "Payment Uploaded";
+      case "processing":
+        return "Processing";
+      case "printing":
+        return "Printing";
+      case "dispatch":
+      case "dispatched":
+        return "Dispatched";
+      case "delivered":
+        return "Delivered";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
     }
   }, []);
 
@@ -82,21 +103,20 @@ const OrderCard = ({
               Date: {formatDate(order.created_at)}
             </p>
             <div className="flex items-center justify-between">
+              {/* ✅ Use getStatusLabel to show proper status */}
               <span
                 className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
                   order.status
                 )}`}
               >
-                {order.status === "payment_uploaded" 
-                  ? "Payment Uploaded"
-                  : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                {getStatusLabel(order.status)}
               </span>
               <span className="text-xs text-gray-500">
                 Qty: {order.qty.toLocaleString()}
               </span>
             </div>
 
-            {/* ✅ Changed to payment_url */}
+            {/* ✅ Show warning if payment not uploaded */}
             {!order.payment_url && (
               <div className="mt-2 flex items-center text-xs text-amber-600">
                 <svg
@@ -145,13 +165,11 @@ export default function MainDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalOrderType, setModalOrderType] = useState<"active" | "completed">(
     "active"
   );
 
-  // ✅ Alert state
   const [showPaymentAlert, setShowPaymentAlert] = useState(false);
 
   const fetchAttempted = useRef(false);
@@ -185,13 +203,15 @@ export default function MainDashboard() {
     fetchOrders();
   }, []);
 
+  // ✅ Updated: Include ALL non-completed orders in active, including payment_pending
   const { activeOrders, completedOrders } = useMemo(() => {
     const active = orders.filter(
       (order) =>
-        order.status === "placed" ||
-        order.status === "payment_uploaded" || // ✅ Added new status
-        order.status === "printing" ||
-        order.status === "processing"
+        order.status !== "delivered" &&
+        order.status !== "dispatch" &&
+        order.status !== "dispatched" &&
+        order.status !== "declined" &&
+        order.status !== "cancelled"
     );
 
     const completed = orders.filter(
@@ -200,6 +220,16 @@ export default function MainDashboard() {
         order.status === "dispatch" ||
         order.status === "dispatched"
     );
+
+    // ✅ Sort active orders: payment pending first, then by date
+    active.sort((a, b) => {
+      // Orders without payment_url come first
+      if (!a.payment_url && b.payment_url) return -1;
+      if (a.payment_url && !b.payment_url) return 1;
+      
+      // Then sort by creation date (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
     return { activeOrders: active, completedOrders: completed };
   }, [orders]);
@@ -223,17 +253,16 @@ export default function MainDashboard() {
         return;
       }
 
-      // ✅ Changed to payment_url
+      // ✅ If no payment uploaded, redirect to invoice page
       if (!order.payment_url) {
         setShowPaymentAlert(true);
 
         setTimeout(() => {
           router.push(`/order/${orderId}/invoice`);
           setShowPaymentAlert(false);
-        }, 2000);
+        }, 1500);
         return;
       }
-
       router.push(`/order/${orderId}/status`);
     },
     [orders, router]
@@ -253,7 +282,6 @@ export default function MainDashboard() {
     setIsModalOpen(true);
   }, []);
 
-  // ✅ Close alert handler
   const handleCloseAlert = useCallback(() => {
     setShowPaymentAlert(false);
   }, []);
@@ -367,7 +395,7 @@ export default function MainDashboard() {
                 </div>
               )}
 
-              {/* ✅ Payment Alert */}
+              {/* Payment Alert */}
               {showPaymentAlert && (
                 <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg animate-pulse">
                   <div className="flex items-start">
@@ -387,8 +415,7 @@ export default function MainDashboard() {
                         Payment screenshot required
                       </p>
                       <p className="text-sm text-amber-700 mt-1">
-                        Please upload payment screenshot before tracking your
-                        order. Redirecting...
+                        Please upload payment screenshot to continue. Redirecting...
                       </p>
                     </div>
                     <button

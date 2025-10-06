@@ -1,7 +1,7 @@
 import { axiosInstance } from '../lib/axios';
 import { AxiosError } from 'axios';
 
-// ✅ Order status in the system (read-only for printing company)
+// ✅ Updated to include payment-pending with hyphen
 export interface Order {
   order_id: string;
   company_id: string;
@@ -11,52 +11,67 @@ export interface Order {
   variant: string;
   qty: number;
   cap_color: string;
-  volume: string;
-  status: 'placed' | 'printing' | 'processing' | 'dispatch' | 'declined' | 'cancelled';
+  volume: string; 
+  status: 'placed' | 'payment-pending' | 'payment_uploaded' | 'printing' | 'processing' | 'dispatch' | 'declined' | 'cancelled';
   decline_reason?: string;
+  payment_url?: string;
+  invoice_url?: string; 
   created_at: string;
   updated_at: string;
   user_name: string;
 }
 
-// ✅ Response for get all orders (with pagination)
+export interface OrderHistoryItem {
+  status: string;
+  changed_at: string;
+  changed_by: string;
+  reason?: string;
+}
+
+export interface GetOrderTrackingResponse {
+  history: OrderHistoryItem[];
+}
+
 export interface GetAllOrdersResponse {
   orders: Order[];
 }
 
-// ✅ Pagination parameters for getAllOrders
 export interface GetAllOrdersParams {
   limit?: number;
   offset?: number;
 }
 
-// ✅ Printing company can only accept or decline orders
 export interface UpdateOrderStatusRequest {
   status: 'accepted' | 'declined';
-  reason?: string; // Required for declined status
+  reason?: string;
 }
 
-// ✅ Response for updating order status
 export interface UpdateOrderStatusResponse {
   message: string;
 }
 
-// ✅ Define error response type
 interface ApiErrorResponse {
   error?: string;
   message?: string;
 }
 
 class PrintService {
-  /**
-   * Get all orders for printing company (role: printing)
-   * Endpoint: GET /orders/get-all-orders
-   * Auth: Required (Bearer token)
-   * 
-   * @param params - Pagination parameters
-   * @param params.limit - Number of orders to fetch (default: 10)
-   * @param params.offset - Number of orders to skip (default: 0)
-   */
+  async getOrderTracking(orderId: string): Promise<GetOrderTrackingResponse> {
+    try {
+      const response = await axiosInstance.get<GetOrderTrackingResponse>(
+        `/orders/${orderId}/tracking`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('❌ Order tracking fetch error:', error);
+      if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ApiErrorResponse;
+        throw new Error(errorData.error || 'Failed to fetch order tracking');
+      }
+      throw new Error('Failed to fetch order tracking');
+    }
+  }
+
   async getAllOrders(params?: GetAllOrdersParams): Promise<GetAllOrdersResponse> {
     try {
       const queryParams = {
@@ -79,17 +94,6 @@ class PrintService {
     }
   }
 
-  /**
-   * Update order status (role: printing)
-   * Endpoint: PUT /orders/:id/status
-   * Auth: Required (Bearer token)
-   * 
-   * Printing company can only accept or decline orders:
-   * - Accept: { "status": "accepted" }
-   * - Decline: { "status": "declined", "reason": "service unavailable" }
-   * 
-   * Backend response: { "message": "order status updated successfully" }
-   */
   async updateOrderStatus(
     orderId: string,
     statusData: UpdateOrderStatusRequest
@@ -103,7 +107,6 @@ class PrintService {
         throw new Error('Status is required');
       }
 
-      // Validate that reason is provided for declined status
       if (statusData.status === 'declined' && !statusData.reason) {
         throw new Error('Reason is required when declining an order');
       }
@@ -128,18 +131,10 @@ class PrintService {
     }
   }
 
-  /**
-   * Accept an order
-   * Sends: { "status": "accepted" }
-   */
   async acceptOrder(orderId: string): Promise<UpdateOrderStatusResponse> {
     return this.updateOrderStatus(orderId, { status: 'accepted' });
   }
 
-  /**
-   * Decline an order with reason
-   * Sends: { "status": "declined", "reason": "your reason" }
-   */
   async declineOrder(orderId: string, reason: string): Promise<UpdateOrderStatusResponse> {
     if (!reason || !reason.trim()) {
       throw new Error('Reason is required when declining an order');
@@ -147,14 +142,14 @@ class PrintService {
     return this.updateOrderStatus(orderId, { status: 'declined', reason });
   }
 
-  /**
-   * Helper to get status color for UI
-   */
+  // ✅ Updated to include payment-pending
   getStatusColor(status: Order['status']): string {
     const colors: Record<Order['status'], string> = {
       placed: 'blue',
+      'payment-pending': 'yellow',
+      payment_uploaded: 'indigo',
       printing: 'purple',
-      processing: 'yellow',
+      processing: 'orange',
       dispatch: 'green',
       declined: 'red',
       cancelled: 'gray',
@@ -162,12 +157,11 @@ class PrintService {
     return colors[status] || 'gray';
   }
 
-  /**
-   * Helper to get status label
-   */
   getStatusLabel(status: Order['status']): string {
     const labels: Record<Order['status'], string> = {
       placed: 'Order Placed',
+      'payment-pending': 'Payment Pending',
+      payment_uploaded: 'Payment Uploaded',
       printing: 'Printing Label',
       processing: 'Processing Order',
       dispatch: 'Ready to Dispatch',
@@ -177,12 +171,11 @@ class PrintService {
     return labels[status] || status;
   }
 
-  /**
-   * Helper to get status description
-   */
   getStatusDescription(status: Order['status']): string {
     const descriptions: Record<Order['status'], string> = {
       placed: 'Your order has been received',
+      'payment-pending': 'Payment verification pending',
+      payment_uploaded: 'Payment screenshot uploaded',
       printing: 'Labels are being printed',
       processing: 'Order is being prepared for dispatch',
       dispatch: 'Order is ready for dispatch',
@@ -192,10 +185,6 @@ class PrintService {
     return descriptions[status] || '';
   }
 
-  /**
-   * Check if order can be accepted/declined
-   * Only 'placed' orders can be accepted or declined
-   */
   canUpdateOrder(status: Order['status']): boolean {
     return status === 'placed';
   }

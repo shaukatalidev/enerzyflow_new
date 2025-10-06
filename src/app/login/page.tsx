@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,10 +12,13 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
-
-  const router = useRouter();
+  const [otpError, setOtpError] = useState(false);
+  
+  // ✅ ADD THIS: OTP attempts tracking
+  const [otpAttempts, setOtpAttempts] = useState(0);
+  const MAX_OTP_ATTEMPTS = 3;
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { sendOTP, login, getPostLoginRedirectPath, profileLoaded } = useAuth();
+  const { sendOTP, login, profileLoaded } = useAuth();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,8 @@ export default function Login() {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
+      setOtpError(false);
+      setError("");
 
       if (value && index < 5) {
         otpRefs.current[index + 1]?.focus();
@@ -57,41 +61,68 @@ export default function Login() {
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpCode = otp.join("");
+ /// app/login/page.tsx
 
-    if (otpCode.length !== 6) {
-      setError("Please enter complete OTP");
-      return;
-    }
+const handleOtpSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const otpCode = otp.join("");
 
-    setIsLoading(true);
-    setError("");
-    setIsRedirecting(true);
+  if (otpCode.length !== 6) {
+    setError("Please enter complete OTP");
+    setOtpError(true);
+    return;
+  }
 
-    try {
-      await login(email, otpCode);
-      const redirectPath = getPostLoginRedirectPath();
-      router.push(redirectPath);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Login failed";
-      setError(errorMessage);
+  setIsLoading(true);
+  setError("");
+  setOtpError(false);
+  setIsRedirecting(true);
+
+  try {
+    console.log("🔐 Starting login...");
+    await login(email, otpCode);
+    console.log("✅ Login successful - waiting for redirect...");
+    
+    // ✅ DO NOTHING - Template will redirect us automatically
+    
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Login failed";
+    
+    const newAttempts = otpAttempts + 1;
+    setOtpAttempts(newAttempts);
+    setOtpError(true);
+    
+    if (newAttempts >= MAX_OTP_ATTEMPTS) {
+      setError("Too many failed attempts. Please request a new OTP.");
+      setTimeout(() => {
+        handleBackToEmail();
+      }, 2000);
+    } else {
+      setError(`${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`);
       setOtp(["", "", "", "", "", ""]);
-      otpRefs.current[0]?.focus();
-      setIsRedirecting(false);
-      setIsLoading(false);
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
     }
-  };
+    
+    setIsRedirecting(false);
+    setIsLoading(false);
+  }
+};
 
+
+
+  // ✅ UPDATE THIS FUNCTION to reset attempts
   const handleResendOtp = async () => {
     setIsLoading(true);
     setError("");
+    setOtpError(false);
 
     try {
       await sendOTP(email);
       setOtp(["", "", "", "", "", ""]);
+      setOtpAttempts(0); // ✅ Reset attempts on resend
       otpRefs.current[0]?.focus();
     } catch (error) {
       const errorMessage =
@@ -102,15 +133,19 @@ export default function Login() {
     }
   };
 
+  // ✅ UPDATE THIS FUNCTION to reset attempts
   const handleBackToEmail = () => {
     setCurrentStep(1);
     setError("");
+    setOtpError(false);
     setIsRedirecting(false);
     setOtp(["", "", "", "", "", ""]);
+    setOtpAttempts(0); // ✅ Reset attempts
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {/* Rest of your JSX remains the same */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md lg:max-w-5xl">
         <div className="mb-4 px-4 sm:px-0">
           <Link
@@ -164,7 +199,6 @@ export default function Login() {
                 </svg>
               </div>
 
-              {/* ✅ UPDATED: Changed heading to reflect OTP login instead of account creation */}
               <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-700 bg-clip-text text-transparent mb-3">
                 {currentStep === 1 ? "Welcome Back" : "Verify Your Identity"}
               </h1>
@@ -176,7 +210,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+              <div className={`mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${otpError ? 'animate-shake' : ''}`}>
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg
@@ -192,7 +226,13 @@ export default function Login() {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                    {/* ✅ Show different message based on attempts */}
+                    {otpError && currentStep === 2 && otpAttempts < MAX_OTP_ATTEMPTS && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Please try again or request a new OTP.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -314,9 +354,14 @@ export default function Login() {
                         value={digit}
                         onChange={(e) => handleOtpChange(e.target.value, index)}
                         onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                        className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-center border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg sm:text-xl font-bold transition-all duration-200 text-black bg-white"
+                        className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg sm:text-xl font-bold transition-all duration-200 text-black bg-white ${
+                          otpError 
+                            ? 'border-red-300 bg-red-50' 
+                            : 'border-gray-200'
+                        }`}
                         inputMode="numeric"
                         pattern="\d*"
+                        disabled={isLoading || isRedirecting}
                       />
                     ))}
                   </div>
