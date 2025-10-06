@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import {
   User,
@@ -15,6 +15,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { CloudinaryUploadWidget } from "@/components/CloudinaryWrapper";
+import toast from "react-hot-toast";
 
 interface UserProfile {
   name?: string;
@@ -101,7 +102,10 @@ const ErrorAlert = ({
     <div className="flex-1">
       <p className="text-red-800 text-sm">{message}</p>
     </div>
-    <button onClick={onClose} className="text-red-500 hover:text-red-700">
+    <button
+      onClick={onClose}
+      className="text-red-500 hover:text-red-700 cursor-pointer"
+    >
       <X className="w-4 h-4" />
     </button>
   </div>
@@ -137,44 +141,60 @@ export default function MyProfile({
 
   const initialDataSet = useRef(false);
 
+  const isProfileComplete = (profile: UserProfile): boolean => {
+    const hasName = !!(profile.name && profile.name.trim() !== "");
+    const hasPhone = !!(profile.contactNo && profile.contactNo.trim() !== "");
+    const hasDesignation = !!(
+      profile.designation && profile.designation.trim() !== ""
+    );
+    const hasCompanyName = !!(
+      profile.brandCompanyName && profile.brandCompanyName.trim() !== ""
+    );
+    const hasAddress = !!(
+      profile.businessAddress && profile.businessAddress.trim() !== ""
+    );
+
+    return (
+      hasName && hasPhone && hasDesignation && hasCompanyName && hasAddress
+    );
+  };
+
   useEffect(() => {
     if (!userProfile) {
-      console.log("⏭️ userProfile is null/undefined, skipping");
       return;
     }
 
-    if (isEditing) {
-      console.log("⏭️ Currently editing, skipping update");
+    // Skip if currently editing to prevent overwriting user changes
+    if (isEditing && initialDataSet.current) {
       return;
     }
 
-    const hasChanged =
-      !initialDataSet.current ||
-      userProfile.name !== formData.name ||
-      userProfile.email !== formData.email ||
-      userProfile.contactNo !== formData.contactNo ||
-      userProfile.designation !== formData.designation ||
-      userProfile.brandCompanyName !== formData.brandCompanyName ||
-      userProfile.businessAddress !== formData.businessAddress ||
-      userProfile.profilePhoto !== formData.profilePhoto ||
-      userProfile.logo !== formData.logo ||
-      JSON.stringify(userProfile.labels) !== JSON.stringify(labelsData) ||
-      JSON.stringify(userProfile.outlets) !== JSON.stringify(outletsData);
+    // Update state from props
+    setFormData(userProfile);
+    setOriginalData(userProfile);
+    setProfileImageUrl(userProfile.profilePhoto || "");
+    setLogoUrl(userProfile.logo || "");
+    setLabelsData(userProfile.labels || []);
+    setOutletsData(userProfile.outlets || []);
+    setHasMultipleOutlets((userProfile.outlets?.length || 0) > 0);
 
-    if (hasChanged) {
-      console.log("🔄 Props changed, updating MyProfile state");
-      setFormData(userProfile);
-      setOriginalData(userProfile);
-      setProfileImageUrl(userProfile.profilePhoto || "");
-      setLogoUrl(userProfile.logo || "");
-      setLabelsData(userProfile.labels || []);
-      setOutletsData(userProfile.outlets || []);
-      setHasMultipleOutlets((userProfile.outlets?.length || 0) > 0);
+    // Auto-enable edit mode on first load if profile is incomplete
+    if (!initialDataSet.current) {
+      const profileComplete = isProfileComplete(userProfile);
+      if (!profileComplete) {
+        setIsEditing(true);
+        toast("Please complete your profile information", {
+          icon: "ℹ️",
+          duration: 4000,
+          position: "top-center",
+          style: {
+            background: "#3b82f6",
+            color: "#fff",
+          },
+        });
+      }
       initialDataSet.current = true;
-    } else {
-      console.log("⏭️ No changes detected, keeping current state");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, isEditing]);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
@@ -207,8 +227,12 @@ export default function MyProfile({
     const label = labelsData[index];
 
     if (label.label_id && lockedLabels.has(label.label_id)) {
-      alert(
-        "This label cannot be deleted because it is attached to existing orders."
+      toast.error(
+        "This label cannot be deleted because it is attached to existing orders.",
+        {
+          duration: 4000,
+          position: "top-center",
+        }
       );
       return;
     }
@@ -236,11 +260,27 @@ export default function MyProfile({
     }
   };
 
-  // ✅ VALIDATION FUNCTION
   const validateFormData = (): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
-    // Validate Labels - must have BOTH name and URL
+    // ✅ Validate required profile fields
+    if (!formData.name || formData.name.trim() === "") {
+      errors.push("Name is required");
+    }
+    if (!formData.contactNo || formData.contactNo.trim() === "") {
+      errors.push("Contact number is required");
+    }
+    if (!formData.designation || formData.designation.trim() === "") {
+      errors.push("Designation is required");
+    }
+    if (!formData.brandCompanyName || formData.brandCompanyName.trim() === "") {
+      errors.push("Brand/Company name is required");
+    }
+    if (!formData.businessAddress || formData.businessAddress.trim() === "") {
+      errors.push("Business address is required");
+    }
+
+    // Existing label validation
     if (labelsData.length > 0) {
       labelsData.forEach((label, index) => {
         const hasName = label.name && label.name.trim() !== "";
@@ -248,7 +288,9 @@ export default function MyProfile({
 
         if (!hasName && !hasUrl) {
           errors.push(
-            `Label ${index + 1}: Please either delete this label or add both name and image`
+            `Label ${
+              index + 1
+            }: Please either delete this label or add both name and image`
           );
         } else if (!hasName && hasUrl) {
           errors.push(`Label ${index + 1}: Please add a name for this label`);
@@ -260,7 +302,7 @@ export default function MyProfile({
       });
     }
 
-    // Validate Outlets - must have BOTH name and address
+    // Existing outlet validation
     if (outletsData.length > 0) {
       outletsData.forEach((outlet, index) => {
         const hasName = outlet.name && outlet.name.trim() !== "";
@@ -268,12 +310,12 @@ export default function MyProfile({
 
         if (!hasName && !hasAddress) {
           errors.push(
-            `Outlet ${index + 1}: Please either delete this outlet or add both name and address`
+            `Outlet ${
+              index + 1
+            }: Please either delete this outlet or add both name and address`
           );
         } else if (!hasName && hasAddress) {
-          errors.push(
-            `Outlet ${index + 1}: Please add a name for this outlet`
-          );
+          errors.push(`Outlet ${index + 1}: Please add a name for this outlet`);
         } else if (hasName && !hasAddress) {
           errors.push(
             `Outlet ${index + 1}: Please add an address for "${outlet.name}"`
@@ -288,20 +330,48 @@ export default function MyProfile({
     };
   };
 
+  const isFormValid = useMemo((): boolean => {
+    const hasName = !!(formData.name && formData.name.trim());
+    const hasPhone = !!(formData.contactNo && formData.contactNo.trim());
+    const hasDesignation = !!(
+      formData.designation && formData.designation.trim()
+    );
+    const hasCompanyName = !!(
+      formData.brandCompanyName && formData.brandCompanyName.trim()
+    );
+    const hasAddress = !!(
+      formData.businessAddress && formData.businessAddress.trim()
+    );
+
+    return (
+      hasName && hasPhone && hasDesignation && hasCompanyName && hasAddress
+    );
+  }, [
+    formData.name,
+    formData.contactNo,
+    formData.designation,
+    formData.brandCompanyName,
+    formData.businessAddress,
+  ]);
+
   const handleSubmit = async () => {
-    // ✅ Validate before submission
     const validation = validateFormData();
 
     if (!validation.isValid) {
-      const errorMessage = validation.errors.join("\n\n");
-      alert(errorMessage);
+      validation.errors.forEach((error, index) => {
+        setTimeout(() => {
+          toast.error(error, {
+            duration: 5000,
+            position: "top-center",
+          });
+        }, index * 100);
+      });
       return;
     }
 
     try {
       setIsLoading(true);
 
-      // ✅ Filter out empty labels and outlets before sending
       const validLabels = labelsData.filter(
         (label) => label.name.trim() !== "" && label.url.trim() !== ""
       );
@@ -352,8 +422,19 @@ export default function MyProfile({
           });
 
           setLabelsData((prev) => [...prev, ...labelsWithUrls]);
-          alert(
-            `Note: ${newBlockedLabels.length} label(s) could not be deleted because they are attached to existing orders.`
+
+          toast(
+            `Note: ${newBlockedLabels.length} label(s) could not be deleted because they are attached to existing orders.`,
+            {
+              duration: 5000,
+              position: "top-center",
+              icon: "⚠️",
+              style: {
+                background: "#f59e0b",
+                color: "#fff",
+                maxWidth: "600px",
+              },
+            }
           );
         }
       }
@@ -367,10 +448,29 @@ export default function MyProfile({
       });
 
       setIsEditing(false);
-      alert("Profile updated successfully!");
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      alert("Failed to update profile. Please try again.");
+
+      toast.success("Profile updated successfully!", {
+        duration: 3000,
+        position: "top-center",
+        icon: "✅",
+      });
+    } catch (error: unknown) {
+      console.error("❌ Failed to update profile:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update profile. Please try again.";
+
+      toast.error(errorMessage, {
+        duration: 6000,
+        position: "top-center",
+        style: {
+          background: "#ef4444",
+          color: "#fff",
+          maxWidth: "700px",
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -440,7 +540,7 @@ export default function MyProfile({
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 w-full md:w-auto text-sm font-semibold text-white bg-[#4A90E2] hover:bg-[#357ABD] rounded-lg transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 w-full md:w-auto text-sm font-semibold text-white bg-[#4A90E2] hover:bg-[#357ABD] rounded-lg transition-all shadow-sm cursor-pointer"
             >
               <Edit3 size={16} />
               <span>Edit Profile</span>
@@ -448,8 +548,33 @@ export default function MyProfile({
           )}
         </header>
 
+        {isEditing && !isProfileComplete(formData) && (
+          <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-blue-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  Please complete the required fields below to set up your
+                  profile.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row md:gap-8 lg:gap-12">
-          {/* Left Column - Profile Photo */}
           <div className="md:w-1/3 lg:w-1/4">
             <div className="flex flex-col items-center justify-center md:bg-white md:rounded-xl md:shadow-sm md:border md:border-gray-100 md:p-6">
               <div className="relative w-24 h-24 mb-3">
@@ -501,10 +626,8 @@ export default function MyProfile({
             </div>
           </div>
 
-          {/* Right Column - Form Fields */}
           <div className="md:w-2/3 lg:w-3/4 mt-8 md:mt-0">
             <div className="space-y-6">
-              {/* Personal Details Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -590,7 +713,6 @@ export default function MyProfile({
                 </div>
               </div>
 
-              {/* Business Details Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -640,7 +762,7 @@ export default function MyProfile({
                       id="multipleOutlets"
                       checked={hasMultipleOutlets}
                       onChange={handleMultipleOutletsToggle}
-                      className="w-4 h-4 text-[#4A90E2] bg-gray-100 border-gray-300 rounded focus:ring-[#4A90E2] focus:ring-2"
+                      className="w-4 h-4 text-[#4A90E2] bg-gray-100 border-gray-300 rounded focus:ring-[#4A90E2] focus:ring-2 cursor-pointer"
                     />
                     <label
                       htmlFor="multipleOutlets"
@@ -652,7 +774,6 @@ export default function MyProfile({
                 )}
               </div>
 
-              {/* Outlets Section */}
               {(hasMultipleOutlets || outletsData.length > 0) && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -662,7 +783,7 @@ export default function MyProfile({
                     {isEditing && (
                       <button
                         onClick={addNewOutlet}
-                        className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-[#4A90E2] bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-[#4A90E2] bg-blue-50 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                         Add outlets
@@ -673,8 +794,8 @@ export default function MyProfile({
                   {outletsData.length > 0 ? (
                     <div className="space-y-4">
                       {outletsData.map((outlet, index) => {
-                        // ✅ Check if outlet is incomplete
-                        const hasName = outlet.name && outlet.name.trim() !== "";
+                        const hasName =
+                          outlet.name && outlet.name.trim() !== "";
                         const hasAddress =
                           outlet.address && outlet.address.trim() !== "";
                         const isIncomplete =
@@ -701,14 +822,13 @@ export default function MyProfile({
                               {isEditing && outletsData.length > 1 && (
                                 <button
                                   onClick={() => removeOutlet(index)}
-                                  className="text-red-500 hover:text-red-700"
+                                  className="text-red-500 hover:text-red-700 cursor-pointer"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               )}
                             </div>
 
-                            {/* ✅ Show validation message */}
                             {isIncomplete && isEditing && (
                               <div className="mb-3 p-2 bg-red-100 border border-red-200 rounded text-xs text-red-700">
                                 ⚠️ Please complete both name and address, or
@@ -731,13 +851,17 @@ export default function MyProfile({
                                         e.target.value
                                       )
                                     }
-                                    placeholder={`Enter Outlet ${index + 1} Name`}
+                                    placeholder={`Enter Outlet ${
+                                      index + 1
+                                    } Name`}
                                     disabled={isLoading}
                                   />
                                 ) : (
                                   <StaticField
                                     value={outlet.name}
-                                    placeholder={`Enter Outlet ${index + 1} Name`}
+                                    placeholder={`Enter Outlet ${
+                                      index + 1
+                                    } Name`}
                                   />
                                 )}
                               </div>
@@ -784,7 +908,7 @@ export default function MyProfile({
                       {isEditing && (
                         <button
                           onClick={addNewOutlet}
-                          className="mt-2 text-sm text-[#4A90E2] hover:text-[#357ABD]"
+                          className="mt-2 text-sm text-[#4A90E2] hover:text-[#357ABD] cursor-pointer"
                         >
                           Add your first outlet
                         </button>
@@ -794,7 +918,6 @@ export default function MyProfile({
                 </div>
               )}
 
-              {/* Upload Logo Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Upload Logo
@@ -807,7 +930,7 @@ export default function MyProfile({
                       return (
                         <button
                           onClick={() => open()}
-                          className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors hover:border-[#4A90E2]"
+                          className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-center transition-colors hover:border-[#4A90E2] cursor-pointer"
                         >
                           {currentLogo ? (
                             <div className="w-full max-h-32 flex items-center justify-center mb-2 relative">
@@ -863,7 +986,6 @@ export default function MyProfile({
                 )}
               </div>
 
-              {/* Labels Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <label className="block text-sm font-medium text-gray-700">
@@ -872,7 +994,7 @@ export default function MyProfile({
                   {isEditing && (
                     <button
                       onClick={addNewLabel}
-                      className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-[#4A90E2] bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                      className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-[#4A90E2] bg-blue-50 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
                       Add Label
@@ -887,7 +1009,6 @@ export default function MyProfile({
                         label.label_id && lockedLabels.has(label.label_id)
                       );
 
-                      // ✅ Check if label is incomplete
                       const hasName = label.name && label.name.trim() !== "";
                       const hasUrl = label.url && label.url.trim() !== "";
                       const isIncomplete =
@@ -950,7 +1071,6 @@ export default function MyProfile({
                                   disabled={isLoading || isLocked}
                                 />
 
-                                {/* ✅ Show validation message */}
                                 {isIncomplete && !hasUrl && hasName && (
                                   <p className="text-xs text-red-600">
                                     ⚠️ Please upload an image for this label
@@ -990,7 +1110,7 @@ export default function MyProfile({
                                         {({ open }) => (
                                           <button
                                             onClick={() => open()}
-                                            className={`text-xs ${
+                                            className={`text-xs cursor-pointer ${
                                               isIncomplete && !hasUrl
                                                 ? "text-red-500 hover:text-red-700 font-medium"
                                                 : "text-[#4A90E2] hover:text-[#357ABD]"
@@ -1006,7 +1126,7 @@ export default function MyProfile({
                                       {labelsData.length > 1 && (
                                         <button
                                           onClick={() => removeLabel(index)}
-                                          className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                                          className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
                                         >
                                           <Trash2 className="w-3 h-3" />
                                           Remove
@@ -1050,7 +1170,7 @@ export default function MyProfile({
                     {isEditing && (
                       <button
                         onClick={addNewLabel}
-                        className="mt-2 text-sm text-[#4A90E2] hover:text-[#357ABD]"
+                        className="mt-2 text-sm text-[#4A90E2] hover:text-[#357ABD] cursor-pointer"
                       >
                         Add your first label
                       </button>
@@ -1059,20 +1179,19 @@ export default function MyProfile({
                 )}
               </div>
 
-              {/* Action Buttons */}
               {isEditing && (
                 <div className="flex items-center justify-end gap-4 pt-4">
                   <button
                     onClick={handleCancel}
-                    className="px-8 py-3 text-sm font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors disabled:opacity-50"
+                    className="px-8 py-3 text-sm font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                     disabled={isLoading}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSubmit}
-                    disabled={isLoading}
-                    className="px-8 py-3 text-sm font-semibold text-white bg-[#4A90E2] hover:bg-[#357ABD] rounded-lg transition-colors disabled:bg-gray-400"
+                    disabled={isLoading || !isFormValid}
+                    className="px-8 py-3 text-sm font-semibold text-white bg-[#4A90E2] hover:bg-[#357ABD] rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isLoading ? "Saving..." : "Save Changes"}
                   </button>

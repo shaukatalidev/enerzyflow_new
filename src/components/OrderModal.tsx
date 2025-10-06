@@ -42,6 +42,8 @@ export default function OrdersModal({
     switch (status) {
       case "placed":
         return "text-purple-600 bg-purple-50";
+      case "payment_uploaded": // ✅ Added
+        return "text-indigo-600 bg-indigo-50";
       case "processing":
         return "text-orange-500 bg-orange-50";
       case "printing":
@@ -65,12 +67,14 @@ export default function OrdersModal({
     });
   }, []);
 
+  // ✅ Updated to include payment_uploaded as active status
   const filterOrdersByType = useCallback(
     (allOrders: Order[]) => {
       if (orderType === "active") {
         return allOrders.filter(
           (order) =>
             order.status === "placed" ||
+            order.status === "payment_uploaded" || // ✅ Added
             order.status === "printing" ||
             order.status === "processing"
         );
@@ -156,15 +160,15 @@ export default function OrdersModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
+      {/* Glassmorphic Backdrop */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="absolute inset-0 bg-black/30 backdrop-blur-md transition-opacity"
         onClick={handleClose}
       />
 
       {/* Modal */}
       <div className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div className="relative bg-white w-full h-full sm:h-[90vh] sm:max-w-2xl sm:rounded-2xl shadow-xl flex flex-col">
+        <div className="relative bg-white w-full h-full sm:h-[90vh] sm:max-w-2xl sm:rounded-2xl shadow-2xl flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -172,7 +176,7 @@ export default function OrdersModal({
             </h2>
             <button
               onClick={handleClose}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -223,9 +227,9 @@ export default function OrdersModal({
                       onOrderClick(order.order_id);
                       handleClose();
                     }}
-                    className="w-full text-left"
+                    className="w-full text-left cursor-pointer"
                   >
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
                       <div className="flex items-start space-x-4">
                         <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                           {order.label_url ? (
@@ -260,8 +264,11 @@ export default function OrdersModal({
                                 order.status
                               )}`}
                             >
-                              {order.status.charAt(0).toUpperCase() +
-                                order.status.slice(1)}
+                              {/* ✅ Display payment_uploaded correctly */}
+                              {order.status === "payment_uploaded"
+                                ? "Payment Uploaded"
+                                : order.status.charAt(0).toUpperCase() +
+                                  order.status.slice(1)}
                             </span>
                             <span className="text-xs text-gray-500">
                               Qty: {order.qty.toLocaleString()}
@@ -278,7 +285,7 @@ export default function OrdersModal({
                   <button
                     onClick={handleLoadMore}
                     disabled={isLoadingMore}
-                    className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 disabled:text-gray-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 disabled:text-gray-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isLoadingMore ? (
                       <>

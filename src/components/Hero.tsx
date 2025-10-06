@@ -1,5 +1,6 @@
-// src/components/Hero.tsx
-"use client";
+
+'use client';
+
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
@@ -44,9 +45,7 @@ const Hero = () => {
 
   return (
     <section className="relative w-full h-[60vh] md:h-[70vh] overflow-hidden bg-gray-900">
-      {/* Background Image */}
       <div className="absolute inset-0">
-        {/* We add a `key` to the Image component to force a re-render and trigger the animation on change */}
         <Image
           key={currentImage.src}
           src={currentImage.src}
@@ -55,16 +54,13 @@ const Hero = () => {
           priority={currentIndex === 0}
           quality={85}
           sizes="100vw"
-          className="object-cover animate-fade-in-zoom" // Simple animation class
+          className="object-cover animate-fade-in-zoom" 
         />
       </div>
 
-      {/* Dark Overlay for Text Readability */}
       <div className="absolute inset-0 bg-black/40 z-10" />
 
-      {/* All Content is in a single z-20 container */}
       <div className="relative z-20 h-full flex flex-col items-center justify-center p-4">
-        {/* Text Content */}
         <div className="text-center text-white animate-fade-in">
           <h1 className="text-4xl md:text-5xl font-bold">
             Brand your own bottled water
@@ -73,8 +69,10 @@ const Hero = () => {
             Premium water bottles with attitude.
           </p>
           <button
-            onClick={() => router.push("/products")}
-            className="mt-8 bg-cyan-500 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-cyan-600 transition-colors"
+
+            onClick={() => router.push('/products')}
+            className="mt-8 bg-cyan-500 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-cyan-600 transition-colors hover:cursor-pointer"
+
           >
             Shop Now
           </button>

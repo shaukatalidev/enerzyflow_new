@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,10 +12,13 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
-
-  const router = useRouter();
+  const [otpError, setOtpError] = useState(false);
+  
+  // ✅ ADD THIS: OTP attempts tracking
+  const [otpAttempts, setOtpAttempts] = useState(0);
+  const MAX_OTP_ATTEMPTS = 3;
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { sendOTP, login, getPostLoginRedirectPath, profileLoaded } = useAuth();
+  const { sendOTP, login, profileLoaded } = useAuth();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,8 @@ export default function Login() {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
+      setOtpError(false);
+      setError("");
 
       if (value && index < 5) {
         otpRefs.current[index + 1]?.focus();
@@ -57,41 +61,68 @@ export default function Login() {
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpCode = otp.join("");
+ /// app/login/page.tsx
 
-    if (otpCode.length !== 6) {
-      setError("Please enter complete OTP");
-      return;
-    }
+const handleOtpSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const otpCode = otp.join("");
 
-    setIsLoading(true);
-    setError("");
-    setIsRedirecting(true);
+  if (otpCode.length !== 6) {
+    setError("Please enter complete OTP");
+    setOtpError(true);
+    return;
+  }
 
-    try {
-      await login(email, otpCode);
-      const redirectPath = getPostLoginRedirectPath();
-      router.push(redirectPath);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Login failed";
-      setError(errorMessage);
+  setIsLoading(true);
+  setError("");
+  setOtpError(false);
+  setIsRedirecting(true);
+
+  try {
+    console.log("🔐 Starting login...");
+    await login(email, otpCode);
+    console.log("✅ Login successful - waiting for redirect...");
+    
+    // ✅ DO NOTHING - Template will redirect us automatically
+    
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Login failed";
+    
+    const newAttempts = otpAttempts + 1;
+    setOtpAttempts(newAttempts);
+    setOtpError(true);
+    
+    if (newAttempts >= MAX_OTP_ATTEMPTS) {
+      setError("Too many failed attempts. Please request a new OTP.");
+      setTimeout(() => {
+        handleBackToEmail();
+      }, 2000);
+    } else {
+      setError(`${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`);
       setOtp(["", "", "", "", "", ""]);
-      otpRefs.current[0]?.focus();
-      setIsRedirecting(false);
-      setIsLoading(false);
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
     }
-  };
+    
+    setIsRedirecting(false);
+    setIsLoading(false);
+  }
+};
 
+
+
+  // ✅ UPDATE THIS FUNCTION to reset attempts
   const handleResendOtp = async () => {
     setIsLoading(true);
     setError("");
+    setOtpError(false);
 
     try {
       await sendOTP(email);
       setOtp(["", "", "", "", "", ""]);
+      setOtpAttempts(0); // ✅ Reset attempts on resend
       otpRefs.current[0]?.focus();
     } catch (error) {
       const errorMessage =
@@ -102,20 +133,24 @@ export default function Login() {
     }
   };
 
+  // ✅ UPDATE THIS FUNCTION to reset attempts
   const handleBackToEmail = () => {
     setCurrentStep(1);
     setError("");
+    setOtpError(false);
     setIsRedirecting(false);
     setOtp(["", "", "", "", "", ""]);
+    setOtpAttempts(0); // ✅ Reset attempts
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {/* Rest of your JSX remains the same */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md lg:max-w-5xl">
         <div className="mb-4 px-4 sm:px-0">
           <Link
             href="/"
-            className="inline-flex items-center space-x-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors duration-200 group"
+            className="inline-flex items-center space-x-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors duration-200 group cursor-pointer"
           >
             <svg
               className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform duration-200"
@@ -165,17 +200,17 @@ export default function Login() {
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-700 bg-clip-text text-transparent mb-3">
-                Create New Account
+                {currentStep === 1 ? "Welcome Back" : "Verify Your Identity"}
               </h1>
               <p className="text-gray-600 text-sm sm:text-base mb-8">
                 {currentStep === 1
-                  ? "Enter your email to get started with secure access"
-                  : "Move ahead towards Dashboard - verify your identity"}
+                  ? "Sign in securely with passwordless authentication"
+                  : "Enter the verification code sent to your email"}
               </p>
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+              <div className={`mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${otpError ? 'animate-shake' : ''}`}>
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg
@@ -191,7 +226,13 @@ export default function Login() {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                    {/* ✅ Show different message based on attempts */}
+                    {otpError && currentStep === 2 && otpAttempts < MAX_OTP_ATTEMPTS && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Please try again or request a new OTP.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -206,8 +247,8 @@ export default function Login() {
                   <div className="ml-3">
                     <p className="text-sm text-cyan-700">
                       {profileLoaded
-                        ? "Redirecting..."
-                        : "Loading profile data..."}
+                        ? "Redirecting to dashboard..."
+                        : "Loading your profile..."}
                     </p>
                   </div>
                 </div>
@@ -256,7 +297,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center space-x-2">
@@ -313,9 +354,14 @@ export default function Login() {
                         value={digit}
                         onChange={(e) => handleOtpChange(e.target.value, index)}
                         onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                        className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-center border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg sm:text-xl font-bold transition-all duration-200 text-black bg-white"
+                        className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg sm:text-xl font-bold transition-all duration-200 text-black bg-white ${
+                          otpError 
+                            ? 'border-red-300 bg-red-50' 
+                            : 'border-gray-200'
+                        }`}
                         inputMode="numeric"
                         pattern="\d*"
+                        disabled={isLoading || isRedirecting}
                       />
                     ))}
                   </div>
@@ -324,7 +370,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading || isRedirecting}
-                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 >
                   {isLoading || isRedirecting ? (
                     <div className="flex items-center justify-center space-x-2">
@@ -362,7 +408,7 @@ export default function Login() {
                     type="button"
                     onClick={handleResendOtp}
                     disabled={isLoading || isRedirecting}
-                    className="text-sm sm:text-base text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200"
+                    className="text-sm sm:text-base text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200 cursor-pointer"
                   >
                     Didn&apos;t receive the code? Resend OTP
                   </button>
@@ -371,7 +417,7 @@ export default function Login() {
                     type="button"
                     onClick={handleBackToEmail}
                     disabled={isRedirecting}
-                    className="text-sm sm:text-base text-gray-500 hover:text-gray-700 transition-colors duration-200 disabled:opacity-50"
+                    className="text-sm sm:text-base text-gray-500 hover:text-gray-700 transition-colors duration-200 disabled:opacity-50 cursor-pointer"
                   >
                     ← Change Email Address
                   </button>

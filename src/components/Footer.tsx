@@ -2,6 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 const Footer = () => {
+  const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Add your subscription logic here
+    const email = e.currentTarget.elements.namedItem('email') as HTMLInputElement;
+    console.log("Subscribed:", email);
+    // Add API call or other subscription logic
+  };
+
   return (
     <footer className="bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -160,15 +168,17 @@ const Footer = () => {
               Stay updated with the latest trends in custom branding, exclusive 
               offers, and innovative solutions for your business.
             </p>
-            <form className="mt-4 space-y-3">
+            <form onSubmit={handleSubscribe} className="mt-4 space-y-3">
               <input
                 type="email"
+                name="email"
                 placeholder="Enter your email"
-                className="w-full px-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder:text-gray-400"
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder:text-gray-400 text-gray-900"
               />
               <button
                 type="submit"
-                className="bg-cyan-500 text-white px-6 py-3 rounded-full hover:bg-cyan-600"
+                className="bg-cyan-500 text-white px-6 py-3 rounded-full hover:bg-cyan-600 cursor-pointer transition-colors"
               >
                 Subscribe
               </button>
@@ -186,39 +196,42 @@ const Footer = () => {
               href="https://www.facebook.com/share/19obQzdUev/" 
               target="_blank" 
               rel="noopener noreferrer"
+              className="cursor-pointer"
             >
               <Image
                 src="/images/brands/f.png"
                 alt="Facebook"
                 width={24}
                 height={24}
-                className="hover:opacity-75"
+                className="hover:opacity-75 transition-opacity"
               />
             </Link>
             <Link 
               href="https://www.linkedin.com/company/106605789/admin/page-posts/published/" 
               target="_blank" 
               rel="noopener noreferrer"
+              className="cursor-pointer"
             >
               <Image
                 src="/images/brands/linkedin.png"
                 alt="LinkedIn"
                 width={24}
                 height={24}
-                className="hover:opacity-75"
+                className="hover:opacity-75 transition-opacity"
               />
             </Link>
             <Link 
               href="https://www.instagram.com/enerzyflow?igsh=MTRiZzkwMGs1dHNvNQ==" 
               target="_blank" 
               rel="noopener noreferrer"
+              className="cursor-pointer"
             >
               <Image
                 src="/images/brands/insta.png"
                 alt="Instagram"
                 width={24}
                 height={24}
-                className="hover:opacity-75"
+                className="hover:opacity-75 transition-opacity"
               />
             </Link>
           </div>

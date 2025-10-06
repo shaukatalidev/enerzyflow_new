@@ -24,9 +24,11 @@ const OrderCard = ({
   }, []);
 
   const getStatusColor = useCallback((status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "placed":
         return "text-purple-600 bg-purple-50";
+      case "payment_uploaded":
+        return "text-indigo-600 bg-indigo-50";
       case "processing":
         return "text-orange-500 bg-orange-50";
       case "printing":
@@ -41,6 +43,27 @@ const OrderCard = ({
     }
   }, []);
 
+  // ✅ Format status label for display
+  const getStatusLabel = useCallback((status: string) => {
+    switch (status.toLowerCase()) {
+      case "placed":
+        return "Placed";
+      case "payment_uploaded":
+        return "Payment Uploaded";
+      case "processing":
+        return "Processing";
+      case "printing":
+        return "Printing";
+      case "dispatch":
+      case "dispatched":
+        return "Dispatched";
+      case "delivered":
+        return "Delivered";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  }, []);
+
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB", {
@@ -51,7 +74,7 @@ const OrderCard = ({
   }, []);
 
   return (
-    <button onClick={onClick} className="w-full text-left">
+    <button onClick={onClick} className="w-full text-left cursor-pointer">
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all duration-200">
         <div className="flex items-start space-x-4">
           <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
@@ -80,17 +103,36 @@ const OrderCard = ({
               Date: {formatDate(order.created_at)}
             </p>
             <div className="flex items-center justify-between">
+              {/* ✅ Use getStatusLabel to show proper status */}
               <span
                 className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
                   order.status
                 )}`}
               >
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                {getStatusLabel(order.status)}
               </span>
               <span className="text-xs text-gray-500">
                 Qty: {order.qty.toLocaleString()}
               </span>
             </div>
+
+            {/* ✅ Show warning if payment not uploaded */}
+            {!order.payment_url && (
+              <div className="mt-2 flex items-center text-xs text-amber-600">
+                <svg
+                  className="w-3 h-3 mr-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Payment pending
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -123,11 +165,12 @@ export default function MainDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalOrderType, setModalOrderType] = useState<"active" | "completed">(
     "active"
   );
+
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false);
 
   const fetchAttempted = useRef(false);
   const fetchingRef = useRef(false);
@@ -160,12 +203,15 @@ export default function MainDashboard() {
     fetchOrders();
   }, []);
 
+  // ✅ Updated: Include ALL non-completed orders in active, including payment_pending
   const { activeOrders, completedOrders } = useMemo(() => {
     const active = orders.filter(
       (order) =>
-        order.status === "placed" ||
-        order.status === "printing" ||
-        order.status === "processing"
+        order.status !== "delivered" &&
+        order.status !== "dispatch" &&
+        order.status !== "dispatched" &&
+        order.status !== "declined" &&
+        order.status !== "cancelled"
     );
 
     const completed = orders.filter(
@@ -174,6 +220,16 @@ export default function MainDashboard() {
         order.status === "dispatch" ||
         order.status === "dispatched"
     );
+
+    // ✅ Sort active orders: payment pending first, then by date
+    active.sort((a, b) => {
+      // Orders without payment_url come first
+      if (!a.payment_url && b.payment_url) return -1;
+      if (a.payment_url && !b.payment_url) return 1;
+      
+      // Then sort by creation date (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
     return { activeOrders: active, completedOrders: completed };
   }, [orders]);
@@ -190,9 +246,26 @@ export default function MainDashboard() {
 
   const handleOrderClick = useCallback(
     (orderId: string) => {
-      router.push(`/order/status?orderId=${orderId}`);
+      const order = orders.find((o) => o.order_id === orderId);
+
+      if (!order) {
+        console.error("Order not found");
+        return;
+      }
+
+      // ✅ If no payment uploaded, redirect to invoice page
+      if (!order.payment_url) {
+        setShowPaymentAlert(true);
+
+        setTimeout(() => {
+          router.push(`/order/${orderId}/invoice`);
+          setShowPaymentAlert(false);
+        }, 1500);
+        return;
+      }
+      router.push(`/order/${orderId}/status`);
     },
-    [router]
+    [orders, router]
   );
 
   const handleNewOrder = useCallback(() => {
@@ -207,6 +280,10 @@ export default function MainDashboard() {
   const handleViewAllCompleted = useCallback(() => {
     setModalOrderType("completed");
     setIsModalOpen(true);
+  }, []);
+
+  const handleCloseAlert = useCallback(() => {
+    setShowPaymentAlert(false);
   }, []);
 
   if (isLoading) {
@@ -234,7 +311,7 @@ export default function MainDashboard() {
               <h2 className="text-xl font-bold text-gray-900">Bottle Orders</h2>
               <button
                 onClick={() => setIsSidebarOpen(false)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 lg:hidden"
+                className="p-2 rounded-md text-gray-600 hover:text-gray-900 lg:hidden cursor-pointer"
                 aria-label="Close sidebar"
               >
                 <svg
@@ -256,7 +333,7 @@ export default function MainDashboard() {
             <nav className="mt-8 px-4 space-y-2">
               <a
                 href="#"
-                className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md"
+                className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md cursor-pointer"
               >
                 <svg
                   className="w-5 h-5 mr-3"
@@ -318,6 +395,49 @@ export default function MainDashboard() {
                 </div>
               )}
 
+              {/* Payment Alert */}
+              {showPaymentAlert && (
+                <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg animate-pulse">
+                  <div className="flex items-start">
+                    <svg
+                      className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium text-amber-800">
+                        Payment screenshot required
+                      </p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        Please upload payment screenshot to continue. Redirecting...
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleCloseAlert}
+                      className="ml-auto flex-shrink-0 text-amber-600 hover:text-amber-800 cursor-pointer"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Order Stats Cards */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -374,7 +494,7 @@ export default function MainDashboard() {
               {/* New Order Button */}
               <button
                 onClick={handleNewOrder}
-                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-4 px-6 rounded-2xl mb-6 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-4 px-6 rounded-2xl mb-6 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
               >
                 <svg
                   className="w-5 h-5 mr-2"
@@ -403,7 +523,7 @@ export default function MainDashboard() {
                     {activeOrders.length > 3 && (
                       <button
                         onClick={handleViewAllActive}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                       >
                         View all
                       </button>
@@ -452,7 +572,7 @@ export default function MainDashboard() {
                     {completedOrders.length > 3 && (
                       <button
                         onClick={handleViewAllCompleted}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                       >
                         View all
                       </button>
@@ -505,7 +625,6 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* ✅ Add Modal */}
       <OrdersModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
