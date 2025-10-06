@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { products, categories, Product } from '@/data/products';
 import { useRouter } from 'next/navigation'; 
 
-// --- ImageModal (No changes needed) ---
 interface ImageModalProps {
   isOpen: boolean;
   images: Product[];
