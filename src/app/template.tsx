@@ -11,7 +11,7 @@ const protectedPaths = ['/dashboard', '/profile', '/order'];
 
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isAuthenticated, isLoading, user, profileLoaded, isProfileComplete } = useAuth(); // ✅ Added profileLoaded and isProfileComplete
+  const { isAuthenticated, isLoading, user, profileLoaded, isProfileComplete } = useAuth();
   const router = useRouter();
   const redirectAttempted = useRef(false);
 
@@ -44,14 +44,15 @@ export default function Template({ children }: { children: React.ReactNode }) {
     // ✅ Redirect authenticated users from login/signup
     if (isAuthenticated && (pathname === '/login' || pathname === '/signup')) {
       
-      // For printing users - always go to dashboard
-      if (user?.role === 'printing') {
+      // ✅ For admin, printing, and plant users - always go directly to dashboard
+      // These roles don't need profile completion
+      if (user?.role === 'admin' || user?.role === 'printing' || user?.role === 'plant') {
         redirectAttempted.current = true;
         router.push('/dashboard');
         return;
       }
       
-      // For business owners - check profile completion
+      // ✅ For business owners - check profile completion
       // Wait for profile to load first
       if (!profileLoaded) {
         return;
