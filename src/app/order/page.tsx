@@ -45,8 +45,8 @@ const CustomDropdown = ({
         value={value}
         onChange={(e) => onSelect(e.target.value)}
         disabled={disabled}
-        className={`w-full appearance-none px-4 py-3 bg-gray-100/70 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
-          disabled ? "opacity-50 cursor-not-allowed" : ""
+        className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
         }`}
       >
         {options.map((option) => (
@@ -86,7 +86,7 @@ const NumberInput = ({
       onChange={(e) => onChange(parseInt(e.target.value) || min)}
       min={min}
       disabled={disabled}
-      className={`w-full px-4 py-3 bg-gray-100/70 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] ${
+      className={`w-full px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] ${
         disabled ? "opacity-50 cursor-not-allowed" : ""
       }`}
     />
@@ -241,7 +241,7 @@ export default function CreateOrderPage() {
 
       setCreatedOrderId(result.order.order_id);
 
-      // ✅ UPDATED: Use dynamic route instead of query params
+      // Navigate to invoice page
       setTimeout(() => {
         router.push(`/order/${result.order.order_id}/invoice`);
       }, 2000);
@@ -430,8 +430,8 @@ export default function CreateOrderPage() {
                     value={selectedLabelId}
                     onChange={(e) => setSelectedLabelId(e.target.value)}
                     disabled={loading}
-                    className={`w-full appearance-none px-4 py-3 bg-gray-100/70 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
-                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
+                      loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                     }`}
                   >
                     {userLabels.length === 0 && (
@@ -497,7 +497,7 @@ export default function CreateOrderPage() {
                         checked={capColor === option.name}
                         onChange={(e) => setCapColor(e.target.value)}
                         disabled={loading}
-                        className="h-4 w-4 text-[#4A90E2] border-gray-300 focus:ring-[#4A90E2] disabled:opacity-50"
+                        className="h-4 w-4 text-[#4A90E2] border-gray-300 focus:ring-[#4A90E2] disabled:opacity-50 cursor-pointer"
                       />
                       <ColorSwatch color={option.color} />
                       <span className="text-gray-800 font-medium">
@@ -525,8 +525,8 @@ export default function CreateOrderPage() {
                     value={volume}
                     onChange={(e) => setVolume(parseInt(e.target.value))}
                     disabled={loading}
-                    className={`w-full appearance-none px-4 py-3 bg-gray-100/70 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
-                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
+                      loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                     }`}
                   >
                     {volumeOptions.map((option) => (

@@ -27,8 +27,9 @@ interface UserProfile {
   brandCompanyName?: string;
   businessAddress?: string;
   profilePhoto?: string;
+  labelName?: string; 
   logo?: string;
-  role?: "user" | "plant" | "printing";
+  role?: "plant" | "printing" | "business_owner" | "admin"; 
   labels?: Label[];
   outlets?: Outlet[];
 }
@@ -49,33 +50,27 @@ export default function ProfilePage() {
 
   const loadAttempted = useRef(false);
 
-  // ✅ Role-based access control
-useEffect(() => {
-  // Wait for auth to fully load
-  if (profileLoading) return;
 
-  // Only redirect if explicitly not authenticated (not during loading)
-  if (!profileLoading && !isAuthenticated && !user) {
-    router.push("/login");
-    return;
-  }
+  useEffect(() => {
+    if (profileLoading) return;
 
-  // Check role only if authenticated
-  if (isAuthenticated && user && user.role !== "business_owner") {
-    toast.error("Access denied. Only business owners can access this page.");
-    router.push("/");
-  }
-}, [user, profileLoading, isAuthenticated, router]);
+    if (!profileLoading && !isAuthenticated && !user) {
+      router.push("/login");
+      return;
+    }
 
+    if (isAuthenticated && user && user.role !== "business_owner") {
+      toast.error("Access denied. Only business owners can access this page.");
+      router.push("/dashboard");
+    }
+  }, [user, profileLoading, isAuthenticated, router]);
 
-  // ✅ Load profile only if not already loaded and not currently loading
   useEffect(() => {
     const initProfile = async () => {
       if (profileLoaded || profileLoading || loadAttempted.current) {
         return;
       }
 
-      // Only load if user has correct role
       if (user?.role !== "business_owner") {
         return;
       }
@@ -95,7 +90,6 @@ useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
 
-  // ✅ Map user data to profile format
   useEffect(() => {
     if (user?.profile) {
       const mappedProfile: UserProfile = {
@@ -107,7 +101,8 @@ useEffect(() => {
         businessAddress: user.company?.address,
         profilePhoto: user.profile.profile_url,
         logo: user.company?.logo,
-        role: user.role as "user" | "plant" | "printing" | undefined,
+        labelName: undefined, 
+        role: user.role as UserProfile["role"], 
         labels: user.labels?.map((l) => ({
           label_id: l.label_id,
           name: l.name || "",
@@ -168,12 +163,10 @@ useEffect(() => {
 
   const handleClearError = () => setError(null);
 
-  // ✅ Don't render anything if wrong role (will redirect)
   if (user && user.role !== "business_owner") {
     return null;
   }
 
-  // ✅ Show loading state
   if (profileLoading || (!profileData && !error && !profileLoaded)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -185,7 +178,6 @@ useEffect(() => {
     );
   }
 
-  // ✅ Show error state
   if (error && !profileData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

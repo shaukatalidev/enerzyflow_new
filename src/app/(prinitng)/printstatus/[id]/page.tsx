@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { printService, Order, OrderHistoryItem } from '@/app/services/printService';
+import { printService } from '@/app/services/printService';
+import type { AllOrderModel, OrderStatusHistory } from '@/app/services/adminService';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -21,8 +22,8 @@ export default function PrintingOrderStatusPage() {
   const params = useParams();
   const orderId = params.id as string;
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
+  const [order, setOrder] = useState<AllOrderModel | null>(null);
+  const [orderHistory, setOrderHistory] = useState<OrderStatusHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -52,7 +53,8 @@ export default function PrintingOrderStatusPage() {
 
         try {
           const trackingResponse = await printService.getOrderTracking(orderId);
-          setOrderHistory(trackingResponse.history);
+          // ✅ Fixed: Use tracking_history from response
+          setOrderHistory(trackingResponse.tracking_history || []);
         } catch (trackingError) {
           console.error('Failed to fetch tracking history:', trackingError);
           toast.error('Could not load tracking history');
@@ -82,12 +84,18 @@ export default function PrintingOrderStatusPage() {
   const getOrderTimeline = (): OrderTimelineStep[] => {
     if (!order) return [];
 
-    // ✅ Status flow matching backend tracking response
-    const statusOrder = ['placed', 'payment-pending', 'payment_uploaded', 'printing', 'processing', 'dispatch'];
+    // ✅ Correct status flow (7 statuses - removed ready_for_dispatch)
+    const statusOrder = [
+      'placed',
+      'printing',
+      'ready_for_plant',
+      'plant_processing',
+      'dispatched',
+      'completed'
+    ];
     
-    // ✅ Improved normalization: handles both hyphens and underscores
     const normalizeStatus = (status: string) => {
-      return status.toLowerCase().replace(/[-_]/g, '-');
+      return status.toLowerCase().replace(/[-_]/g, '_');
     };
     
     const currentStatusIndex = statusOrder.findIndex(
@@ -96,11 +104,11 @@ export default function PrintingOrderStatusPage() {
 
     const statusLabels: Record<string, string> = {
       'placed': 'Order Placed',
-      'payment-pending': 'Payment Verification Pending',
-      'payment_uploaded': 'Payment Uploaded',
       'printing': 'Printing your label',
-      'processing': 'Processing your order',
-      'dispatch': 'Ready to dispatch',
+      'ready_for_plant': 'Ready for Plant',
+      'plant_processing': 'Processing your order',
+      'dispatched': 'Dispatched',
+      'completed': 'Completed',
     };
 
     return statusOrder.map((status, index) => {
@@ -109,7 +117,7 @@ export default function PrintingOrderStatusPage() {
         (item) => normalizeStatus(item.status) === normalizeStatus(status)
       );
       
-      const isCompleted = !!historyItem || currentStatusIndex >= index;
+      const isCompleted = !!historyItem || currentStatusIndex > index;
       const isCurrent = normalizeStatus(order.status) === normalizeStatus(status);
 
       return {
@@ -117,8 +125,8 @@ export default function PrintingOrderStatusPage() {
         label: statusLabels[status] || status,
         date: historyItem ? formatDateTime(historyItem.changed_at) : undefined,
         estimatedArrival:
-          status === 'dispatch' && isCurrent
-            ? `estimated arrival time ${formatDate(new Date(order.created_at).setDate(new Date(order.created_at).getDate() + 7))} by 11 AM`
+          status === 'dispatched' && isCurrent && order.expected_delivery
+            ? `Estimated arrival ${formatDate(order.expected_delivery)}`
             : undefined,
         isCompleted,
         isCurrent,
@@ -138,8 +146,8 @@ export default function PrintingOrderStatusPage() {
     });
   };
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
@@ -168,9 +176,6 @@ export default function PrintingOrderStatusPage() {
   if (!order) return null;
 
   const timeline = getOrderTimeline();
-  const expectedDeliveryDate = formatDate(
-    new Date(order.created_at).setDate(new Date(order.created_at).getDate() + 5)
-  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -180,7 +185,7 @@ export default function PrintingOrderStatusPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-6 h-6 text-gray-900" />
             </button>
@@ -228,7 +233,9 @@ export default function PrintingOrderStatusPage() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Expected Delivery Date</span>
-              <span className="text-sm font-medium text-gray-900">{expectedDeliveryDate}</span>
+              <span className="text-sm font-medium text-gray-900">
+                {formatDate(order.expected_delivery)}
+              </span>
             </div>
 
             <div className="flex justify-between items-center">
@@ -240,23 +247,30 @@ export default function PrintingOrderStatusPage() {
 
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Order Status</span>
-              <span className={`text-sm font-medium px-2 py-1 rounded-full capitalize ${
-                order.status === 'dispatch' ? 'bg-green-100 text-green-700' :
-                order.status === 'processing' ? 'bg-orange-100 text-orange-700' :
-                order.status === 'printing' ? 'bg-blue-100 text-blue-700' :
-                order.status === 'payment-pending' ? 'bg-yellow-100 text-yellow-700' :
-                order.status === 'payment_uploaded' ? 'bg-indigo-100 text-indigo-700' :
-                order.status === 'declined' ? 'bg-red-100 text-red-700' :
-                order.status === 'cancelled' ? 'bg-gray-100 text-gray-700' :
-                'bg-purple-100 text-purple-700'
+              <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                printService.getStatusColorClass(order.status)
               }`}>
-                {order.status.replace(/_/g, ' ').replace(/-/g, ' ')}
+                {printService.getStatusLabel(order.status)}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Payment Status</span>
+              <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                printService.getPaymentStatusColorClass(order.payment_status)
+              }`}>
+                {printService.formatPaymentStatus(order.payment_status)}
               </span>
             </div>
 
             <div className="flex justify-between items-center pt-2 border-t border-gray-200">
               <span className="text-sm text-gray-600">Company</span>
               <span className="text-sm font-medium text-gray-900">{order.company_name}</span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Ordered By</span>
+              <span className="text-sm font-medium text-gray-900">{order.user_name}</span>
             </div>
           </div>
         </div>
@@ -291,7 +305,7 @@ export default function PrintingOrderStatusPage() {
                 <div className="flex-1 pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <h3 className={`text-base font-medium capitalize mb-1 ${
+                      <h3 className={`text-base font-medium mb-1 ${
                         step.isCompleted ? 'text-gray-900' : 'text-gray-500'
                       }`}>
                         {step.label}

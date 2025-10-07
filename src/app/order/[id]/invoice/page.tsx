@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { orderService, Order } from '@/app/services/orderService';
+import { orderService } from '@/app/services/orderService';
+import type { Order } from '@/app/services/orderService';
 
 export default function InvoiceDownloadPage() {
   const router = useRouter();
@@ -29,8 +30,9 @@ export default function InvoiceDownloadPage() {
         const response = await orderService.getOrder(orderId);
         setOrder(response.order);
         
-        // ✅ Changed to payment_url
-        if (response.order.payment_url) {
+        // Check if payment screenshot already uploaded
+        if (response.order.payment_status === 'payment_uploaded' || 
+            response.order.payment_status === 'payment_verified') {
           setUploadSuccess(true);
         }
       } catch (error) {
@@ -43,18 +45,6 @@ export default function InvoiceDownloadPage() {
 
     fetchOrderDetails();
   }, [orderId]);
-
-  // Calculate expected delivery date (order date + 5 days)
-  const getExpectedDeliveryDate = (orderDate: string): string => {
-    const date = new Date(orderDate);
-    date.setDate(date.getDate() + 5);
-    
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -73,7 +63,7 @@ export default function InvoiceDownloadPage() {
     return `${variant} Bottle ${capColor} Cap - ${order.volume}ml`;
   };
 
-   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -103,14 +93,13 @@ export default function InvoiceDownloadPage() {
     try {
       const response = await orderService.uploadPaymentScreenshot(orderId, paymentFile);
       
-      console.log('✅ Upload successful:', response);
-      
       setUploadSuccess(true);
       
-      // ✅ Changed to payment_url
+      // Update order with new payment status
       if (order) {
         setOrder({
           ...order,
+          payment_status: 'payment_uploaded',
           payment_url: response.url
         });
       }
@@ -127,15 +116,20 @@ export default function InvoiceDownloadPage() {
   };
 
   const handleDownloadInvoice = () => {
-    console.log('Downloading invoice for order:', orderId);
-    // TODO: Implement invoice download
+    if (!order) return;
+
+    // Check if invoice_url exists
+    if (order.invoice_url) {
+      // Open invoice in new tab
+      window.open(order.invoice_url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('No invoice available yet. Invoice will be generated after order confirmation.');
+    }
   };
 
   const handleTrackOrder = () => {
-    // ✅ Changed to payment_url
-    if (!uploadSuccess && !order?.payment_url) {
+    if (!uploadSuccess && order?.payment_status === 'payment_pending') {
       alert('Please upload payment screenshot before tracking your order');
-      router.push('/dashboard');
       return;
     }
     router.push(`/order/${orderId}/status`);
@@ -186,7 +180,7 @@ export default function InvoiceDownloadPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">Invoice Download</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Invoice & Payment</h1>
           </div>
         </div>
       </div>
@@ -231,27 +225,31 @@ export default function InvoiceDownloadPage() {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Expected Delivery Date</span>
+                <span className="text-sm text-gray-600">Expected Delivery</span>
                 <span className="text-sm font-medium text-green-600">
-                  {getExpectedDeliveryDate(order.created_at)}
+                  {formatDate(order.expected_delivery)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Invoice No.</span>
+                <span className="text-sm text-gray-600">Order ID</span>
                 <span className="text-sm font-medium text-gray-900 font-mono">
                   {order.order_id.slice(0, 13)}...
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Status</span>
-                <span className={`text-sm font-medium px-2 py-1 rounded-full capitalize ${
-                  order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                  order.status === 'payment_uploaded' ? 'bg-indigo-100 text-indigo-700' :
-                  order.status === 'processing' ? 'bg-orange-100 text-orange-700' :
-                  order.status === 'printing' ? 'bg-blue-100 text-blue-700' :
-                  'bg-purple-100 text-purple-700'
+                <span className="text-sm text-gray-600">Order Status</span>
+                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                  orderService.getOrderStatusColor(order.status)
                 }`}>
-                  {order.status === 'payment_uploaded' ? 'Payment Uploaded' : order.status}
+                  {orderService.formatOrderStatus(order.status)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Payment Status</span>
+                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                  orderService.getPaymentStatusColor(order.payment_status)
+                }`}>
+                  {orderService.formatPaymentStatus(order.payment_status)}
                 </span>
               </div>
             </div>
@@ -265,9 +263,9 @@ export default function InvoiceDownloadPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-blue-900">Delivery Timeline</p>
+                  <p className="text-sm font-semibold text-blue-900">Important</p>
                   <p className="text-sm text-blue-700 mt-1">
-                    Your order will be delivered within 5 business days from the order date.
+                    Please upload payment screenshot to proceed with order processing.
                   </p>
                 </div>
               </div>
@@ -279,15 +277,26 @@ export default function InvoiceDownloadPage() {
             {/* Download Invoice Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Download your PI / Invoice</h3>
-              <button
-                onClick={handleDownloadInvoice}
-                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Download PI / Invoice
-              </button>
+              
+              {order.invoice_url ? (
+                <button
+                  onClick={handleDownloadInvoice}
+                  className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download Invoice
+                </button>
+              ) : (
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+                  <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm text-gray-600 mb-1 font-medium">No invoice available yet</p>
+                  <p className="text-xs text-gray-500">Invoice will be generated after order confirmation</p>
+                </div>
+              )}
             </div>
 
             {/* Upload Payment Section */}
@@ -304,7 +313,6 @@ export default function InvoiceDownloadPage() {
                     </svg>
                     <span className="text-green-700 font-medium">Payment screenshot uploaded successfully!</span>
                   </div>
-                  {/* ✅ Changed to payment_url */}
                   {order.payment_url && (
                     <div className="mt-3">
                       <Image
@@ -384,16 +392,15 @@ export default function InvoiceDownloadPage() {
             {/* Track Order Link */}
             <button
               onClick={handleTrackOrder}
-              disabled={!uploadSuccess && !order.payment_url}
+              disabled={!uploadSuccess && order.payment_status === 'payment_pending'}
               className={`w-full font-medium py-2 text-center cursor-pointer rounded-xl transition-colors ${
-                uploadSuccess || order.payment_url
+                uploadSuccess || order.payment_status !== 'payment_pending'
                   ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
                   : 'text-gray-400 cursor-not-allowed'
               }`}
             >
-              {/* ✅ Changed to payment_url */}
-              {uploadSuccess || order.payment_url
-                ? 'Track your order now' 
+              {uploadSuccess || order.payment_status !== 'payment_pending'
+                ? 'Track your order now →' 
                 : '🔒 Upload payment to track order'}
             </button>
           </div>

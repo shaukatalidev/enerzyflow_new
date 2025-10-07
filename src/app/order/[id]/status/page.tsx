@@ -3,11 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import {
-  orderService,
-  Order,
-  OrderHistoryItem,
-} from "@/app/services/orderService";
+import { orderService } from "@/app/services/orderService";
+import type { Order } from "@/app/services/orderService";
+import type { OrderStatusHistory } from "@/app/services/adminService";
 
 interface OrderTimelineStep {
   status: string;
@@ -21,12 +19,12 @@ export default function OrderStatusPage() {
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
-  const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
+  const [orderHistory, setOrderHistory] = useState<OrderStatusHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAttempted = useRef(false);
 
-  // Status flow with labels and descriptions
+  // ✅ Updated status flow (6 steps - user view)
   const statusFlow: OrderTimelineStep[] = [
     {
       status: "placed",
@@ -34,24 +32,29 @@ export default function OrderStatusPage() {
       description: "Your order has been received",
     },
     {
-      status: "payment_uploaded",
-      label: "Payment Uploaded",
-      description: "Payment screenshot has been uploaded",
-    },
-    {
       status: "printing",
       label: "Printing your label",
       description: "Labels are being printed",
     },
     {
-      status: "processing",
-      label: "Processing your order",
-      description: "Order is being prepared for dispatch",
+      status: "ready_for_plant",
+      label: "Ready for Plant",
+      description: "Printing complete, ready for processing",
     },
     {
-      status: "dispatch",
-      label: "Ready to dispatch",
-      description: "Order is ready for delivery",
+      status: "plant_processing",
+      label: "Processing your order",
+      description: "Order is being prepared at the plant",
+    },
+    {
+      status: "dispatched",
+      label: "Dispatched",
+      description: "Order has been dispatched",
+    },
+    {
+      status: "completed",
+      label: "Delivered",
+      description: "Order has been completed",
     },
   ];
 
@@ -64,12 +67,10 @@ export default function OrderStatusPage() {
       try {
         // Fetch order details
         const orderResponse = await orderService.getOrder(orderId);
-        console.log("📦 Full order response:", orderResponse);
         setOrder(orderResponse.order);
 
-        // Check if payment screenshot exists
-        if (!orderResponse.order.payment_url) {
-          console.log("❌ No payment screenshot found, redirecting...");
+        // ✅ Check payment status instead of payment_url
+        if (orderResponse.order.payment_status === 'payment_pending') {
           alert("Please upload payment screenshot before tracking your order");
           router.push(`/order/${orderId}/invoice`);
           return;
@@ -78,14 +79,10 @@ export default function OrderStatusPage() {
         // Fetch order tracking history
         try {
           const trackingResponse = await orderService.getOrderTracking(orderId);
-          console.log("📊 Order tracking history:", trackingResponse.history);
-          setOrderHistory(trackingResponse.history);
+          setOrderHistory(trackingResponse.tracking_history || []);
         } catch (trackingError) {
           console.error("Failed to fetch tracking history:", trackingError);
-          // Don't fail the entire page if tracking fails
         }
-
-        console.log("✅ Payment screenshot exists, allowing access");
       } catch (error) {
         console.error("Failed to fetch order:", error);
         fetchAttempted.current = false;
@@ -97,39 +94,38 @@ export default function OrderStatusPage() {
     fetchOrderDetails();
   }, [orderId, router]);
 
-  // Check if a status exists in the order history
-  const isStepCompleted = (stepStatus: string): boolean => {
-    if (orderHistory.length === 0) return false;
-
-    // Normalize status names for comparison
-    const normalizeStatus = (status: string) => {
-      if (status === "dispatched" || status === "dispatch") return "dispatch";
-      if (status === "delivered") return "dispatch";
-      return status.toLowerCase().replace(/[-_]/g, "-");
-    };
-
-    return orderHistory.some(
-      (historyItem) =>
-        normalizeStatus(historyItem.status) === normalizeStatus(stepStatus)
-    );
+  const normalizeStatus = (status: string) => {
+    return status.toLowerCase().replace(/[-_]/g, "_");
   };
 
-  // Check if this is the most recent status
+  // ✅ FIXED: A step is completed if its position in the flow is at or before the current status.
+  const isStepCompleted = (stepStatus: string): boolean => {
+    if (!order) return false;
+  
+    const currentStatusIndex = statusFlow.findIndex(
+      (step) => normalizeStatus(step.status) === normalizeStatus(order.status)
+    );
+  
+    const stepIndex = statusFlow.findIndex(
+      (step) => normalizeStatus(step.status) === normalizeStatus(stepStatus)
+    );
+  
+    if (currentStatusIndex === -1 || stepIndex === -1) {
+      return false;
+    }
+  
+    return stepIndex <= currentStatusIndex;
+  };
+  
+  // ✅ FIXED: Removed dependency on orderHistory to correctly identify the current step.
   const isCurrentStep = (stepStatus: string): boolean => {
-    if (!order || orderHistory.length === 0) return false;
-
-    const normalizeStatus = (status: string) => {
-      if (status === "dispatched" || status === "dispatch") return "dispatch";
-      return status.toLowerCase().replace(/[-_]/g, "-");
-    };
-
+    if (!order) return false;
     return normalizeStatus(order.status) === normalizeStatus(stepStatus);
   };
-
   // Get the actual timestamp for a status from history
   const getStepDate = (stepStatus: string): string | null => {
     const normalizeStatus = (status: string) => {
-      return status.toLowerCase().replace(/[-_]/g, "-");
+      return status.toLowerCase().replace(/[-_]/g, '_');
     };
 
     const historyItem = orderHistory.find(
@@ -148,10 +144,8 @@ export default function OrderStatusPage() {
     });
   };
 
-  const getExpectedDeliveryDate = (orderDate: string): string => {
-    const date = new Date(orderDate);
-    date.setDate(date.getDate() + 5);
-
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       day: "2-digit",
       month: "short",
@@ -278,11 +272,11 @@ export default function OrderStatusPage() {
                 Expected Delivery Date
               </span>
               <span className="text-sm font-medium text-gray-900">
-                {getExpectedDeliveryDate(order.created_at)}
+                {formatDate(order.expected_delivery)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Invoice No.</span>
+              <span className="text-sm text-gray-600">Order ID</span>
               <span className="text-sm font-medium text-gray-900 font-mono break-all text-right">
                 {order.order_id.slice(0, 13)}...
               </span>
@@ -290,51 +284,48 @@ export default function OrderStatusPage() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Order Status</span>
               <span
-                className={`text-sm font-medium px-2 py-1 rounded-full capitalize ${
-                  order.status === "delivered"
-                    ? "bg-green-100 text-green-700"
-                    : order.status === "payment_uploaded"
-                    ? "bg-indigo-100 text-indigo-700"
-                    : order.status === "processing"
-                    ? "bg-orange-100 text-orange-700"
-                    : order.status === "printing"
-                    ? "bg-blue-100 text-blue-700"
-                    : order.status === "dispatch" ||
-                      order.status === "dispatched"
-                    ? "bg-cyan-100 text-cyan-700"
-                    : "bg-purple-100 text-purple-700"
+                className={`text-sm font-medium px-2 py-1 rounded-full ${
+                  orderService.getOrderStatusColor(order.status)
                 }`}
               >
-                {order.status.replace(/_/g, " ")}
+                {orderService.formatOrderStatus(order.status)}
               </span>
             </div>
             {/* Payment status indicator */}
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Payment Status</span>
-              <span className="text-sm font-medium text-green-600 flex items-center">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Verified
+              <span
+                className={`text-sm font-medium px-2 py-1 rounded-full flex items-center ${
+                  orderService.getPaymentStatusColor(order.payment_status)
+                }`}
+              >
+                {order.payment_status === 'payment_verified' && (
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+                {orderService.formatPaymentStatus(order.payment_status)}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Success Banner */}
-        <div className="mb-4 sm:mb-6 text-center">
-          <h2 className="text-xl sm:text-2xl font-bold text-green-600 mb-2">
-            Congrats your Order is Approved!
-          </h2>
-        </div>
+        {/* Success Banner - Only show if payment verified */}
+        {order.payment_status === 'payment_verified' && (
+          <div className="mb-4 sm:mb-6 text-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-green-600 mb-2">
+              Congrats your Order is Approved!
+            </h2>
+          </div>
+        )}
 
         {/* Order Timeline */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8">
@@ -424,8 +415,7 @@ export default function OrderStatusPage() {
                       </p>
                       {index === statusFlow.length - 1 && (
                         <p className="text-xs text-gray-400 mt-1">
-                          estimated arrival time{" "}
-                          {getExpectedDeliveryDate(order.created_at)}
+                          Estimated arrival: {formatDate(order.expected_delivery)}
                         </p>
                       )}
                     </div>

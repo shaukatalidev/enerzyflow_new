@@ -79,11 +79,7 @@ const handleOtpSubmit = async (e: React.FormEvent) => {
   setIsRedirecting(true);
 
   try {
-    console.log("🔐 Starting login...");
     await login(email, otpCode);
-    console.log("✅ Login successful - waiting for redirect...");
-    
-    // ✅ DO NOTHING - Template will redirect us automatically
     
   } catch (error) {
     const errorMessage =

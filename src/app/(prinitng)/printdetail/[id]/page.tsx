@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { printService, Order } from "@/app/services/printService";
+import { printService } from "@/app/services/printService";
+import type { AllOrderModel } from "@/app/services/adminService";
 import {
   ArrowLeft,
   CheckCircle,
   XCircle,
   Loader2,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -17,7 +20,7 @@ export default function PrintingOrderDetailsPage() {
   const params = useParams();
   const orderId = params.id as string;
 
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<AllOrderModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
@@ -71,8 +74,8 @@ export default function PrintingOrderDetailsPage() {
 
     setActionLoading(true);
     try {
-      const response = await printService.acceptOrder(order.order_id);
-      toast.success(response.message || "Order accepted successfully");
+      const response = await printService.startPrinting(order.order_id);
+      toast.success(response.message || "Order accepted and moved to printing");
       router.push("/dashboard");
     } catch (error) {
       if (error instanceof Error) {
@@ -122,6 +125,28 @@ export default function PrintingOrderDetailsPage() {
     return `${variant} Bottle ${capColor} Cap Label`;
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getDaysUntilDelivery = (expectedDelivery: string) => {
+    const expected = new Date(expectedDelivery);
+    const now = new Date();
+    const diffTime = expected.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const isOverdue = (expectedDelivery: string) => {
+    const expected = new Date(expectedDelivery);
+    const now = new Date();
+    return now > expected;
+  };
 
   if (loading) {
     return (
@@ -141,6 +166,8 @@ export default function PrintingOrderDetailsPage() {
   }
 
   const canTakeAction = order.status === "placed";
+  const daysRemaining = getDaysUntilDelivery(order.expected_delivery);
+  const overdue = isOverdue(order.expected_delivery);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -163,6 +190,24 @@ export default function PrintingOrderDetailsPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        {/* Order Status Badges */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <span
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${printService.getStatusColorClass(
+              order.status
+            )}`}
+          >
+            {printService.getStatusLabel(order.status)}
+          </span>
+          <span
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${printService.getPaymentStatusColorClass(
+              order.payment_status
+            )}`}
+          >
+            {printService.formatPaymentStatus(order.payment_status)}
+          </span>
+        </div>
+
         {/* Order Details Card */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
           <div className="p-4 sm:p-6">
@@ -179,6 +224,48 @@ export default function PrintingOrderDetailsPage() {
                 <span className="text-xs sm:text-sm font-medium text-blue-600 font-mono">
                   {order.order_id.slice(0, 8).toUpperCase()}
                 </span>
+              </div>
+
+              {/* Company Info */}
+              <div className="pb-3 sm:pb-4 border-b border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Company</p>
+                <p className="text-sm sm:text-base font-medium text-gray-900">
+                  {order.company_name}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">by {order.user_name}</p>
+              </div>
+
+              {/* Expected Delivery */}
+              <div className="pb-3 sm:pb-4 border-b border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2">
+                  Expected Delivery
+                </p>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-900">
+                      {formatDate(order.expected_delivery)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    {overdue ? (
+                      <span className="text-sm text-red-600 font-medium">
+                        Overdue by {Math.abs(daysRemaining)} days
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-sm font-medium ${
+                          daysRemaining <= 2
+                            ? "text-orange-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {daysRemaining} days left
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Final Label */}
@@ -229,12 +316,24 @@ export default function PrintingOrderDetailsPage() {
                 </p>
               </div>
 
-              {/* Cutting Type */}
+              {/* Cap Color */}
+              <div className="pb-3 sm:pb-4 border-b border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                  Cap Color
+                </p>
+                <p className="text-sm sm:text-base text-gray-900 capitalize">
+                  {order.cap_color.replace("_", " ")}
+                </p>
+              </div>
+
+              {/* Order Date */}
               <div>
                 <p className="text-xs sm:text-sm text-gray-600 mb-1">
-                  Cutting type
+                  Order Date
                 </p>
-                <p className="text-sm sm:text-base text-gray-900">xyz</p>
+                <p className="text-sm text-gray-900">
+                  {formatDate(order.created_at)}
+                </p>
               </div>
 
               {/* Decline Reason (if declined) */}
@@ -252,7 +351,7 @@ export default function PrintingOrderDetailsPage() {
           </div>
         </div>
 
-        {/* Action Buttons (only for placed orders) */}
+        {/* Action Buttons (only for placed orders) - Backend already filtered for payment */}
         {canTakeAction && (
           <div className="space-y-3">
             <button
@@ -268,7 +367,7 @@ export default function PrintingOrderDetailsPage() {
               ) : (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  <span>Accept Order</span>
+                  <span>Accept & Start Printing</span>
                 </>
               )}
             </button>
@@ -283,7 +382,7 @@ export default function PrintingOrderDetailsPage() {
           </div>
         )}
 
-        {/* Track Order Button (for accepted/completed orders) */}
+        {/* Track Order Button (for printing/ready_for_plant orders) */}
         {!canTakeAction && order.status !== "declined" && (
           <button
             onClick={() => router.push(`/printstatus/${orderId}`)}
@@ -296,7 +395,7 @@ export default function PrintingOrderDetailsPage() {
 
       {/* Decline Modal */}
       {showDeclineModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/30 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-white/30 backdrop-blur-md">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md sm:mx-4 animate-slide-up sm:animate-none shadow-2xl">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Choose a reason for declining

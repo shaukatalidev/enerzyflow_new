@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainDashboard from './components/MainDashboard';
 import PrintDashboard from './components/PrintDashboard';
-// import PlantDashboard from './components/PlantDashboard';
+import PlantDashboard from './components/PlantDashboard';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -105,8 +105,8 @@ export default function DashboardPage() {
       return <SuperAdminDashboard />;
     case 'printing':
       return <PrintDashboard />;
-    // case 'plant':
-    //   return <PlantDashboard />;
+    case 'plant':
+      return <PlantDashboard />;
     case 'business_owner':
     default:
       return <MainDashboard />;

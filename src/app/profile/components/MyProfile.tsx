@@ -27,7 +27,7 @@ interface UserProfile {
   profilePhoto?: string;
   labelName?: string;
   logo?: string;
-  role?: "user" | "plant" | "printing";
+  role?: "plant" | "printing" | "business_owner" | "admin";
   labels?: Array<{ label_id?: string; name: string; url: string }>;
   outlets?: Array<{ id?: string; name: string; address: string }>;
 }
@@ -205,6 +205,16 @@ export default function MyProfile({
     setLabelsData((prev) =>
       prev.map((label, i) => (i === index ? { ...label, name } : label))
     );
+  };
+
+  const formatRole = (role?: string): string => {
+    const roleMap: Record<string, string> = {
+      business_owner: "Business Owner",
+      admin: "Admin",
+      printing: "Printing",
+      plant: "Plant",
+    };
+    return roleMap[role || ""] || role || "Not Set";
   };
 
   const handleOutletChange = (
@@ -649,6 +659,7 @@ export default function MyProfile({
                     />
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Contact No.
@@ -670,46 +681,26 @@ export default function MyProfile({
                     />
                   )}
                 </div>
+
+                {/* ✅ Email - Always non-editable */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Email
                   </label>
-                  {isEditing ? (
-                    <EditableInput
-                      value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      placeholder="Enter your email here"
-                      type="email"
-                      disabled={isLoading}
-                    />
-                  ) : (
-                    <StaticField
-                      value={formData.email}
-                      placeholder="Enter your email here"
-                    />
-                  )}
+                  <StaticField
+                    value={formData.email}
+                    placeholder="Enter your email here"
+                  />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Designation
+                    Role
                   </label>
-                  {isEditing ? (
-                    <EditableInput
-                      value={formData.designation}
-                      onChange={(e) =>
-                        handleInputChange("designation", e.target.value)
-                      }
-                      placeholder="Enter your Designation here"
-                      disabled={isLoading}
-                    />
-                  ) : (
-                    <StaticField
-                      value={formData.designation}
-                      placeholder="Enter your Designation here"
-                    />
-                  )}
+                  <StaticField
+                    value={formatRole(formData.role)}
+                    placeholder="Role"
+                  />
                 </div>
               </div>
 
