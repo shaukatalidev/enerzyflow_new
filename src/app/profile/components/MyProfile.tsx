@@ -144,9 +144,10 @@ export default function MyProfile({
   const isProfileComplete = (profile: UserProfile): boolean => {
     const hasName = !!(profile.name && profile.name.trim() !== "");
     const hasPhone = !!(profile.contactNo && profile.contactNo.trim() !== "");
-    const hasDesignation = !!(
-      profile.designation && profile.designation.trim() !== ""
-    );
+    // ❌ REMOVE THIS LINE:
+    // const hasDesignation = !!(
+    //   profile.designation && profile.designation.trim() !== ""
+    // );
     const hasCompanyName = !!(
       profile.brandCompanyName && profile.brandCompanyName.trim() !== ""
     );
@@ -155,7 +156,8 @@ export default function MyProfile({
     );
 
     return (
-      hasName && hasPhone && hasDesignation && hasCompanyName && hasAddress
+      hasName && hasPhone && hasCompanyName && hasAddress
+      // ❌ REMOVE hasDesignation from here
     );
   };
 
@@ -205,16 +207,6 @@ export default function MyProfile({
     setLabelsData((prev) =>
       prev.map((label, i) => (i === index ? { ...label, name } : label))
     );
-  };
-
-  const formatRole = (role?: string): string => {
-    const roleMap: Record<string, string> = {
-      business_owner: "Business Owner",
-      admin: "Admin",
-      printing: "Printing",
-      plant: "Plant",
-    };
-    return roleMap[role || ""] || role || "Not Set";
   };
 
   const handleOutletChange = (
@@ -280,16 +272,13 @@ export default function MyProfile({
     if (!formData.contactNo || formData.contactNo.trim() === "") {
       errors.push("Contact number is required");
     }
-    if (!formData.designation || formData.designation.trim() === "") {
-      errors.push("Designation is required");
-    }
+
     if (!formData.brandCompanyName || formData.brandCompanyName.trim() === "") {
       errors.push("Brand/Company name is required");
     }
     if (!formData.businessAddress || formData.businessAddress.trim() === "") {
       errors.push("Business address is required");
     }
-
     // Existing label validation
     if (labelsData.length > 0) {
       labelsData.forEach((label, index) => {
@@ -343,9 +332,6 @@ export default function MyProfile({
   const isFormValid = useMemo((): boolean => {
     const hasName = !!(formData.name && formData.name.trim());
     const hasPhone = !!(formData.contactNo && formData.contactNo.trim());
-    const hasDesignation = !!(
-      formData.designation && formData.designation.trim()
-    );
     const hasCompanyName = !!(
       formData.brandCompanyName && formData.brandCompanyName.trim()
     );
@@ -354,12 +340,11 @@ export default function MyProfile({
     );
 
     return (
-      hasName && hasPhone && hasDesignation && hasCompanyName && hasAddress
+      hasName && hasPhone && hasCompanyName && hasAddress
     );
   }, [
     formData.name,
     formData.contactNo,
-    formData.designation,
     formData.brandCompanyName,
     formData.businessAddress,
   ]);
@@ -629,9 +614,6 @@ export default function MyProfile({
                 <h2 className="text-xl font-bold text-gray-900">
                   {formData.name || "Your Name"}
                 </h2>
-                <p className="text-md text-gray-500">
-                  {formData.designation || "Your Designation"}
-                </p>
               </div>
             </div>
           </div>
@@ -690,16 +672,6 @@ export default function MyProfile({
                   <StaticField
                     value={formData.email}
                     placeholder="Enter your email here"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Role
-                  </label>
-                  <StaticField
-                    value={formatRole(formData.role)}
-                    placeholder="Role"
                   />
                 </div>
               </div>

@@ -47,7 +47,9 @@ function isPendingStatus(status: string): boolean {
 }
 
 const SuperAdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState<"orders" | "users" | "roles">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "users" | "roles">(
+    "orders"
+  );
   const [loading, setLoading] = useState(true);
 
   // Data states
@@ -66,8 +68,12 @@ const SuperAdminDashboard = () => {
 
   // Modal states
   const [editingOrder, setEditingOrder] = useState<AllOrderModel | null>(null);
-  const [editingPayment, setEditingPayment] = useState<AllOrderModel | null>(null);
-  const [viewingScreenshot, setViewingScreenshot] = useState<string | null>(null);
+  const [editingPayment, setEditingPayment] = useState<AllOrderModel | null>(
+    null
+  );
+  const [viewingScreenshot, setViewingScreenshot] = useState<string | null>(
+    null
+  );
   const [isAddingPerson, setIsAddingPerson] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState<string | null>(null);
 
@@ -91,7 +97,9 @@ const SuperAdminDashboard = () => {
       setUsers(fetchedUsers);
 
       // Calculate stats using helper function
-      const pendingCount = fetchedOrders.filter((o) => isPendingStatus(o.status)).length;
+      const pendingCount = fetchedOrders.filter((o) =>
+        isPendingStatus(o.status)
+      ).length;
       const completedCount = fetchedOrders.filter(
         (o) => o.status === ORDER_STATUS.COMPLETED
       ).length;
@@ -114,14 +122,21 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleOrderStatusUpdate = async (orderId: string, status: string, reason?: string) => {
+  const handleOrderStatusUpdate = async (
+    orderId: string,
+    status: string,
+    reason?: string
+  ) => {
     try {
       await adminService.updateOrderStatus(orderId, status, reason);
       await fetchDashboardData();
       setEditingOrder(null);
       toast.success("Order status updated successfully");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update order status";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update order status";
       toast.error(errorMessage);
     }
   };
@@ -132,6 +147,30 @@ const SuperAdminDashboard = () => {
     reason?: string
   ) => {
     try {
+      const order = orders.find((o) => o.order_id === orderId);
+
+      if (!order) {
+        toast.error("Order not found");
+        return;
+      }
+
+      // ✅ Only block if payment is pending (not uploaded)
+      if (order.payment_status === "payment_pending") {
+        toast.error("Payment screenshot has not been uploaded yet");
+        return;
+      }
+
+      // ✅ Check if already in same status
+      if (order.payment_status === status) {
+        toast.error(
+          `Payment is already ${
+            status === "payment_verified" ? "verified" : "rejected"
+          }`
+        );
+        return;
+      }
+
+      // Validate rejection reason
       if (status === "payment_rejected") {
         if (!reason || !reason.trim()) {
           toast.error("Reason is required for rejecting payment");
@@ -143,11 +182,14 @@ const SuperAdminDashboard = () => {
         await adminService.updatePaymentStatus(orderId, status);
         toast.success("Payment verified successfully");
       }
-      
+
       await fetchDashboardData();
       setEditingPayment(null);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update payment status";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update payment status";
       toast.error(errorMessage);
     }
   };
@@ -159,21 +201,28 @@ const SuperAdminDashboard = () => {
       await fetchDashboardData();
       toast.success("Invoice uploaded successfully");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to upload invoice";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload invoice";
       toast.error(errorMessage);
     } finally {
       setUploadingInvoice(null);
     }
   };
 
-  const handleCreateUser = async (email: string, role: "printing" | "plant") => {
+  const handleCreateUser = async (
+    email: string,
+    role: "printing" | "plant"
+  ) => {
     try {
       await adminService.createUser({ email, role });
       await fetchDashboardData();
       setIsAddingPerson(false);
-      toast.success("User created successfully! Login credentials sent via email.");
+      toast.success(
+        "User created successfully! Login credentials sent via email."
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to create user";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create user";
       toast.error(errorMessage);
     }
   };
@@ -183,7 +232,8 @@ const SuperAdminDashboard = () => {
     window.open(cleanUrl, "_blank", "noopener,noreferrer");
   };
 
-  const filteredUsers = roleFilter === "all" ? users : users.filter((u) => u.Role === roleFilter);
+  const filteredUsers =
+    roleFilter === "all" ? users : users.filter((u) => u.Role === roleFilter);
   const printingPersons = users.filter((u) => u.Role === "printing");
   const plantPersons = users.filter((u) => u.Role === "plant");
 
@@ -203,11 +253,36 @@ const SuperAdminDashboard = () => {
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <StatCard icon={Users} label="Total Users" value={stats.totalUsers} color="blue" />
-          <StatCard icon={Package} label="Total Orders" value={stats.totalOrders} color="purple" />
-          <StatCard icon={Clock} label="Pending Orders" value={stats.pendingOrders} color="orange" />
-          <StatCard icon={CheckCircle} label="Completed" value={stats.completedOrders} color="green" />
-          <StatCard icon={XCircle} label="Declined" value={stats.declinedOrders} color="red" />
+          <StatCard
+            icon={Users}
+            label="Total Users"
+            value={stats.totalUsers}
+            color="blue"
+          />
+          <StatCard
+            icon={Package}
+            label="Total Orders"
+            value={stats.totalOrders}
+            color="purple"
+          />
+          <StatCard
+            icon={Clock}
+            label="Pending Orders"
+            value={stats.pendingOrders}
+            color="orange"
+          />
+          <StatCard
+            icon={CheckCircle}
+            label="Completed"
+            value={stats.completedOrders}
+            color="green"
+          />
+          <StatCard
+            icon={XCircle}
+            label="Declined"
+            value={stats.declinedOrders}
+            color="red"
+          />
         </div>
 
         {/* Tabs */}
@@ -279,11 +354,17 @@ const SuperAdminDashboard = () => {
       )}
 
       {viewingScreenshot && (
-        <ScreenshotModal imageUrl={viewingScreenshot} onClose={() => setViewingScreenshot(null)} />
+        <ScreenshotModal
+          imageUrl={viewingScreenshot}
+          onClose={() => setViewingScreenshot(null)}
+        />
       )}
 
       {isAddingPerson && (
-        <AddPersonModal onClose={() => setIsAddingPerson(false)} onSave={handleCreateUser} />
+        <AddPersonModal
+          onClose={() => setIsAddingPerson(false)}
+          onSave={handleCreateUser}
+        />
       )}
     </div>
   );
@@ -297,7 +378,12 @@ interface StatCardProps {
   color: "blue" | "purple" | "orange" | "green" | "red";
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color }) => {
+const StatCard: React.FC<StatCardProps> = ({
+  icon: Icon,
+  label,
+  value,
+  color,
+}) => {
   const colorClasses = {
     blue: "bg-blue-100 text-blue-600",
     purple: "bg-purple-100 text-purple-600",
@@ -308,7 +394,9 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color }) 
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-      <div className={`p-3 rounded-lg ${colorClasses[color]} inline-block mb-2`}>
+      <div
+        className={`p-3 rounded-lg ${colorClasses[color]} inline-block mb-2`}
+      >
         <Icon className="w-5 h-5" />
       </div>
       <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
@@ -328,7 +416,9 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, label }) => (
   <button
     onClick={onClick}
     className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-      active ? "bg-white text-blue-600 shadow-sm" : "text-gray-600 hover:text-gray-900"
+      active
+        ? "bg-white text-blue-600 shadow-sm"
+        : "text-gray-600 hover:text-gray-900"
     }`}
   >
     {label}
@@ -360,14 +450,30 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Order ID
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Company
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              User
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Quantity
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Order Status
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Payment Status
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Date
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -377,12 +483,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 {order.order_id.slice(0, 8)}...
               </td>
               <td className="px-6 py-4">
-                <div className="text-sm text-gray-900">{order.company_name}</div>
+                <div className="text-sm text-gray-900">
+                  {order.company_name}
+                </div>
               </td>
               <td className="px-6 py-4">
                 <div className="text-sm text-gray-900">{order.user_name}</div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.qty} pcs</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {order.qty} pcs
+              </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 py-1 text-xs rounded-full ${adminService.getStatusColorClass(
@@ -430,7 +540,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </button>
                   )}
                   {!order.invoice_url ? (
-                    <label className="cursor-pointer text-green-600 hover:text-green-800" title="Upload Invoice">
+                    <label
+                      className="cursor-pointer text-green-600 hover:text-green-800"
+                      title="Upload Invoice"
+                    >
                       {uploadingInvoice === order.order_id ? (
                         <Loader2 size={18} className="animate-spin" />
                       ) : (
@@ -473,15 +586,20 @@ interface UsersTableProps {
   onRoleFilterChange: (role: string) => void;
 }
 
-const UsersTable: React.FC<UsersTableProps> = ({ users, roleFilter, onRoleFilterChange }) => {
+const UsersTable: React.FC<UsersTableProps> = ({
+  users,
+  roleFilter,
+  onRoleFilterChange,
+}) => {
   // ✅ Separate admins from other users
   const adminUsers = users.filter((u) => u.Role === "admin");
   const nonAdminUsers = users.filter((u) => u.Role !== "admin");
-  
+
   // ✅ Filter non-admin users only
-  const filteredNonAdminUsers = roleFilter === "all" 
-    ? nonAdminUsers 
-    : nonAdminUsers.filter((u) => u.Role === roleFilter);
+  const filteredNonAdminUsers =
+    roleFilter === "all"
+      ? nonAdminUsers
+      : nonAdminUsers.filter((u) => u.Role === roleFilter);
 
   return (
     <div className="space-y-6">
@@ -490,18 +608,30 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, roleFilter, onRoleFilter
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-purple-50">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">ADMIN</span>
+              <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">
+                ADMIN
+              </span>
               Administrators
             </h2>
-            <div className="text-sm text-gray-500">Total: {adminUsers.length}</div>
+            <div className="text-sm text-gray-500">
+              Total: {adminUsers.length}
+            </div>
           </div>
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Designation</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  User
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Designation
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -510,21 +640,30 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, roleFilter, onRoleFilter
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold">
-                        {user.Name?.charAt(0) || user.Email.charAt(0).toUpperCase()}
+                        {user.Name?.charAt(0) ||
+                          user.Email.charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.Name || "N/A"}</div>
-                        <div className="text-sm text-gray-500">{user.Phone || "N/A"}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.Name || "N/A"}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {user.Phone || "N/A"}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{user.Email}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {user.Email}
+                  </td>
                   <td className="px-6 py-4 text-sm">
                     <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs capitalize">
                       {user.Role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{user.Designation || "N/A"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {user.Designation || "N/A"}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -550,16 +689,26 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, roleFilter, onRoleFilter
                 <option value="plant">Plant</option>
               </select>
             </div>
-            <div className="text-sm text-gray-500">Total: {filteredNonAdminUsers.length}</div>
+            <div className="text-sm text-gray-500">
+              Total: {filteredNonAdminUsers.length}
+            </div>
           </div>
         </div>
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Designation</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                User
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Role
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Designation
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -575,21 +724,32 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, roleFilter, onRoleFilter
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                        {user.Name?.charAt(0) || user.Email.charAt(0).toUpperCase()}
+                        {user.Name?.charAt(0) ||
+                          user.Email.charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.Name || "N/A"}</div>
-                        <div className="text-sm text-gray-500">{user.Phone || "N/A"}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.Name || "N/A"}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {user.Phone || "N/A"}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{user.Email}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {user.Email}
+                  </td>
                   <td className="px-6 py-4 text-sm">
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs capitalize">
-                      {user.Role === "business_owner" ? "Business Owner" : user.Role}
+                      {user.Role === "business_owner"
+                        ? "Business Owner"
+                        : user.Role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{user.Designation || "N/A"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {user.Designation || "N/A"}
+                  </td>
                 </tr>
               ))
             )}
@@ -607,10 +767,16 @@ interface RolesPanelProps {
   onAddPerson: () => void;
 }
 
-const RolesPanel: React.FC<RolesPanelProps> = ({ printingPersons, plantPersons, onAddPerson }) => (
+const RolesPanel: React.FC<RolesPanelProps> = ({
+  printingPersons,
+  plantPersons,
+  onAddPerson,
+}) => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden">
     <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 className="text-xl font-semibold text-gray-900">Printing & Plant Persons</h2>
+      <h2 className="text-xl font-semibold text-gray-900">
+        Printing & Plant Persons
+      </h2>
       <button
         onClick={onAddPerson}
         className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
@@ -631,7 +797,9 @@ const RolesPanel: React.FC<RolesPanelProps> = ({ printingPersons, plantPersons, 
             <PersonCard key={person.UserID} person={person} color="blue" />
           ))}
           {printingPersons.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No printing persons yet</p>
+            <p className="text-gray-500 text-center py-4">
+              No printing persons yet
+            </p>
           )}
         </div>
       </div>
@@ -647,7 +815,9 @@ const RolesPanel: React.FC<RolesPanelProps> = ({ printingPersons, plantPersons, 
             <PersonCard key={person.UserID} person={person} color="green" />
           ))}
           {plantPersons.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No plant persons yet</p>
+            <p className="text-gray-500 text-center py-4">
+              No plant persons yet
+            </p>
           )}
         </div>
       </div>
@@ -668,11 +838,15 @@ const PersonCard: React.FC<PersonCardProps> = ({ person, color }) => (
         <h4 className="font-medium text-gray-900">{person.Name || "N/A"}</h4>
         <p className="text-sm text-gray-600">{person.Email}</p>
         <p className="text-sm text-gray-600">{person.Phone || "N/A"}</p>
-        {person.Designation && <p className="text-xs text-gray-500 mt-1">{person.Designation}</p>}
+        {person.Designation && (
+          <p className="text-xs text-gray-500 mt-1">{person.Designation}</p>
+        )}
       </div>
       <span
         className={`${
-          color === "blue" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+          color === "blue"
+            ? "bg-blue-100 text-blue-800"
+            : "bg-green-100 text-green-800"
         } text-xs px-2 py-1 rounded capitalize`}
       >
         {person.Role}
@@ -688,7 +862,11 @@ interface OrderEditModalProps {
   onUpdateStatus: (orderId: string, status: string, reason?: string) => void;
 }
 
-const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdateStatus }) => {
+const OrderEditModal: React.FC<OrderEditModalProps> = ({
+  order,
+  onClose,
+  onUpdateStatus,
+}) => {
   const [selectedStatus, setSelectedStatus] = useState(order.status);
   const [reason, setReason] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -703,7 +881,11 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
 
     setUpdating(true);
     try {
-      await onUpdateStatus(order.order_id, selectedStatus, reason.trim() || undefined);
+      await onUpdateStatus(
+        order.order_id,
+        selectedStatus,
+        reason.trim() || undefined
+      );
     } finally {
       setUpdating(false);
     }
@@ -723,8 +905,13 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Update Order Status</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 cursor-pointer">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Update Order Status
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
             <X size={24} />
           </button>
         </div>
@@ -735,7 +922,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-700 font-medium">Order ID:</span>
-                <span className="ml-2 text-gray-900">{order.order_id.slice(0, 13)}...</span>
+                <span className="ml-2 text-gray-900">
+                  {order.order_id.slice(0, 13)}...
+                </span>
               </div>
               <div>
                 <span className="text-gray-700 font-medium">Company:</span>
@@ -746,7 +935,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
                 <span className="ml-2 text-gray-900">{order.qty} pcs</span>
               </div>
               <div>
-                <span className="text-gray-700 font-medium">Current Status:</span>
+                <span className="text-gray-700 font-medium">
+                  Current Status:
+                </span>
                 <span
                   className={`ml-2 px-2 py-1 text-xs rounded-full ${adminService.getStatusColorClass(
                     order.status
@@ -759,10 +950,14 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">New Status</label>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              New Status
+            </label>
             <select
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value as typeof selectedStatus)}
+              onChange={(e) =>
+                setSelectedStatus(e.target.value as typeof selectedStatus)
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               required
             >
@@ -776,7 +971,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
 
           {selectedStatus === ORDER_STATUS.DECLINED && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">Decline Reason</label>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Decline Reason
+              </label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -825,16 +1022,49 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose, onUpdat
 interface PaymentEditModalProps {
   order: AllOrderModel;
   onClose: () => void;
-  onUpdatePayment: (orderId: string, status: "payment_verified" | "payment_rejected", reason?: string) => void;
+  onUpdatePayment: (
+    orderId: string,
+    status: "payment_verified" | "payment_rejected",
+    reason?: string
+  ) => void;
 }
 
-const PaymentEditModal: React.FC<PaymentEditModalProps> = ({ order, onClose, onUpdatePayment }) => {
-  const [selectedStatus, setSelectedStatus] = useState<"payment_verified" | "payment_rejected">("payment_verified");
+const PaymentEditModal: React.FC<PaymentEditModalProps> = ({
+  order,
+  onClose,
+  onUpdatePayment,
+}) => {
+  const [selectedStatus, setSelectedStatus] = useState<
+    "payment_verified" | "payment_rejected"
+  >("payment_verified");
   const [reason, setReason] = useState("");
   const [updating, setUpdating] = useState(false);
 
+  // Check payment status conditions
+  const isPaymentPending = order.payment_status === "payment_pending";
+  const isPaymentVerified = order.payment_status === "payment_verified";
+  const isPaymentRejected = order.payment_status === "payment_rejected";
+  const isPaymentUploaded = order.payment_status === "payment_uploaded";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isPaymentPending) {
+      toast.error("Payment screenshot has not been uploaded yet");
+      return;
+    }
+
+    // Block if trying to reject verified payment
+    if (isPaymentVerified && selectedStatus === "payment_rejected") {
+      toast.error("Cannot reject an already verified payment");
+      return;
+    }
+
+    // Block if trying to verify rejected payment
+    if (isPaymentRejected && selectedStatus === "payment_verified") {
+      toast.error("Cannot verify an already rejected payment");
+      return;
+    }
 
     if (selectedStatus === "payment_rejected" && !reason.trim()) {
       toast.error("Reason is required for rejecting payment");
@@ -857,19 +1087,82 @@ const PaymentEditModal: React.FC<PaymentEditModalProps> = ({ order, onClose, onU
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Update Payment Status</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 cursor-pointer">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Update Payment Status
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
             <X size={24} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
+          {/* Warning Banners */}
+          {isPaymentPending && (
+            <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-yellow-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-yellow-800">
+                    ⚠️ Payment screenshot has not been uploaded yet
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Cannot update payment status until user uploads screenshot.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isPaymentVerified && (
+            <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
+              <p className="text-sm text-green-700">
+                ✓ Payment is already verified. Rejection is disabled to prevent
+                accidental changes.
+              </p>
+            </div>
+          )}
+
+          {isPaymentRejected && (
+            <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+              <p className="text-sm text-red-700">
+                ✗ Payment was rejected. Verification is disabled to prevent
+                accidental changes.
+              </p>
+            </div>
+          )}
+
+          {isPaymentUploaded && (
+            <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+              <p className="text-sm text-blue-700">
+                ℹ️ Payment screenshot uploaded and awaiting review.
+              </p>
+            </div>
+          )}
+
+          {/* Order Details */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <h3 className="font-semibold mb-3 text-gray-900">Order Details</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-700 font-medium">Order ID:</span>
-                <span className="ml-2 text-gray-900">{order.order_id.slice(0, 13)}...</span>
+                <span className="ml-2 text-gray-900">
+                  {order.order_id.slice(0, 13)}...
+                </span>
               </div>
               <div>
                 <span className="text-gray-700 font-medium">Company:</span>
@@ -880,7 +1173,9 @@ const PaymentEditModal: React.FC<PaymentEditModalProps> = ({ order, onClose, onU
                 <span className="ml-2 text-gray-900">{order.qty} pcs</span>
               </div>
               <div>
-                <span className="text-gray-700 font-medium">Current Payment Status:</span>
+                <span className="text-gray-700 font-medium">
+                  Current Payment Status:
+                </span>
                 <span
                   className={`ml-2 px-2 py-1 text-xs rounded-full ${adminService.getPaymentStatusColorClass(
                     order.payment_status
@@ -892,48 +1187,87 @@ const PaymentEditModal: React.FC<PaymentEditModalProps> = ({ order, onClose, onU
             </div>
           </div>
 
+          {/* Payment Status Buttons */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Payment Status</label>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Payment Status
+            </label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => setSelectedStatus("payment_verified")}
-                className={`p-4 border-2 rounded-lg font-medium transition-colors ${
+                disabled={
+                  isPaymentPending || isPaymentVerified || isPaymentRejected
+                }
+                className={`p-4 border-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   selectedStatus === "payment_verified"
                     ? "border-green-600 bg-green-50 text-green-700"
                     : "border-gray-300 hover:border-gray-400 text-gray-900"
                 }`}
               >
-                ✓ Verify Payment
+                <div className="flex flex-col items-center">
+                  <span>✓ Verify Payment</span>
+                  {isPaymentVerified && (
+                    <span className="text-xs mt-1 opacity-70">
+                      (Already Verified)
+                    </span>
+                  )}
+                  {isPaymentRejected && (
+                    <span className="text-xs mt-1 opacity-70">
+                      (Cannot Verify Rejected)
+                    </span>
+                  )}
+                </div>
               </button>
+
               <button
                 type="button"
                 onClick={() => setSelectedStatus("payment_rejected")}
-                className={`p-4 border-2 rounded-lg font-medium transition-colors ${
+                disabled={
+                  isPaymentPending || isPaymentRejected || isPaymentVerified
+                }
+                className={`p-4 border-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   selectedStatus === "payment_rejected"
                     ? "border-red-600 bg-red-50 text-red-700"
                     : "border-gray-300 hover:border-gray-400 text-gray-900"
                 }`}
               >
-                ✗ Reject Payment
+                <div className="flex flex-col items-center">
+                  <span>✗ Reject Payment</span>
+                  {isPaymentRejected && (
+                    <span className="text-xs mt-1 opacity-70">
+                      (Already Rejected)
+                    </span>
+                  )}
+                  {isPaymentVerified && (
+                    <span className="text-xs mt-1 opacity-70">
+                      (Cannot Reject Verified)
+                    </span>
+                  )}
+                </div>
               </button>
             </div>
           </div>
 
-          {selectedStatus === "payment_rejected" && (
+          {/* Rejection Reason */}
+          {selectedStatus === "payment_rejected" && !isPaymentVerified && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">Rejection Reason *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Rejection Reason *
+              </label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 bg-white"
+                disabled={isPaymentPending || isPaymentVerified}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Enter reason for rejecting payment..."
                 required
               />
             </div>
           )}
 
+          {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button
               type="button"
@@ -945,8 +1279,13 @@ const PaymentEditModal: React.FC<PaymentEditModalProps> = ({ order, onClose, onU
             </button>
             <button
               type="submit"
-              disabled={updating}
-              className={`flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 cursor-pointer ${
+              disabled={
+                updating ||
+                isPaymentPending ||
+                (isPaymentVerified && selectedStatus === "payment_rejected") ||
+                (isPaymentRejected && selectedStatus === "payment_verified")
+              }
+              className={`flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                 selectedStatus === "payment_verified"
                   ? "bg-green-600 hover:bg-green-700"
                   : "bg-red-600 hover:bg-red-700"
@@ -971,27 +1310,43 @@ const PaymentEditModal: React.FC<PaymentEditModalProps> = ({ order, onClose, onU
   );
 };
 
-// Modal: Screenshot
 interface ScreenshotModalProps {
   imageUrl: string;
   onClose: () => void;
 }
 
-const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ imageUrl, onClose }) => (
-  <div className="fixed inset-0 bg-white/30 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-lg p-6 max-w-4xl w-full shadow-2xl">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-900">Payment Screenshot</h3>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 cursor-pointer">
-          <X size={24} />
-        </button>
-      </div>
-      <div className="relative w-full h-[600px]">
-        <Image src={imageUrl} alt="Payment Screenshot" fill className="object-contain rounded-lg" unoptimized />
+const ScreenshotModal: React.FC<ScreenshotModalProps> = ({
+  imageUrl,
+  onClose,
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-2xl w-full shadow-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Payment Screenshot
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="relative w-full h-[500px] bg-gray-100 rounded-lg overflow-hidden">
+          <Image
+            src={imageUrl}
+            alt="Payment Screenshot"
+            fill
+            className="object-contain"
+            unoptimized
+          />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Modal: Add Person
 interface AddPersonModalProps {
@@ -1024,15 +1379,22 @@ const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose, onSave }) => {
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-2xl">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-900">Add Printing/Plant Person</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 cursor-pointer">
+          <h3 className="text-xl font-semibold text-gray-900">
+            Add Printing/Plant Person
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
             <X size={24} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Email</label>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Email
+            </label>
             <input
               type="email"
               value={email}
@@ -1044,7 +1406,9 @@ const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose, onSave }) => {
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Role</label>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Role
+            </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as "printing" | "plant")}

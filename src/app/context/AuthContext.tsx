@@ -133,28 +133,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const router = useRouter();
 
-  // ✅ Updated: Add admin and plant roles
+  // ✅ CORRECTED - Remove designation check
   const isProfileComplete = useCallback(
     (user: ExtendedUser | null = state.user): boolean => {
-      
       if (!user) {
         return false;
       }
 
       // ✅ Admin, printing, and plant roles don't need profile completion
-      if (user.role === "admin" || user.role === "printing" || user.role === "plant") {
+      if (
+        user.role === "admin" ||
+        user.role === "printing" ||
+        user.role === "plant"
+      ) {
         return true;
       }
 
       const hasProfile = !!user.profile;
       const hasName = hasValidValue(user.profile?.name);
       const hasPhone = hasValidValue(user.profile?.phone);
-      const hasDesignation = hasValidValue(user.profile?.designation);
       const hasCompany = !!user.company;
       const hasCompanyName = hasValidValue(user.company?.name);
       const hasCompanyAddress = hasValidValue(user.company?.address);
 
-      if (!hasProfile || !hasName || !hasPhone || !hasDesignation || !hasCompany || !hasCompanyName || !hasCompanyAddress) {
+      if (
+        !hasProfile ||
+        !hasName ||
+        !hasPhone ||
+        !hasCompany ||
+        !hasCompanyName ||
+        !hasCompanyAddress
+      ) {
         return false;
       }
 
@@ -163,11 +172,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [state.user]
   );
 
-  // ✅ Updated: Add admin and plant roles
   const getPostLoginRedirectPath = useCallback((): string => {
-    
     // ✅ Admin, printing, and plant roles go directly to dashboard
-    if (state.user?.role === "admin" || state.user?.role === "printing" || state.user?.role === "plant") {
+    if (
+      state.user?.role === "admin" ||
+      state.user?.role === "printing" ||
+      state.user?.role === "plant"
+    ) {
       return "/dashboard";
     }
 
@@ -180,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await authService.logout();
     } catch (error) {
-      console.error('Backend logout error:', error);
+      console.error("Backend logout error:", error);
     } finally {
       if (mountedRef.current) {
         localStorage.removeItem("user");
@@ -189,8 +200,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profileLoadAttempted.current = false;
         profileLoadingRef.current = false;
         dispatch({ type: "LOGOUT" });
-        
-        router.replace('/');
+
+        router.replace("/");
       }
     }
   }, [router]);
@@ -305,7 +316,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (
       state.isAuthenticated &&
       state.user?.role !== "admin" && // ✅ Added
-      state.user?.role !== "printing" && 
+      state.user?.role !== "printing" &&
       state.user?.role !== "plant" && // ✅ Added
       !state.profileLoaded &&
       !state.user?.profile &&
@@ -314,7 +325,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     ) {
       loadProfileRef.current?.();
     }
-  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, state.user?.role]);
+  }, [
+    state.isAuthenticated,
+    state.profileLoaded,
+    state.user?.profile,
+    state.user?.role,
+  ]);
 
   const updateProfile = useCallback(
     async (profileData: SaveProfileRequest): Promise<void> => {

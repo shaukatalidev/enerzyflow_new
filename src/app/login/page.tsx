@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,8 +14,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [otpError, setOtpError] = useState(false);
-  
-  // ✅ ADD THIS: OTP attempts tracking
+
   const [otpAttempts, setOtpAttempts] = useState(0);
   const MAX_OTP_ATTEMPTS = 3;
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -61,55 +61,57 @@ export default function Login() {
     }
   };
 
- /// app/login/page.tsx
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const otpCode = otp.join("");
 
-const handleOtpSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const otpCode = otp.join("");
-
-  if (otpCode.length !== 6) {
-    setError("Please enter complete OTP");
-    setOtpError(true);
-    return;
-  }
-
-  setIsLoading(true);
-  setError("");
-  setOtpError(false);
-  setIsRedirecting(true);
-
-  try {
-    await login(email, otpCode);
-    
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Login failed";
-    
-    const newAttempts = otpAttempts + 1;
-    setOtpAttempts(newAttempts);
-    setOtpError(true);
-    
-    if (newAttempts >= MAX_OTP_ATTEMPTS) {
-      setError("Too many failed attempts. Please request a new OTP.");
-      setTimeout(() => {
-        handleBackToEmail();
-      }, 2000);
-    } else {
-      setError(`${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`);
-      setOtp(["", "", "", "", "", ""]);
-      setTimeout(() => {
-        otpRefs.current[0]?.focus();
-      }, 100);
+    if (otpCode.length !== 6) {
+      toast.error("Please enter complete OTP");
+      setError("Please enter complete OTP");
+      setOtpError(true);
+      return;
     }
-    
-    setIsRedirecting(false);
-    setIsLoading(false);
-  }
-};
 
+    setIsLoading(true);
+    setError("");
+    setOtpError(false);
+    setIsRedirecting(true);
 
+    try {
+      await login(email, otpCode);
+      toast.success("Login successful! Redirecting...");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Login failed";
 
-  // ✅ UPDATE THIS FUNCTION to reset attempts
+      const newAttempts = otpAttempts + 1;
+      setOtpAttempts(newAttempts);
+      setOtpError(true);
+
+      if (newAttempts >= MAX_OTP_ATTEMPTS) {
+        toast.error("Too many failed attempts. Please request a new OTP.");
+        setError("Too many failed attempts. Please request a new OTP.");
+        setTimeout(() => {
+          handleBackToEmail();
+        }, 2000);
+      } else {
+        toast.error(
+          `Invalid OTP`
+        );
+        setError(
+          `${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`
+        );
+        setOtp(["", "", "", "", "", ""]);
+        setTimeout(() => {
+          otpRefs.current[0]?.focus();
+        }, 100);
+      }
+
+      setIsRedirecting(false);
+      setIsLoading(false);
+    }
+  };
+
   const handleResendOtp = async () => {
     setIsLoading(true);
     setError("");
@@ -118,11 +120,13 @@ const handleOtpSubmit = async (e: React.FormEvent) => {
     try {
       await sendOTP(email);
       setOtp(["", "", "", "", "", ""]);
-      setOtpAttempts(0); // ✅ Reset attempts on resend
+      setOtpAttempts(0);
+      toast.success("OTP sent successfully!");
       otpRefs.current[0]?.focus();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to resend OTP";
+      toast.error(errorMessage);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -206,7 +210,11 @@ const handleOtpSubmit = async (e: React.FormEvent) => {
             </div>
 
             {error && (
-              <div className={`mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${otpError ? 'animate-shake' : ''}`}>
+              <div
+                className={`mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${
+                  otpError ? "animate-shake" : ""
+                }`}
+              >
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg
@@ -224,11 +232,13 @@ const handleOtpSubmit = async (e: React.FormEvent) => {
                   <div className="ml-3">
                     <p className="text-sm font-medium text-red-700">{error}</p>
                     {/* ✅ Show different message based on attempts */}
-                    {otpError && currentStep === 2 && otpAttempts < MAX_OTP_ATTEMPTS && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Please try again or request a new OTP.
-                      </p>
-                    )}
+                    {otpError &&
+                      currentStep === 2 &&
+                      otpAttempts < MAX_OTP_ATTEMPTS && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Please try again or request a new OTP.
+                        </p>
+                      )}
                   </div>
                 </div>
               </div>
@@ -351,9 +361,9 @@ const handleOtpSubmit = async (e: React.FormEvent) => {
                         onChange={(e) => handleOtpChange(e.target.value, index)}
                         onKeyDown={(e) => handleOtpKeyDown(e, index)}
                         className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg sm:text-xl font-bold transition-all duration-200 text-black bg-white ${
-                          otpError 
-                            ? 'border-red-300 bg-red-50' 
-                            : 'border-gray-200'
+                          otpError
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-200"
                         }`}
                         inputMode="numeric"
                         pattern="\d*"
