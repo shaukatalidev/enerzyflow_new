@@ -197,7 +197,7 @@ export default function MyProfile({
       }
       initialDataSet.current = true;
     }
-  }, [userProfile, isEditing]);
+  }, [userProfile]);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -339,9 +339,7 @@ export default function MyProfile({
       formData.businessAddress && formData.businessAddress.trim()
     );
 
-    return (
-      hasName && hasPhone && hasCompanyName && hasAddress
-    );
+    return hasName && hasPhone && hasCompanyName && hasAddress;
   }, [
     formData.name,
     formData.contactNo,
@@ -620,10 +618,11 @@ export default function MyProfile({
 
           <div className="md:w-2/3 lg:w-3/4 mt-8 md:mt-0">
             <div className="space-y-6">
+              {/* Personal Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Your Name
+                    Your Name <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
@@ -644,7 +643,7 @@ export default function MyProfile({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Contact No.
+                    Contact No. <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
@@ -664,7 +663,7 @@ export default function MyProfile({
                   )}
                 </div>
 
-                {/* ✅ Email - Always non-editable */}
+                {/* Email - Always non-editable */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Email
@@ -674,12 +673,34 @@ export default function MyProfile({
                     placeholder="Enter your email here"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Designation
+                  </label>
+                  {isEditing ? (
+                    <EditableInput
+                      value={formData.designation}
+                      onChange={(e) =>
+                        handleInputChange("designation", e.target.value)
+                      }
+                      placeholder="Enter your Designation"
+                      disabled={isLoading}
+                    />
+                  ) : (
+                    <StaticField
+                      value={formData.designation}
+                      placeholder="Enter your Designation"
+                    />
+                  )}
+                </div>
               </div>
 
+              {/* Company Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Brand/Company Name
+                    Brand/Company Name <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
@@ -697,9 +718,10 @@ export default function MyProfile({
                     />
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Business Address
+                    Business Address <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
