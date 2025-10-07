@@ -53,8 +53,6 @@ const Hero = () => {
     });
   }, [currentIndex]);
 
-  const currentVideo = heroVideos[currentIndex];
-
   return (
     <section className="relative w-full h-[60vh] md:h-[70vh] overflow-hidden bg-gray-900">
       <div className="absolute inset-0">

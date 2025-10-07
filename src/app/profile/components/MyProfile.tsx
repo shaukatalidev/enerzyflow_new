@@ -192,6 +192,7 @@ export default function MyProfile({
       }
       initialDataSet.current = true;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile]);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
