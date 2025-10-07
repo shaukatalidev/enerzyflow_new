@@ -21,7 +21,6 @@ interface UserProfile {
   name?: string;
   contactNo?: string;
   email?: string;
-  designation?: string;
   brandCompanyName?: string;
   businessAddress?: string;
   profilePhoto?: string;
@@ -144,10 +143,7 @@ export default function MyProfile({
   const isProfileComplete = (profile: UserProfile): boolean => {
     const hasName = !!(profile.name && profile.name.trim() !== "");
     const hasPhone = !!(profile.contactNo && profile.contactNo.trim() !== "");
-    // ❌ REMOVE THIS LINE:
-    // const hasDesignation = !!(
-    //   profile.designation && profile.designation.trim() !== ""
-    // );
+  
     const hasCompanyName = !!(
       profile.brandCompanyName && profile.brandCompanyName.trim() !== ""
     );
@@ -157,7 +153,6 @@ export default function MyProfile({
 
     return (
       hasName && hasPhone && hasCompanyName && hasAddress
-      // ❌ REMOVE hasDesignation from here
     );
   };
 
@@ -381,7 +376,9 @@ export default function MyProfile({
         validOutlets.length > 0 ? validOutlets : undefined
       );
 
+      // ✅ Handle blocked labels (labels attached to existing orders)
       if (result?.blocked_labels && result.blocked_labels.length > 0) {
+        // Store IDs of labels that cannot be deleted
         const lockedLabelIds = new Set<string>(
           result.blocked_labels
             .map((l) => l.label_id)
@@ -389,21 +386,26 @@ export default function MyProfile({
         );
         setLockedLabels(lockedLabelIds);
 
+        // Create array of blocked labels with their data
         const blockedLabelsData = result.blocked_labels.map((l) => ({
           label_id: l.label_id,
           name: l.name,
-          url: "",
+          url: "", // Will be filled from original data
         }));
 
+        // Get existing label IDs to avoid duplicates
         const existingIds = new Set(
           labelsData.map((l) => l.label_id).filter(Boolean)
         );
 
+        // Filter out blocked labels that are already in the list
         const newBlockedLabels = blockedLabelsData.filter(
           (l) => !existingIds.has(l.label_id)
         );
 
+        // If there are new blocked labels, add them back to the list
         if (newBlockedLabels.length > 0) {
+          // Find URLs from original data
           const labelsWithUrls = newBlockedLabels.map((blockedLabel) => {
             const originalLabel = originalData.labels?.find(
               (ol) => ol.label_id === blockedLabel.label_id
@@ -416,6 +418,7 @@ export default function MyProfile({
 
           setLabelsData((prev) => [...prev, ...labelsWithUrls]);
 
+          // Show warning toast
           toast(
             `Note: ${newBlockedLabels.length} label(s) could not be deleted because they are attached to existing orders.`,
             {
@@ -432,6 +435,7 @@ export default function MyProfile({
         }
       }
 
+      // Update original data with the new values
       setOriginalData({
         ...formData,
         labels: validLabels,
@@ -440,8 +444,18 @@ export default function MyProfile({
         logo: logoUrl,
       });
 
+      // ✅ FIX: Set editing to false BEFORE showing success toast
       setIsEditing(false);
 
+      // ✅ FIX: Force re-render by clearing and resetting initialDataSet
+      initialDataSet.current = false;
+
+      // ✅ FIX: Small delay to ensure state updates propagate
+      setTimeout(() => {
+        initialDataSet.current = true;
+      }, 50);
+
+      // Show success toast
       toast.success("Profile updated successfully!", {
         duration: 3000,
         position: "top-center",
@@ -672,27 +686,6 @@ export default function MyProfile({
                     value={formData.email}
                     placeholder="Enter your email here"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Designation
-                  </label>
-                  {isEditing ? (
-                    <EditableInput
-                      value={formData.designation}
-                      onChange={(e) =>
-                        handleInputChange("designation", e.target.value)
-                      }
-                      placeholder="Enter your Designation"
-                      disabled={isLoading}
-                    />
-                  ) : (
-                    <StaticField
-                      value={formData.designation}
-                      placeholder="Enter your Designation"
-                    />
-                  )}
                 </div>
               </div>
 

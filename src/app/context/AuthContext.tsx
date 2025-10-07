@@ -311,13 +311,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // ✅ Updated: Skip profile loading for admin, printing, and plant roles
   useEffect(() => {
     if (
       state.isAuthenticated &&
-      state.user?.role !== "admin" && // ✅ Added
+      state.user?.role !== "admin" && 
       state.user?.role !== "printing" &&
-      state.user?.role !== "plant" && // ✅ Added
+      state.user?.role !== "plant" && 
       !state.profileLoaded &&
       !state.user?.profile &&
       !profileLoadAttempted.current &&
@@ -333,34 +332,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   ]);
 
   const updateProfile = useCallback(
-    async (profileData: SaveProfileRequest): Promise<void> => {
-      dispatch({ type: "SET_PROFILE_LOADING", payload: true });
-      try {
-        const result = await profileService.saveProfile(profileData);
+  async (profileData: SaveProfileRequest): Promise<void> => {
+    dispatch({ type: "SET_PROFILE_LOADING", payload: true });
+    try {
+      const result = await profileService.saveProfile(profileData);
 
-        const profileResponse: ProfileResponse = {
-          user: result.user,
-          company: result.company,
-          labels: result.labels || undefined,
-        };
+      const profileResponse: ProfileResponse = {
+        user: result.user,
+        company: result.company,
+        labels: result.labels || undefined,
+      };
 
-        dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
+      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
-        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const updatedUser: ExtendedUser = {
-          ...currentUser,
-          profile: result.user,
-          company: result.company,
-          labels: result.labels || undefined,
-        };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      } catch (err) {
-        dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-        throw err;
-      }
-    },
-    []
-  );
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const updatedUser: ExtendedUser = {
+        ...currentUser,
+        profile: result.user,
+        company: result.company,
+        labels: result.labels || undefined,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      dispatch({ type: "SET_PROFILE_LOADED", payload: true });
+      profileLoadAttempted.current = true;
+      
+      await loadProfile(true);
+      
+    } catch (err) {
+      dispatch({ type: "SET_PROFILE_LOADING", payload: false });
+      throw err;
+    }
+  },
+  [loadProfile] 
+);
 
   const getUserLabelId = useCallback((): string | null => {
     if (state.user?.labels && state.user.labels.length > 0) {

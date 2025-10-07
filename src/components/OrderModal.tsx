@@ -8,7 +8,7 @@ import { orderService, Order } from "@/app/services/orderService";
 interface OrdersModalProps {
   isOpen: boolean;
   onClose: () => void;
-  orderType: "active" | "completed";
+  orderType: "active" | "completed" | "rejected"; // ✅ Added "rejected"
   onOrderClick: (orderId: string) => void;
 }
 
@@ -68,17 +68,26 @@ export default function OrdersModal({
     });
   }, []);
 
-  // ✅ Updated filter logic - using correct order statuses
+  // ✅ Updated filter logic - includes rejected orders
   const filterOrdersByType = useCallback(
     (allOrders: Order[]) => {
       if (orderType === "active") {
         // Active: placed, printing, ready_for_plant, plant_processing
+        // Exclude payment_rejected
         return allOrders.filter(
           (order) =>
-            order.status === "placed" ||
+            (order.status === "placed" ||
             order.status === "printing" ||
             order.status === "ready_for_plant" ||
-            order.status === "plant_processing"
+            order.status === "plant_processing") &&
+            order.payment_status !== "payment_rejected"
+        );
+      } else if (orderType === "rejected") {
+        // ✅ Rejected: declined status OR payment_rejected
+        return allOrders.filter(
+          (order) =>
+            order.status === "declined" ||
+            order.payment_status === "payment_rejected"
         );
       } else {
         // Completed: dispatched, completed
@@ -158,6 +167,34 @@ export default function OrdersModal({
     onClose();
   };
 
+  // ✅ Updated modal title logic
+  const getModalTitle = () => {
+    switch (orderType) {
+      case "active":
+        return "Ongoing Orders";
+      case "rejected":
+        return "Rejected Orders";
+      case "completed":
+        return "Completed Orders";
+      default:
+        return "Orders";
+    }
+  };
+
+  // ✅ Updated empty state message
+  const getEmptyStateMessage = () => {
+    switch (orderType) {
+      case "active":
+        return "You don't have any ongoing orders";
+      case "rejected":
+        return "You don't have any rejected orders";
+      case "completed":
+        return "You don't have any completed orders";
+      default:
+        return "No orders found";
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -174,7 +211,7 @@ export default function OrdersModal({
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {orderType === "active" ? "Active Orders" : "Completed Orders"}
+              {getModalTitle()}
             </h2>
             <button
               onClick={handleClose}
@@ -206,19 +243,24 @@ export default function OrdersModal({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                  />
+                  {orderType === "rejected" ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                    />
+                  )}
                 </svg>
                 <p className="text-gray-500 font-medium mb-2">No orders found</p>
-                <p className="text-sm text-gray-400">
-                  {orderType === "active"
-                    ? "You don't have any active orders"
-                    : "You don't have any completed orders"}
-                </p>
+                <p className="text-sm text-gray-400">{getEmptyStateMessage()}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -272,6 +314,24 @@ export default function OrdersModal({
                               Qty: {order.qty.toLocaleString()}
                             </span>
                           </div>
+
+                          {/* ✅ Show payment status badge */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <span
+                              className={`text-xs font-medium px-2 py-1 rounded-full ${orderService.getPaymentStatusColor(
+                                order.payment_status
+                              )}`}
+                            >
+                              {orderService.formatPaymentStatus(order.payment_status)}
+                            </span>
+                          </div>
+
+                          {/* ✅ Show decline reason for rejected orders */}
+                          {(order.status === 'declined' || order.payment_status === 'payment_rejected') && order.decline_reason && (
+                            <p className="text-xs text-red-600 mt-2">
+                              Reason: {order.decline_reason}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
