@@ -315,7 +315,7 @@ const Header = () => {
                             </button>
 
                             {/* Only show Profile link for non-printing users */}
-                            {user.role !== "printing" && user.role !== 'admin' && (
+                            {user.role !== "printing" && user.role !== 'admin' && user.role !== 'plant' && (
                               <Link
                                 href="/profile"
                                 onClick={() => setShowProfileDropdown(false)}

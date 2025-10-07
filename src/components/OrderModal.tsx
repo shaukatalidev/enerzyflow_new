@@ -42,17 +42,18 @@ export default function OrdersModal({
     switch (status) {
       case "placed":
         return "text-purple-600 bg-purple-50";
-      case "payment_uploaded": // ✅ Added
-        return "text-indigo-600 bg-indigo-50";
-      case "processing":
-        return "text-orange-500 bg-orange-50";
       case "printing":
         return "text-blue-500 bg-blue-50";
-      case "dispatch":
+      case "ready_for_plant":
+        return "text-yellow-500 bg-yellow-50";
+      case "plant_processing":
+        return "text-orange-500 bg-orange-50";
       case "dispatched":
         return "text-cyan-500 bg-cyan-50";
-      case "delivered":
+      case "completed":
         return "text-green-500 bg-green-50";
+      case "declined":
+        return "text-red-500 bg-red-50";
       default:
         return "text-gray-500 bg-gray-50";
     }
@@ -67,23 +68,24 @@ export default function OrdersModal({
     });
   }, []);
 
-  // ✅ Updated to include payment_uploaded as active status
+  // ✅ Updated filter logic - using correct order statuses
   const filterOrdersByType = useCallback(
     (allOrders: Order[]) => {
       if (orderType === "active") {
+        // Active: placed, printing, ready_for_plant, plant_processing
         return allOrders.filter(
           (order) =>
             order.status === "placed" ||
-            order.status === "payment_uploaded" || // ✅ Added
             order.status === "printing" ||
-            order.status === "processing"
+            order.status === "ready_for_plant" ||
+            order.status === "plant_processing"
         );
       } else {
+        // Completed: dispatched, completed
         return allOrders.filter(
           (order) =>
-            order.status === "delivered" ||
-            order.status === "dispatch" ||
-            order.status === "dispatched"
+            order.status === "dispatched" ||
+            order.status === "completed"
         );
       }
     },
@@ -264,11 +266,7 @@ export default function OrdersModal({
                                 order.status
                               )}`}
                             >
-                              {/* ✅ Display payment_uploaded correctly */}
-                              {order.status === "payment_uploaded"
-                                ? "Payment Uploaded"
-                                : order.status.charAt(0).toUpperCase() +
-                                  order.status.slice(1)}
+                              {orderService.formatOrderStatus(order.status)}
                             </span>
                             <span className="text-xs text-gray-500">
                               Qty: {order.qty.toLocaleString()}

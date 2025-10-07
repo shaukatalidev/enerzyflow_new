@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
-import { orderService, Order } from "@/app/services/orderService";
+import { orderService } from "@/app/services/orderService";
+import type { Order } from "@/app/services/orderService";
 import OrdersModal from "@/components/OrderModal";
+import { Calendar } from "lucide-react";
 
 // OrderCard component
 const OrderCard = ({
@@ -21,47 +23,6 @@ const OrderCard = ({
       order.cap_color.charAt(0).toUpperCase() +
       order.cap_color.slice(1).replace("_", " ");
     return `${variant} Bottle ${capColor} Cap - ${order.volume}ml`;
-  }, []);
-
-  const getStatusColor = useCallback((status: string) => {
-    switch (status.toLowerCase()) {
-      case "placed":
-        return "text-purple-600 bg-purple-50";
-      case "payment_uploaded":
-        return "text-indigo-600 bg-indigo-50";
-      case "processing":
-        return "text-orange-500 bg-orange-50";
-      case "printing":
-        return "text-blue-500 bg-blue-50";
-      case "dispatch":
-      case "dispatched":
-        return "text-cyan-500 bg-cyan-50";
-      case "delivered":
-        return "text-green-500 bg-green-50";
-      default:
-        return "text-gray-500 bg-gray-50";
-    }
-  }, []);
-
-  // ✅ Format status label for display
-  const getStatusLabel = useCallback((status: string) => {
-    switch (status.toLowerCase()) {
-      case "placed":
-        return "Placed";
-      case "payment_uploaded":
-        return "Payment Uploaded";
-      case "processing":
-        return "Processing";
-      case "printing":
-        return "Printing";
-      case "dispatch":
-      case "dispatched":
-        return "Dispatched";
-      case "delivered":
-        return "Delivered";
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
-    }
   }, []);
 
   const formatDate = useCallback((dateString: string) => {
@@ -102,22 +63,42 @@ const OrderCard = ({
             <p className="text-xs text-gray-500 mb-2">
               Date: {formatDate(order.created_at)}
             </p>
+
+            {/* Expected Delivery */}
+            {order.expected_delivery && (
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
+                <Calendar className="w-3 h-3" />
+                <span>Delivery: {formatDate(order.expected_delivery)}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
-              {/* ✅ Use getStatusLabel to show proper status */}
+              {/* ✅ Use orderService helper methods */}
               <span
-                className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
+                className={`text-xs font-medium px-2 py-1 rounded-full ${orderService.getOrderStatusColor(
                   order.status
                 )}`}
               >
-                {getStatusLabel(order.status)}
+                {orderService.formatOrderStatus(order.status)}
               </span>
               <span className="text-xs text-gray-500">
                 Qty: {order.qty.toLocaleString()}
               </span>
             </div>
 
+            {/* Payment Status Badge */}
+            <div className="mt-2 flex items-center gap-2">
+              <span
+                className={`text-xs font-medium px-2 py-1 rounded-full ${orderService.getPaymentStatusColor(
+                  order.payment_status
+                )}`}
+              >
+                {orderService.formatPaymentStatus(order.payment_status)}
+              </span>
+            </div>
+
             {/* ✅ Show warning if payment not uploaded */}
-            {!order.payment_url && (
+            {order.payment_status === 'payment_pending' && (
               <div className="mt-2 flex items-center text-xs text-amber-600">
                 <svg
                   className="w-3 h-3 mr-1"
@@ -130,8 +111,15 @@ const OrderCard = ({
                     clipRule="evenodd"
                   />
                 </svg>
-                Payment pending
+                Payment pending - Click to upload
               </div>
+            )}
+
+            {/* Show decline reason if declined */}
+            {order.status === 'declined' && order.decline_reason && (
+              <p className="text-xs text-red-600 mt-2">
+                Declined: {order.decline_reason}
+              </p>
             )}
           </div>
         </div>
@@ -164,6 +152,7 @@ export default function MainDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalOrderType, setModalOrderType] = useState<"active" | "completed">(
@@ -203,29 +192,29 @@ export default function MainDashboard() {
     fetchOrders();
   }, []);
 
-  // ✅ Updated: Include ALL non-completed orders in active, including payment_pending
+  // ✅ Updated: Use correct 7 order statuses
   const { activeOrders, completedOrders } = useMemo(() => {
+    // Active orders: placed, printing, ready_for_plant, plant_processing
     const active = orders.filter(
       (order) =>
-        order.status !== "delivered" &&
-        order.status !== "dispatch" &&
-        order.status !== "dispatched" &&
-        order.status !== "declined" &&
-        order.status !== "cancelled"
+        order.status === "placed" ||
+        order.status === "printing" ||
+        order.status === "ready_for_plant" ||
+        order.status === "plant_processing"
     );
 
+    // Completed orders: dispatched, completed
     const completed = orders.filter(
       (order) =>
-        order.status === "delivered" ||
-        order.status === "dispatch" ||
-        order.status === "dispatched"
+        order.status === "dispatched" ||
+        order.status === "completed"
     );
 
     // ✅ Sort active orders: payment pending first, then by date
     active.sort((a, b) => {
-      // Orders without payment_url come first
-      if (!a.payment_url && b.payment_url) return -1;
-      if (a.payment_url && !b.payment_url) return 1;
+      // Orders with payment_pending come first
+      if (a.payment_status === 'payment_pending' && b.payment_status !== 'payment_pending') return -1;
+      if (a.payment_status !== 'payment_pending' && b.payment_status === 'payment_pending') return 1;
       
       // Then sort by creation date (newest first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -253,8 +242,8 @@ export default function MainDashboard() {
         return;
       }
 
-      // ✅ If no payment uploaded, redirect to invoice page
-      if (!order.payment_url) {
+      // ✅ If payment status is pending, redirect to invoice page
+      if (order.payment_status === 'payment_pending') {
         setShowPaymentAlert(true);
 
         setTimeout(() => {
@@ -269,6 +258,7 @@ export default function MainDashboard() {
   );
 
   const handleNewOrder = useCallback(() => {
+    setIsCreatingOrder(true);
     router.push("/order");
   }, [router]);
 
@@ -494,22 +484,51 @@ export default function MainDashboard() {
               {/* New Order Button */}
               <button
                 onClick={handleNewOrder}
-                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-4 px-6 rounded-2xl mb-6 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                disabled={isCreatingOrder}
+                className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-4 px-6 rounded-2xl mb-6 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed disabled:transform-none"
               >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                New Order
+                {isCreatingOrder ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    New Order
+                  </>
+                )}
               </button>
 
               {/* Orders Sections */}
