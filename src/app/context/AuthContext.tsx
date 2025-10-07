@@ -133,28 +133,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const router = useRouter();
 
-  // ✅ Updated: Add admin and plant roles
+  // ✅ CORRECTED - Remove designation check
   const isProfileComplete = useCallback(
     (user: ExtendedUser | null = state.user): boolean => {
-      
       if (!user) {
         return false;
       }
 
       // ✅ Admin, printing, and plant roles don't need profile completion
-      if (user.role === "admin" || user.role === "printing" || user.role === "plant") {
+      if (
+        user.role === "admin" ||
+        user.role === "printing" ||
+        user.role === "plant"
+      ) {
         return true;
       }
 
       const hasProfile = !!user.profile;
       const hasName = hasValidValue(user.profile?.name);
       const hasPhone = hasValidValue(user.profile?.phone);
-      const hasDesignation = hasValidValue(user.profile?.designation);
       const hasCompany = !!user.company;
       const hasCompanyName = hasValidValue(user.company?.name);
       const hasCompanyAddress = hasValidValue(user.company?.address);
 
-      if (!hasProfile || !hasName || !hasPhone || !hasDesignation || !hasCompany || !hasCompanyName || !hasCompanyAddress) {
+      if (
+        !hasProfile ||
+        !hasName ||
+        !hasPhone ||
+        !hasCompany ||
+        !hasCompanyName ||
+        !hasCompanyAddress
+      ) {
         return false;
       }
 
@@ -163,11 +172,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [state.user]
   );
 
-  // ✅ Updated: Add admin and plant roles
   const getPostLoginRedirectPath = useCallback((): string => {
-    
     // ✅ Admin, printing, and plant roles go directly to dashboard
-    if (state.user?.role === "admin" || state.user?.role === "printing" || state.user?.role === "plant") {
+    if (
+      state.user?.role === "admin" ||
+      state.user?.role === "printing" ||
+      state.user?.role === "plant"
+    ) {
       return "/dashboard";
     }
 
@@ -180,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await authService.logout();
     } catch (error) {
-      console.error('Backend logout error:', error);
+      console.error("Backend logout error:", error);
     } finally {
       if (mountedRef.current) {
         localStorage.removeItem("user");
@@ -189,8 +200,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profileLoadAttempted.current = false;
         profileLoadingRef.current = false;
         dispatch({ type: "LOGOUT" });
-        
-        router.replace('/');
+
+        router.replace("/");
       }
     }
   }, [router]);
@@ -300,13 +311,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // ✅ Updated: Skip profile loading for admin, printing, and plant roles
   useEffect(() => {
     if (
       state.isAuthenticated &&
-      state.user?.role !== "admin" && // ✅ Added
-      state.user?.role !== "printing" && 
-      state.user?.role !== "plant" && // ✅ Added
+      state.user?.role !== "admin" && 
+      state.user?.role !== "printing" &&
+      state.user?.role !== "plant" && 
       !state.profileLoaded &&
       !state.user?.profile &&
       !profileLoadAttempted.current &&
@@ -314,37 +324,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     ) {
       loadProfileRef.current?.();
     }
-  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, state.user?.role]);
+  }, [
+    state.isAuthenticated,
+    state.profileLoaded,
+    state.user?.profile,
+    state.user?.role,
+  ]);
 
   const updateProfile = useCallback(
-    async (profileData: SaveProfileRequest): Promise<void> => {
-      dispatch({ type: "SET_PROFILE_LOADING", payload: true });
-      try {
-        const result = await profileService.saveProfile(profileData);
+  async (profileData: SaveProfileRequest): Promise<void> => {
+    dispatch({ type: "SET_PROFILE_LOADING", payload: true });
+    try {
+      const result = await profileService.saveProfile(profileData);
 
-        const profileResponse: ProfileResponse = {
-          user: result.user,
-          company: result.company,
-          labels: result.labels || undefined,
-        };
+      const profileResponse: ProfileResponse = {
+        user: result.user,
+        company: result.company,
+        labels: result.labels || undefined,
+      };
 
-        dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
+      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
-        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const updatedUser: ExtendedUser = {
-          ...currentUser,
-          profile: result.user,
-          company: result.company,
-          labels: result.labels || undefined,
-        };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      } catch (err) {
-        dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-        throw err;
-      }
-    },
-    []
-  );
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const updatedUser: ExtendedUser = {
+        ...currentUser,
+        profile: result.user,
+        company: result.company,
+        labels: result.labels || undefined,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      dispatch({ type: "SET_PROFILE_LOADED", payload: true });
+      profileLoadAttempted.current = true;
+      
+      await loadProfile(true);
+      
+    } catch (err) {
+      dispatch({ type: "SET_PROFILE_LOADING", payload: false });
+      throw err;
+    }
+  },
+  [loadProfile] 
+);
 
   const getUserLabelId = useCallback((): string | null => {
     if (state.user?.labels && state.user.labels.length > 0) {

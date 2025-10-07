@@ -21,7 +21,6 @@ interface UserProfile {
   name?: string;
   contactNo?: string;
   email?: string;
-  designation?: string;
   brandCompanyName?: string;
   businessAddress?: string;
   profilePhoto?: string;
@@ -144,9 +143,7 @@ export default function MyProfile({
   const isProfileComplete = (profile: UserProfile): boolean => {
     const hasName = !!(profile.name && profile.name.trim() !== "");
     const hasPhone = !!(profile.contactNo && profile.contactNo.trim() !== "");
-    const hasDesignation = !!(
-      profile.designation && profile.designation.trim() !== ""
-    );
+  
     const hasCompanyName = !!(
       profile.brandCompanyName && profile.brandCompanyName.trim() !== ""
     );
@@ -155,7 +152,7 @@ export default function MyProfile({
     );
 
     return (
-      hasName && hasPhone && hasDesignation && hasCompanyName && hasAddress
+      hasName && hasPhone && hasCompanyName && hasAddress
     );
   };
 
@@ -195,7 +192,8 @@ export default function MyProfile({
       }
       initialDataSet.current = true;
     }
-  }, [userProfile, isEditing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile]);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -205,16 +203,6 @@ export default function MyProfile({
     setLabelsData((prev) =>
       prev.map((label, i) => (i === index ? { ...label, name } : label))
     );
-  };
-
-  const formatRole = (role?: string): string => {
-    const roleMap: Record<string, string> = {
-      business_owner: "Business Owner",
-      admin: "Admin",
-      printing: "Printing",
-      plant: "Plant",
-    };
-    return roleMap[role || ""] || role || "Not Set";
   };
 
   const handleOutletChange = (
@@ -280,16 +268,13 @@ export default function MyProfile({
     if (!formData.contactNo || formData.contactNo.trim() === "") {
       errors.push("Contact number is required");
     }
-    if (!formData.designation || formData.designation.trim() === "") {
-      errors.push("Designation is required");
-    }
+
     if (!formData.brandCompanyName || formData.brandCompanyName.trim() === "") {
       errors.push("Brand/Company name is required");
     }
     if (!formData.businessAddress || formData.businessAddress.trim() === "") {
       errors.push("Business address is required");
     }
-
     // Existing label validation
     if (labelsData.length > 0) {
       labelsData.forEach((label, index) => {
@@ -343,9 +328,6 @@ export default function MyProfile({
   const isFormValid = useMemo((): boolean => {
     const hasName = !!(formData.name && formData.name.trim());
     const hasPhone = !!(formData.contactNo && formData.contactNo.trim());
-    const hasDesignation = !!(
-      formData.designation && formData.designation.trim()
-    );
     const hasCompanyName = !!(
       formData.brandCompanyName && formData.brandCompanyName.trim()
     );
@@ -353,13 +335,10 @@ export default function MyProfile({
       formData.businessAddress && formData.businessAddress.trim()
     );
 
-    return (
-      hasName && hasPhone && hasDesignation && hasCompanyName && hasAddress
-    );
+    return hasName && hasPhone && hasCompanyName && hasAddress;
   }, [
     formData.name,
     formData.contactNo,
-    formData.designation,
     formData.brandCompanyName,
     formData.businessAddress,
   ]);
@@ -398,7 +377,9 @@ export default function MyProfile({
         validOutlets.length > 0 ? validOutlets : undefined
       );
 
+      // ✅ Handle blocked labels (labels attached to existing orders)
       if (result?.blocked_labels && result.blocked_labels.length > 0) {
+        // Store IDs of labels that cannot be deleted
         const lockedLabelIds = new Set<string>(
           result.blocked_labels
             .map((l) => l.label_id)
@@ -406,21 +387,26 @@ export default function MyProfile({
         );
         setLockedLabels(lockedLabelIds);
 
+        // Create array of blocked labels with their data
         const blockedLabelsData = result.blocked_labels.map((l) => ({
           label_id: l.label_id,
           name: l.name,
-          url: "",
+          url: "", // Will be filled from original data
         }));
 
+        // Get existing label IDs to avoid duplicates
         const existingIds = new Set(
           labelsData.map((l) => l.label_id).filter(Boolean)
         );
 
+        // Filter out blocked labels that are already in the list
         const newBlockedLabels = blockedLabelsData.filter(
           (l) => !existingIds.has(l.label_id)
         );
 
+        // If there are new blocked labels, add them back to the list
         if (newBlockedLabels.length > 0) {
+          // Find URLs from original data
           const labelsWithUrls = newBlockedLabels.map((blockedLabel) => {
             const originalLabel = originalData.labels?.find(
               (ol) => ol.label_id === blockedLabel.label_id
@@ -433,6 +419,7 @@ export default function MyProfile({
 
           setLabelsData((prev) => [...prev, ...labelsWithUrls]);
 
+          // Show warning toast
           toast(
             `Note: ${newBlockedLabels.length} label(s) could not be deleted because they are attached to existing orders.`,
             {
@@ -449,6 +436,7 @@ export default function MyProfile({
         }
       }
 
+      // Update original data with the new values
       setOriginalData({
         ...formData,
         labels: validLabels,
@@ -457,8 +445,18 @@ export default function MyProfile({
         logo: logoUrl,
       });
 
+      // ✅ FIX: Set editing to false BEFORE showing success toast
       setIsEditing(false);
 
+      // ✅ FIX: Force re-render by clearing and resetting initialDataSet
+      initialDataSet.current = false;
+
+      // ✅ FIX: Small delay to ensure state updates propagate
+      setTimeout(() => {
+        initialDataSet.current = true;
+      }, 50);
+
+      // Show success toast
       toast.success("Profile updated successfully!", {
         duration: 3000,
         position: "top-center",
@@ -629,19 +627,17 @@ export default function MyProfile({
                 <h2 className="text-xl font-bold text-gray-900">
                   {formData.name || "Your Name"}
                 </h2>
-                <p className="text-md text-gray-500">
-                  {formData.designation || "Your Designation"}
-                </p>
               </div>
             </div>
           </div>
 
           <div className="md:w-2/3 lg:w-3/4 mt-8 md:mt-0">
             <div className="space-y-6">
+              {/* Personal Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Your Name
+                    Your Name <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
@@ -662,7 +658,7 @@ export default function MyProfile({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Contact No.
+                    Contact No. <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
@@ -682,7 +678,7 @@ export default function MyProfile({
                   )}
                 </div>
 
-                {/* ✅ Email - Always non-editable */}
+                {/* Email - Always non-editable */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Email
@@ -692,22 +688,13 @@ export default function MyProfile({
                     placeholder="Enter your email here"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Role
-                  </label>
-                  <StaticField
-                    value={formatRole(formData.role)}
-                    placeholder="Role"
-                  />
-                </div>
               </div>
 
+              {/* Company Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Brand/Company Name
+                    Brand/Company Name <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput
@@ -725,9 +712,10 @@ export default function MyProfile({
                     />
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Business Address
+                    Business Address <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
                     <EditableInput

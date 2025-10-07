@@ -73,7 +73,6 @@ const OrderCard = ({
             )}
 
             <div className="flex items-center justify-between">
-              {/* ✅ Use orderService helper methods */}
               <span
                 className={`text-xs font-medium px-2 py-1 rounded-full ${orderService.getOrderStatusColor(
                   order.status
@@ -115,10 +114,28 @@ const OrderCard = ({
               </div>
             )}
 
+            {/* ✅ Show payment rejected message */}
+            {order.payment_status === 'payment_rejected' && (
+              <div className="mt-2 flex items-center text-xs text-red-600">
+                <svg
+                  className="w-3 h-3 mr-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Payment rejected - {order.decline_reason || "Click to reupload"}
+              </div>
+            )}
+
             {/* Show decline reason if declined */}
-            {order.status === 'declined' && order.decline_reason && (
+            {order.status === 'declined' && (
               <p className="text-xs text-red-600 mt-2">
-                Declined: {order.decline_reason}
+                <span className="font-medium">Declined:</span> {order.decline_reason || "Contact support for details"}
               </p>
             )}
           </div>
@@ -155,7 +172,7 @@ export default function MainDashboard() {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalOrderType, setModalOrderType] = useState<"active" | "completed">(
+  const [modalOrderType, setModalOrderType] = useState<"active" | "completed" | "rejected">(
     "active"
   );
 
@@ -192,15 +209,17 @@ export default function MainDashboard() {
     fetchOrders();
   }, []);
 
-  // ✅ Updated: Use correct 7 order statuses
-  const { activeOrders, completedOrders } = useMemo(() => {
+  // ✅ Updated: Divide orders into three categories
+  const { activeOrders, completedOrders, rejectedOrders } = useMemo(() => {
     // Active orders: placed, printing, ready_for_plant, plant_processing
+    // BUT exclude payment_rejected orders
     const active = orders.filter(
       (order) =>
-        order.status === "placed" ||
+        (order.status === "placed" ||
         order.status === "printing" ||
         order.status === "ready_for_plant" ||
-        order.status === "plant_processing"
+        order.status === "plant_processing") &&
+        order.payment_status !== "payment_rejected"
     );
 
     // Completed orders: dispatched, completed
@@ -210,22 +229,41 @@ export default function MainDashboard() {
         order.status === "completed"
     );
 
-    // ✅ Sort active orders: payment pending first, then by date
+    // ✅ Rejected orders: declined status OR payment_rejected
+    const rejected = orders.filter(
+      (order) =>
+        order.status === "declined" ||
+        order.payment_status === "payment_rejected"
+    );
+
+    // Sort active orders: payment pending first, then by date
     active.sort((a, b) => {
-      // Orders with payment_pending come first
       if (a.payment_status === 'payment_pending' && b.payment_status !== 'payment_pending') return -1;
       if (a.payment_status !== 'payment_pending' && b.payment_status === 'payment_pending') return 1;
-      
-      // Then sort by creation date (newest first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-    return { activeOrders: active, completedOrders: completed };
+    // Sort rejected orders (newest first)
+    rejected.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    // Sort completed orders (newest first)
+    completed.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    return { activeOrders: active, completedOrders: completed, rejectedOrders: rejected };
   }, [orders]);
 
   const displayedActiveOrders = useMemo(
     () => activeOrders.slice(0, 3),
     [activeOrders]
+  );
+
+  const displayedRejectedOrders = useMemo(
+    () => rejectedOrders.slice(0, 3),
+    [rejectedOrders]
   );
 
   const displayedCompletedOrders = useMemo(
@@ -242,8 +280,8 @@ export default function MainDashboard() {
         return;
       }
 
-      // ✅ If payment status is pending, redirect to invoice page
-      if (order.payment_status === 'payment_pending') {
+      // ✅ If payment status is pending or rejected, redirect to invoice page
+      if (order.payment_status === 'payment_pending' || order.payment_status === 'payment_rejected') {
         setShowPaymentAlert(true);
 
         setTimeout(() => {
@@ -264,6 +302,11 @@ export default function MainDashboard() {
 
   const handleViewAllActive = useCallback(() => {
     setModalOrderType("active");
+    setIsModalOpen(true);
+  }, []);
+
+  const handleViewAllRejected = useCallback(() => {
+    setModalOrderType("rejected");
     setIsModalOpen(true);
   }, []);
 
@@ -428,11 +471,11 @@ export default function MainDashboard() {
                 </div>
               )}
 
-              {/* Order Stats Cards */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* ✅ Order Stats Cards - 3 Cards */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-1">Active orders</p>
+                    <p className="text-sm text-gray-500 mb-1">Ongoing</p>
                     <p className="text-3xl font-bold text-gray-900 mb-2">
                       {activeOrders.length}
                     </p>
@@ -456,9 +499,31 @@ export default function MainDashboard() {
 
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-1">
-                      Completed orders
+                    <p className="text-sm text-gray-500 mb-1">Rejected</p>
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
+                      {rejectedOrders.length}
                     </p>
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                      <svg
+                        className="w-4 h-4 text-red-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-1">Completed</p>
                     <p className="text-3xl font-bold text-gray-900 mb-2">
                       {completedOrders.length}
                     </p>
@@ -531,7 +596,7 @@ export default function MainDashboard() {
                 )}
               </button>
 
-              {/* Orders Sections */}
+              {/* ✅ Orders Sections - Three Sections */}
               <div className="space-y-6">
                 {/* Ongoing Orders */}
                 <section>
@@ -551,7 +616,7 @@ export default function MainDashboard() {
 
                   {displayedActiveOrders.length === 0 ? (
                     <EmptyState
-                      title="No active orders"
+                      title="No ongoing orders"
                       description="Create your first order to get started"
                       icon={
                         <svg
@@ -582,11 +647,60 @@ export default function MainDashboard() {
                   )}
                 </section>
 
-                {/* Recent Orders (Completed) */}
+                {/* ✅ Rejected Orders Section */}
                 <section>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">
-                      Recent Orders
+                      Rejected Orders
+                    </h2>
+                    {rejectedOrders.length > 3 && (
+                      <button
+                        onClick={handleViewAllRejected}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                      >
+                        View all
+                      </button>
+                    )}
+                  </div>
+
+                  {displayedRejectedOrders.length === 0 ? (
+                    <EmptyState
+                      title="No rejected orders"
+                      description="Rejected orders will appear here"
+                      icon={
+                        <svg
+                          className="w-16 h-16 mx-auto text-gray-300 mb-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      }
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {displayedRejectedOrders.map((order) => (
+                        <OrderCard
+                          key={order.order_id}
+                          order={order}
+                          onClick={() => handleOrderClick(order.order_id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Completed Orders */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Completed Orders
                     </h2>
                     {completedOrders.length > 3 && (
                       <button
