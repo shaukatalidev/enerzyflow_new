@@ -58,41 +58,41 @@ export default function OrderStatusPage() {
     },
   ];
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!orderId || fetchAttempted.current) return;
+ useEffect(() => {
+  const fetchOrderDetails = async () => {
+    if (!orderId || fetchAttempted.current) return;
 
-      fetchAttempted.current = true;
+    fetchAttempted.current = true;
 
-      try {
-        // Fetch order details
-        const orderResponse = await orderService.getOrder(orderId);
-        setOrder(orderResponse.order);
+    try {
+      // Fetch order details
+      const orderResponse = await orderService.getOrder(orderId);
+      setOrder(orderResponse.order);
 
-        // ✅ Check payment status instead of payment_url
-        if (orderResponse.order.payment_status === 'payment_pending') {
-          alert("Please upload payment screenshot before tracking your order");
-          router.push(`/order/${orderId}/invoice`);
-          return;
-        }
-
-        // Fetch order tracking history
-        try {
-          const trackingResponse = await orderService.getOrderTracking(orderId);
-          setOrderHistory(trackingResponse.tracking_history || []);
-        } catch (trackingError) {
-          console.error("Failed to fetch tracking history:", trackingError);
-        }
-      } catch (error) {
-        console.error("Failed to fetch order:", error);
-        fetchAttempted.current = false;
-      } finally {
-        setIsLoading(false);
+      if (orderResponse.order.payment_status === 'payment_pending') {
+        alert("Please upload payment screenshot before tracking your order");
+        router.push(`/order/${orderId}/invoice`);
+        return;
       }
-    };
 
-    fetchOrderDetails();
-  }, [orderId, router]);
+      // Fetch order tracking history
+      try {
+        const trackingResponse = await orderService.getOrderTracking(orderId);
+        setOrderHistory(trackingResponse.history || []); 
+      } catch (trackingError) {
+        console.error("Failed to fetch tracking history:", trackingError);
+      }
+    } catch (error) {
+      console.error("Failed to fetch order:", error);
+      fetchAttempted.current = false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchOrderDetails();
+}, [orderId, router]);
+
 
   const normalizeStatus = (status: string) => {
     return status.toLowerCase().replace(/[-_]/g, "_");

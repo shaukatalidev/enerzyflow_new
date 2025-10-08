@@ -54,7 +54,7 @@ export default function PrintingOrderStatusPage() {
         try {
           const trackingResponse = await printService.getOrderTracking(orderId);
           // ✅ Fixed: Use tracking_history from response
-          setOrderHistory(trackingResponse.tracking_history || []);
+          setOrderHistory(trackingResponse.history || []);
         } catch (trackingError) {
           console.error('Failed to fetch tracking history:', trackingError);
           toast.error('Could not load tracking history');
