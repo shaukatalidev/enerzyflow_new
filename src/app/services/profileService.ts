@@ -103,6 +103,8 @@ export interface SaveProfileResponse {
 // ✅ Define error response type
 interface ApiErrorResponse {
   error?: string;
+  message?: string;
+  msg?: string;
 }
 
 // ✅ Define types for outlet and label data
@@ -127,7 +129,12 @@ class ProfileService {
       console.error('Error fetching profile:', error);
       if (error instanceof AxiosError && error.response?.data) {
         const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || 'Failed to fetch profile');
+        const errorMessage = 
+          errorData.error || 
+          errorData.message || 
+          errorData.msg || 
+          'Failed to fetch profile';
+        throw new Error(errorMessage);
       }
       throw new Error('Failed to fetch profile');
     }
@@ -147,10 +154,36 @@ class ProfileService {
       return response.data;
     } catch (error) {
       console.error('Error saving profile:', error);
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || 'Failed to save profile');
+      
+      // ✅ IMPROVED: Better error extraction
+      if (error instanceof AxiosError) {
+        // Check if response has error data
+        if (error.response?.data) {
+          const errorData = error.response.data as ApiErrorResponse;
+          
+          // Try multiple common error field names
+          const errorMessage = 
+            errorData.error || 
+            errorData.message || 
+            errorData.msg || 
+            'Failed to save profile';
+          
+          console.error('Backend error message:', errorMessage);
+          throw new Error(errorMessage);
+        }
+        
+        // If no response data, use axios error message
+        if (error.message) {
+          throw new Error(error.message);
+        }
       }
+      
+      // If it's already an Error, re-throw it
+      if (error instanceof Error) {
+        throw error;
+      }
+      
+      // Fallback
       throw new Error('Failed to save profile');
     }
   }
@@ -213,12 +246,15 @@ class ProfileService {
 
       return await this.saveProfile(requestData);
     } catch (error) {
-      // ✅ FIX 5: Removed `: any` and added proper error handling
+      // ✅ FIXED: Just log and re-throw - don't wrap in new Error
       console.error('Error saving profile with images:', error);
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || 'Failed to save profile');
+      
+      // ✅ If saveProfile already threw a proper Error, just re-throw it
+      if (error instanceof Error) {
+        throw error;
       }
+      
+      // ✅ Only create new error if it's not already an Error
       throw new Error('Failed to save profile');
     }
   }

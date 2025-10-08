@@ -68,14 +68,27 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         profileLoaded: false,
       };
     case "UPDATE_PROFILE":
+      // ✅ FIXED: Use spread to maintain all User properties
       return {
         ...state,
         user: state.user
           ? {
-              ...state.user,
-              profile: action.payload.user,
-              company: action.payload.company,
-              labels: action.payload.labels,
+              ...state.user, // ✅ Keep all existing User properties (id, email, role, etc.)
+              // ✅ Override/add profile-specific data with new references
+              profile: action.payload.user
+                ? { ...action.payload.user }
+                : undefined,
+              company: action.payload.company
+                ? {
+                    ...action.payload.company,
+                    outlets: action.payload.company.outlets
+                      ? [...action.payload.company.outlets]
+                      : [],
+                  }
+                : undefined,
+              labels: action.payload.labels
+                ? [...action.payload.labels]
+                : undefined,
             }
           : null,
         profileLoading: false,
@@ -133,14 +146,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const router = useRouter();
 
-  // ✅ CORRECTED - Remove designation check
   const isProfileComplete = useCallback(
     (user: ExtendedUser | null = state.user): boolean => {
       if (!user) {
         return false;
       }
 
-      // ✅ Admin, printing, and plant roles don't need profile completion
       if (
         user.role === "admin" ||
         user.role === "printing" ||
@@ -173,7 +184,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const getPostLoginRedirectPath = useCallback((): string => {
-    // ✅ Admin, printing, and plant roles go directly to dashboard
     if (
       state.user?.role === "admin" ||
       state.user?.role === "printing" ||
@@ -238,19 +248,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!mountedRef.current) return;
 
         const profileResponse: ProfileResponse = {
-          user: profileData.user,
-          company: profileData.company,
-          labels: profileData.labels || undefined,
+          user: profileData.user ?? undefined,
+          company: profileData.company
+            ? {
+                ...profileData.company,
+                outlets: profileData.company.outlets
+                  ? [...profileData.company.outlets]
+                  : [],
+              }
+            : undefined,
+          labels: profileData.labels ? [...profileData.labels] : undefined,
         };
 
         dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
         const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
         const updatedUser: ExtendedUser = {
-          ...currentUser,
-          profile: profileData.user,
-          company: profileData.company,
-          labels: profileData.labels || undefined,
+          ...currentUser, // ✅ Keep all existing User properties
+          profile: profileData.user ? { ...profileData.user } : undefined,
+          company: profileData.company
+            ? {
+                ...profileData.company,
+                outlets: profileData.company.outlets
+                  ? [...profileData.company.outlets]
+                  : [],
+              }
+            : undefined,
+          labels: profileData.labels ? [...profileData.labels] : undefined,
         };
         localStorage.setItem("user", JSON.stringify(updatedUser));
       } catch (err) {
@@ -314,9 +338,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (
       state.isAuthenticated &&
-      state.user?.role !== "admin" && 
+      state.user?.role !== "admin" &&
       state.user?.role !== "printing" &&
-      state.user?.role !== "plant" && 
+      state.user?.role !== "plant" &&
       !state.profileLoaded &&
       !state.user?.profile &&
       !profileLoadAttempted.current &&
@@ -332,40 +356,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   ]);
 
   const updateProfile = useCallback(
-  async (profileData: SaveProfileRequest): Promise<void> => {
-    dispatch({ type: "SET_PROFILE_LOADING", payload: true });
-    try {
-      const result = await profileService.saveProfile(profileData);
+    async (profileData: SaveProfileRequest): Promise<void> => {
+      dispatch({ type: "SET_PROFILE_LOADING", payload: true });
+      try {
+        const result = await profileService.saveProfile(profileData);
 
-      const profileResponse: ProfileResponse = {
-        user: result.user,
-        company: result.company,
-        labels: result.labels || undefined,
-      };
+        // ✅ FIXED: Remove 'as any' casts
+        const profileResponse: ProfileResponse = {
+          user: result.user ?? undefined,
+          company: result.company
+            ? {
+                ...result.company,
+                outlets: result.company.outlets
+                  ? [...result.company.outlets]
+                  : [],
+              }
+            : undefined,
+          labels: result.labels ? [...result.labels] : undefined,
+        };
 
-      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
+        dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
-      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-      const updatedUser: ExtendedUser = {
-        ...currentUser,
-        profile: result.user,
-        company: result.company,
-        labels: result.labels || undefined,
-      };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const updatedUser: ExtendedUser = {
+          ...currentUser, // ✅ Keep all existing User properties
+          profile: result.user ? { ...result.user } : undefined,
+          company: result.company
+            ? {
+                ...result.company,
+                outlets: result.company.outlets
+                  ? [...result.company.outlets]
+                  : [],
+              }
+            : undefined,
+          labels: result.labels ? [...result.labels] : undefined,
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
 
-      dispatch({ type: "SET_PROFILE_LOADED", payload: true });
-      profileLoadAttempted.current = true;
-      
-      await loadProfile(true);
-      
-    } catch (err) {
-      dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-      throw err;
-    }
-  },
-  [loadProfile] 
-);
+        dispatch({ type: "SET_PROFILE_LOADED", payload: true });
+        profileLoadAttempted.current = true;
+
+        // ✅ Force reload to ensure fresh data
+        await loadProfile(true);
+      } catch (err) {
+        dispatch({ type: "SET_PROFILE_LOADING", payload: false });
+        throw err;
+      }
+    },
+    [loadProfile]
+  );
 
   const getUserLabelId = useCallback((): string | null => {
     if (state.user?.labels && state.user.labels.length > 0) {
@@ -424,8 +463,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        dispatch({ type: "SET_LOADING", payload: true });
-
         const response = await authService.verifyOTP(
           sanitizedEmail,
           sanitizedOtp
@@ -445,13 +482,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profileLoadAttempted.current = false;
         profileLoadingRef.current = false;
 
-        // ✅ Only load profile for business_owner role
         if (user.role === "business_owner") {
           await loadProfile();
         }
       } catch (err) {
-        dispatch({ type: "SET_LOADING", payload: false });
-
         if (err && typeof err === "object" && "response" in err) {
           const axiosError = err as {
             response?: {

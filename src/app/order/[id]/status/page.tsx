@@ -58,41 +58,41 @@ export default function OrderStatusPage() {
     },
   ];
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!orderId || fetchAttempted.current) return;
+ useEffect(() => {
+  const fetchOrderDetails = async () => {
+    if (!orderId || fetchAttempted.current) return;
 
-      fetchAttempted.current = true;
+    fetchAttempted.current = true;
 
-      try {
-        // Fetch order details
-        const orderResponse = await orderService.getOrder(orderId);
-        setOrder(orderResponse.order);
+    try {
+      // Fetch order details
+      const orderResponse = await orderService.getOrder(orderId);
+      setOrder(orderResponse.order);
 
-        // ✅ Check payment status instead of payment_url
-        if (orderResponse.order.payment_status === 'payment_pending') {
-          alert("Please upload payment screenshot before tracking your order");
-          router.push(`/order/${orderId}/invoice`);
-          return;
-        }
-
-        // Fetch order tracking history
-        try {
-          const trackingResponse = await orderService.getOrderTracking(orderId);
-          setOrderHistory(trackingResponse.tracking_history || []);
-        } catch (trackingError) {
-          console.error("Failed to fetch tracking history:", trackingError);
-        }
-      } catch (error) {
-        console.error("Failed to fetch order:", error);
-        fetchAttempted.current = false;
-      } finally {
-        setIsLoading(false);
+      if (orderResponse.order.payment_status === 'payment_pending') {
+        alert("Please upload payment screenshot before tracking your order");
+        router.push(`/order/${orderId}/invoice`);
+        return;
       }
-    };
 
-    fetchOrderDetails();
-  }, [orderId, router]);
+      // Fetch order tracking history
+      try {
+        const trackingResponse = await orderService.getOrderTracking(orderId);
+        setOrderHistory(trackingResponse.history || []); 
+      } catch (trackingError) {
+        console.error("Failed to fetch tracking history:", trackingError);
+      }
+    } catch (error) {
+      console.error("Failed to fetch order:", error);
+      fetchAttempted.current = false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchOrderDetails();
+}, [orderId, router]);
+
 
   const normalizeStatus = (status: string) => {
     return status.toLowerCase().replace(/[-_]/g, "_");
@@ -122,6 +122,7 @@ export default function OrderStatusPage() {
     if (!order) return false;
     return normalizeStatus(order.status) === normalizeStatus(stepStatus);
   };
+
   // Get the actual timestamp for a status from history
   const getStepDate = (stepStatus: string): string | null => {
     const normalizeStatus = (status: string) => {
@@ -160,6 +161,19 @@ export default function OrderStatusPage() {
       order.cap_color.charAt(0).toUpperCase() +
       order.cap_color.slice(1).replace("_", " ");
     return `${variant} Bottle ${capColor} Cap - ${order.volume}ml`;
+  };
+
+  // ✅ Handle invoice download
+  const handleDownloadInvoice = () => {
+    if (!order) return;
+
+    // Check if invoice_url exists
+    if (order.invoice_url) {
+      // Open invoice in new tab
+      window.open(order.invoice_url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('No invoice available yet. Invoice will be generated after order confirmation.');
+    }
   };
 
   if (isLoading) {
@@ -226,17 +240,19 @@ export default function OrderStatusPage() {
         {/* Product Card */}
         <div className="bg-gray-50 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex items-start space-x-3 sm:space-x-4">
-            {/* Product Image */}
+            {/* Product Image - FIXED */}
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-black rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
               {order.label_url ? (
-                <Image
-                  src={order.label_url}
-                  alt="Label"
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
+                <div className="relative w-full h-full">
+                  <Image
+                    src={order.label_url}
+                    alt="Label"
+                    fill
+                    className="object-contain p-1"
+                    sizes="(max-width: 640px) 64px, 80px"
+                    unoptimized
+                  />
+                </div>
               ) : (
                 <span className="text-white text-sm sm:text-base font-bold">
                   Label
@@ -246,7 +262,7 @@ export default function OrderStatusPage() {
 
             {/* Product Details */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
+              <h2 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 line-clamp-2">
                 {getProductName(order)}
               </h2>
               <p className="text-xs sm:text-sm text-gray-600 mb-1">
@@ -316,6 +332,29 @@ export default function OrderStatusPage() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* ✅ Download Invoice Section - Shows different UI based on availability */}
+        <div className="mb-4 sm:mb-6">
+          {order.invoice_url ? (
+            <button
+              onClick={handleDownloadInvoice}
+              className="w-full bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-medium py-3 px-4 sm:px-6 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download Invoice
+            </button>
+          ) : (
+            <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-center">
+              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-sm text-gray-600 font-medium mb-1">No invoice available yet</p>
+              <p className="text-xs text-gray-500">Invoice will be generated after order confirmation</p>
+            </div>
+          )}
         </div>
 
         {/* Success Banner - Only show if payment verified */}

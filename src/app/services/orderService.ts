@@ -78,8 +78,9 @@ export interface OrderHistoryItem {
 export interface GetOrderTrackingResponse {
   order_id: string;
   status: string;
-  tracking_history: OrderHistoryItem[];
+  history: OrderHistoryItem[];  
 }
+
 
 // ==================== Order Service ====================
 

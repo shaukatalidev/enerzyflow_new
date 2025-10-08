@@ -12,8 +12,9 @@ import type {
 export interface GetOrderTrackingResponse {
   order_id: string;
   status: string;
-  tracking_history: OrderStatusHistory[];
+  history: OrderStatusHistory[];  
 }
+
 
 export interface GetAllOrdersResponse {
   orders: AllOrderModel[];

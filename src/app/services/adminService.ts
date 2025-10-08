@@ -1,10 +1,5 @@
-// app/services/adminService.ts
-
 import axiosInstance from '../lib/axios';
 
-// ==================== Status Constants ====================
-
-// Payment Status Constants
 export const PAYMENT_STATUS = {
   PENDING: 'payment_pending',
   UPLOADED: 'payment_uploaded',
@@ -12,7 +7,6 @@ export const PAYMENT_STATUS = {
   REJECTED: 'payment_rejected',
 } as const;
 
-// Order Status Constants - ✅ Removed READY_FOR_DISPATCH
 export const ORDER_STATUS = {
   PLACED: 'placed',
   PRINTING: 'printing',
@@ -25,8 +19,6 @@ export const ORDER_STATUS = {
 
 export type PaymentStatus = typeof PAYMENT_STATUS[keyof typeof PAYMENT_STATUS];
 export type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];
-
-// ==================== Types ====================
 
 export interface User {
   UserID: string;
@@ -99,7 +91,7 @@ export interface AllOrdersResponse {
 export interface OrderTrackingResponse {
   order_id: string;
   status: string;
-  tracking_history: OrderStatusHistory[];
+  history: OrderStatusHistory[];
 }
 
 export interface OrderStatusHistory {
