@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/app/context/AuthContext";
 import { printService } from "@/app/services/printService";
 import type { AllOrderModel } from "@/app/services/adminService";
-import { ChevronDown, X, Calendar, Clock } from "lucide-react";
+import { ChevronDown, X, Calendar, Clock, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface DeclineModalProps {
@@ -88,7 +88,7 @@ interface OrderCardProps {
   order: AllOrderModel;
   onAccept: (orderId: string) => void;
   onDecline: (orderId: string) => void;
-  onMarkReady: (orderId: string) => void; // ✅ NEW: Prop for the new action
+  onMarkReady: (orderId: string) => void;
   onViewDetails: (orderId: string) => void;
   isLoading: boolean;
 }
@@ -97,7 +97,7 @@ const OrderCard = ({
   order,
   onAccept,
   onDecline,
-  onMarkReady, // ✅ NEW
+  onMarkReady,
   onViewDetails,
   isLoading,
 }: OrderCardProps) => {
@@ -133,11 +133,36 @@ const OrderCard = ({
     return now > expected;
   }, []);
 
+  // ✅ NEW: Download label image function
+  const handleDownloadLabel = async (
+    e: React.MouseEvent,
+    labelUrl: string,
+    orderId: string
+  ) => {
+    e.stopPropagation();
+
+    try {
+      const response = await fetch(labelUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `label_${orderId.slice(0, 8)}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Label downloaded successfully");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download label");
+    }
+  };
+
   const daysRemaining = getDaysUntilDelivery(order.expected_delivery);
   const overdue = isOverdue(order.expected_delivery);
-  
-  // ✅ UPDATED: Card is now clickable only if there are no direct actions
-  const isClickable = order.status !== 'placed' && order.status !== 'printing';
+
+  const isClickable = order.status !== "placed" && order.status !== "printing";
 
   return (
     <div
@@ -147,16 +172,29 @@ const OrderCard = ({
       }`}
     >
       <div className="flex items-start space-x-4 mb-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+        {/* ✅ UPDATED: Label image container with download button */}
+        <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-white border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden group">
           {order.label_url ? (
-            <Image
-              src={order.label_url}
-              alt="Label"
-              width={80}
-              height={80}
-              className="w-full h-full object-contain p-2"
-              unoptimized
-            />
+            <>
+              <Image
+                src={order.label_url}
+                alt="Label"
+                width={80}
+                height={80}
+                className="w-full h-full object-contain p-2"
+                unoptimized
+              />
+              {/* ✅ Download button overlay */}
+              <button
+                onClick={(e) =>
+                  handleDownloadLabel(e, order.label_url, order.order_id)
+                }
+                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                title="Download label"
+              >
+                <Download className="w-6 h-6 text-white" />
+              </button>
+            </>
           ) : (
             <span className="text-gray-400 text-xs sm:text-sm font-bold">
               LABEL
@@ -220,7 +258,7 @@ const OrderCard = ({
         </div>
       </div>
 
-      {/* ✅ UPDATED: Conditional rendering for action buttons based on status */}
+      {/* Action buttons remain the same */}
       <div className="mt-2">
         {order.status === "placed" && (
           <div className="flex gap-2 sm:gap-3">
@@ -247,7 +285,6 @@ const OrderCard = ({
           </div>
         )}
 
-        {/* ✅ NEW: Button for "printing" status */}
         {order.status === "printing" && (
           <button
             onClick={(e) => {
@@ -261,7 +298,6 @@ const OrderCard = ({
           </button>
         )}
 
-        {/* Show status badge for previous orders */}
         {order.status !== "placed" && order.status !== "printing" && (
           <div>
             <div
@@ -293,11 +329,17 @@ export default function PrintDashboard() {
   const [upcomingOrders, setUpcomingOrders] = useState<AllOrderModel[]>([]);
   const [inProgressOrders, setInProgressOrders] = useState<AllOrderModel[]>([]); // ✅ NEW
   const [previousOrders, setPreviousOrders] = useState<AllOrderModel[]>([]);
-  
+
   // States for displayed orders remain the same, just add one for in-progress
-  const [displayedUpcomingOrders, setDisplayedUpcomingOrders] = useState<AllOrderModel[]>([]);
-  const [displayedInProgressOrders, setDisplayedInProgressOrders] = useState<AllOrderModel[]>([]); // ✅ NEW
-  const [displayedPreviousOrders, setDisplayedPreviousOrders] = useState<AllOrderModel[]>([]);
+  const [displayedUpcomingOrders, setDisplayedUpcomingOrders] = useState<
+    AllOrderModel[]
+  >([]);
+  const [displayedInProgressOrders, setDisplayedInProgressOrders] = useState<
+    AllOrderModel[]
+  >([]); // ✅ NEW
+  const [displayedPreviousOrders, setDisplayedPreviousOrders] = useState<
+    AllOrderModel[]
+  >([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -314,7 +356,10 @@ export default function PrintDashboard() {
   const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await printService.getAllOrders({ limit: 100, offset: 0 });
+      const response = await printService.getAllOrders({
+        limit: 100,
+        offset: 0,
+      });
       const orders = response.orders || [];
 
       const verifiedOrders = orders.filter(
@@ -331,7 +376,7 @@ export default function PrintDashboard() {
       setUpcomingOrders(upcoming);
       setInProgressOrders(inProgress);
       setPreviousOrders(previous);
-      
+
       setDisplayedUpcomingOrders(upcoming.slice(0, INITIAL_DISPLAY_COUNT));
       setDisplayedInProgressOrders(inProgress.slice(0, INITIAL_DISPLAY_COUNT));
       setDisplayedPreviousOrders(previous.slice(0, INITIAL_DISPLAY_COUNT));
@@ -343,20 +388,20 @@ export default function PrintDashboard() {
     }
   }, []);
 
-
   useEffect(() => {
     if (fetchAttempted.current) return;
     fetchAttempted.current = true;
     fetchOrders();
   }, [fetchOrders]);
-  
+
   // Handlers for showing all/less orders
   const handleViewAllUpcoming = () => {
     setShowAllUpcoming(true);
     setDisplayedUpcomingOrders(upcomingOrders);
   };
-  
-  const handleViewAllInProgress = () => { // ✅ NEW
+
+  const handleViewAllInProgress = () => {
+    // ✅ NEW
     setShowAllInProgress(true);
     setDisplayedInProgressOrders(inProgressOrders);
   };
@@ -374,7 +419,9 @@ export default function PrintDashboard() {
       await fetchOrders();
       setShowAllUpcoming(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to accept order");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to accept order"
+      );
     } finally {
       setActionLoading(false);
     }
@@ -391,7 +438,9 @@ export default function PrintDashboard() {
       await fetchOrders();
       setShowAllInProgress(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update order status");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update order status"
+      );
     } finally {
       setActionLoading(false);
     }
@@ -413,7 +462,9 @@ export default function PrintDashboard() {
       await fetchOrders();
       setShowAllUpcoming(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to decline order");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to decline order"
+      );
     } finally {
       setActionLoading(false);
     }
@@ -448,20 +499,33 @@ export default function PrintDashboard() {
         <section className="mb-8">
           {/* Section Header */}
           <div className="flex items-center justify-between mb-4">
-             <h2 className="text-xl font-semibold text-gray-900">
-               Upcoming orders
-             </h2>
-             {!showAllUpcoming && upcomingOrders.length > INITIAL_DISPLAY_COUNT && (
-                 <button onClick={handleViewAllUpcoming} className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer">
-                   View All →
-                 </button>
-             )}
-             {showAllUpcoming && upcomingOrders.length > INITIAL_DISPLAY_COUNT && (
-                 <button onClick={() => { setShowAllUpcoming(false); setDisplayedUpcomingOrders(upcomingOrders.slice(0, INITIAL_DISPLAY_COUNT)); }} className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer">
-                   View Less ←
-                 </button>
-             )}
-           </div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Upcoming orders
+            </h2>
+            {!showAllUpcoming &&
+              upcomingOrders.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={handleViewAllUpcoming}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer"
+                >
+                  View All →
+                </button>
+              )}
+            {showAllUpcoming &&
+              upcomingOrders.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={() => {
+                    setShowAllUpcoming(false);
+                    setDisplayedUpcomingOrders(
+                      upcomingOrders.slice(0, INITIAL_DISPLAY_COUNT)
+                    );
+                  }}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer"
+                >
+                  View Less ←
+                </button>
+              )}
+          </div>
           {upcomingOrders.length === 0 ? (
             <div className="bg-gray-50 rounded-2xl p-8 text-center">
               <p className="text-gray-500">No upcoming orders</p>
@@ -486,19 +550,30 @@ export default function PrintDashboard() {
         {/* ✅ NEW: In Progress Orders Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              In Progress
-            </h2>
-            {!showAllInProgress && inProgressOrders.length > INITIAL_DISPLAY_COUNT && (
-                 <button onClick={handleViewAllInProgress} className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer">
-                   View All →
-                 </button>
-             )}
-             {showAllInProgress && inProgressOrders.length > INITIAL_DISPLAY_COUNT && (
-                 <button onClick={() => { setShowAllInProgress(false); setDisplayedInProgressOrders(inProgressOrders.slice(0, INITIAL_DISPLAY_COUNT)); }} className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer">
-                   View Less ←
-                 </button>
-             )}
+            <h2 className="text-xl font-semibold text-gray-900">In Progress</h2>
+            {!showAllInProgress &&
+              inProgressOrders.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={handleViewAllInProgress}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer"
+                >
+                  View All →
+                </button>
+              )}
+            {showAllInProgress &&
+              inProgressOrders.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={() => {
+                    setShowAllInProgress(false);
+                    setDisplayedInProgressOrders(
+                      inProgressOrders.slice(0, INITIAL_DISPLAY_COUNT)
+                    );
+                  }}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer"
+                >
+                  View Less ←
+                </button>
+              )}
           </div>
           {inProgressOrders.length === 0 ? (
             <div className="bg-gray-50 rounded-2xl p-8 text-center">
@@ -525,20 +600,33 @@ export default function PrintDashboard() {
         <section>
           {/* Section Header */}
           <div className="flex items-center justify-between mb-4">
-             <h2 className="text-xl font-semibold text-gray-900">
-               Previous Orders
-             </h2>
-             {!showAllPrevious && previousOrders.length > INITIAL_DISPLAY_COUNT && (
-                 <button onClick={handleViewAllPrevious} className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer">
-                   View All →
-                 </button>
-             )}
-             {showAllPrevious && previousOrders.length > INITIAL_DISPLAY_COUNT && (
-                 <button onClick={() => { setShowAllPrevious(false); setDisplayedPreviousOrders(previousOrders.slice(0, INITIAL_DISPLAY_COUNT)); }} className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer">
-                   View Less ←
-                 </button>
-             )}
-           </div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Previous Orders
+            </h2>
+            {!showAllPrevious &&
+              previousOrders.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={handleViewAllPrevious}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer"
+                >
+                  View All →
+                </button>
+              )}
+            {showAllPrevious &&
+              previousOrders.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={() => {
+                    setShowAllPrevious(false);
+                    setDisplayedPreviousOrders(
+                      previousOrders.slice(0, INITIAL_DISPLAY_COUNT)
+                    );
+                  }}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm cursor-pointer"
+                >
+                  View Less ←
+                </button>
+              )}
+          </div>
           {previousOrders.length === 0 ? (
             <div className="bg-gray-50 rounded-2xl p-8 text-center">
               <p className="text-gray-500">No previous orders</p>
