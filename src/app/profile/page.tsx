@@ -27,9 +27,9 @@ interface UserProfile {
   brandCompanyName?: string;
   businessAddress?: string;
   profilePhoto?: string;
-  labelName?: string; 
+  labelName?: string;
   logo?: string;
-  role?: "plant" | "printing" | "business_owner" | "admin"; 
+  role?: "plant" | "printing" | "business_owner" | "admin";
   labels?: Label[];
   outlets?: Outlet[];
 }
@@ -49,7 +49,6 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   const loadAttempted = useRef(false);
-
 
   useEffect(() => {
     if (profileLoading) return;
@@ -90,6 +89,8 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
 
+  // ✅ FIXED: This effect now runs whenever user object changes
+  // Including after loadProfile() updates it
   useEffect(() => {
     if (user?.profile) {
       const mappedProfile: UserProfile = {
@@ -101,8 +102,8 @@ export default function ProfilePage() {
         businessAddress: user.company?.address,
         profilePhoto: user.profile.profile_url,
         logo: user.company?.logo,
-        labelName: undefined, 
-        role: user.role as UserProfile["role"], 
+        labelName: undefined,
+        role: user.role as UserProfile["role"],
         labels: user.labels?.map((l) => ({
           label_id: l.label_id,
           name: l.name || "",
@@ -115,51 +116,63 @@ export default function ProfilePage() {
             address: o.address || "",
           })) || [],
       };
+      
+      // ✅ Always update profileData when user changes
       setProfileData(mappedProfile);
     }
-  }, [user]);
+  }, [user]); // ✅ Dependency on user object
 
-  const handleProfileUpdate = async (
-    updatedProfile: UserProfile,
-    profileImageUrl?: string,
-    logoUrl?: string,
-    labelsData?: Label[],
-    outletsData?: Outlet[]
-  ): Promise<ProfileUpdateResult> => {
-    try {
-      const result = await profileService.saveProfileWithImages(
-        {
-          profile: {
-            name: updatedProfile.name,
-            phone: updatedProfile.contactNo,
-            designation: updatedProfile.designation,
-          },
-          company: {
-            name: updatedProfile.brandCompanyName,
-            address: updatedProfile.businessAddress,
-            outlets: outletsData,
-          },
+ const handleProfileUpdate = async (
+  updatedProfile: UserProfile,
+  profileImageUrl?: string,
+  logoUrl?: string,
+  labelsData?: Label[],
+  outletsData?: Outlet[]
+): Promise<ProfileUpdateResult> => {
+  try {
+    const result = await profileService.saveProfileWithImages(
+      {
+        profile: {
+          name: updatedProfile.name,
+          phone: updatedProfile.contactNo,
+          designation: updatedProfile.designation,
         },
-        profileImageUrl,
-        logoUrl,
-        labelsData,
-        outletsData
-      );
+        company: {
+          name: updatedProfile.brandCompanyName,
+          address: updatedProfile.businessAddress,
+          outlets: outletsData,
+        },
+      },
+      profileImageUrl,
+      logoUrl,
+      labelsData,
+      outletsData
+    );
 
-      await loadProfile(true);
+    await loadProfile(true);
 
-      return {
-        blocked_labels: result.blocked_labels || [],
-      };
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to update profile");
-      }
-      throw err;
+    return {
+      blocked_labels: result.blocked_labels || [],
+    };
+  } catch (err) {
+    // ✅ Log the error for debugging
+    console.error("Error in handleProfileUpdate:", err);
+    
+    // ✅ Extract and set error message
+    let errorMessage = "Failed to update profile";
+    
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else if (typeof err === "string") {
+      errorMessage = err;
     }
-  };
+    
+    setError(errorMessage);
+    
+    // ✅ Re-throw to let MyProfile handle the toast
+    throw err;
+  }
+};
 
   const handleClearError = () => setError(null);
 

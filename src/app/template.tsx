@@ -20,13 +20,17 @@ export default function Template({ children }: { children: React.ReactNode }) {
     [pathname]
   );
 
+  const isAuthPage = useMemo(() => 
+    pathname === '/login' || pathname === '/signup',
+    [pathname]
+  );
+
   useEffect(() => {
     if (isLoading) {
       return;
     }
 
-    // ✅ Reset redirect flag when navigating away from login/signup
-    if (redirectAttempted.current && pathname !== '/login' && pathname !== '/signup') {
+    if (redirectAttempted.current && !isAuthPage) {
       redirectAttempted.current = false;
     }
 
@@ -34,26 +38,20 @@ export default function Template({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // ✅ Redirect unauthenticated users from protected routes
     if (isProtectedRoute && !isAuthenticated) {
       redirectAttempted.current = true;
       router.push('/login');
       return;
     }
 
-    // ✅ Redirect authenticated users from login/signup
-    if (isAuthenticated && (pathname === '/login' || pathname === '/signup')) {
+    if (isAuthenticated && isAuthPage && user) {
       
-      // ✅ For admin, printing, and plant users - always go directly to dashboard
-      // These roles don't need profile completion
-      if (user?.role === 'admin' || user?.role === 'printing' || user?.role === 'plant') {
+      if (user.role === 'admin' || user.role === 'printing' || user.role === 'plant') {
         redirectAttempted.current = true;
         router.push('/dashboard');
         return;
       }
       
-      // ✅ For business owners - check profile completion
-      // Wait for profile to load first
       if (!profileLoaded) {
         return;
       }
@@ -67,7 +65,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       }
       return;
     }
-  }, [isAuthenticated, isLoading, isProtectedRoute, pathname, router, user?.role, profileLoaded, isProfileComplete]);
+  }, [isAuthenticated, isLoading, isProtectedRoute, isAuthPage, pathname, router, user, profileLoaded, isProfileComplete]);
 
   if (isLoading) {
     return (
@@ -86,10 +84,10 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="min-h-screen">{children}</main>
+      <main className="flex-grow">{children}</main>
       <Footer />
-    </>
+    </div>
   );
 }

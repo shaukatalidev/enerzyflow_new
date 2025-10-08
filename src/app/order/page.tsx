@@ -373,49 +373,48 @@ export default function CreateOrderPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 md:gap-8 lg:gap-12">
           {/* Left Column: Preview & Initial Selection */}
           <div className="space-y-6">
-            {/* Label Preview */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-              <div className="w-full h-64 bg-gray-100/70 rounded-lg flex flex-col items-center justify-center relative">
-                {selectedLabel?.label_url ? (
-                  <div className="text-center">
-                    <div className="relative w-32 h-32 mx-auto mb-2">
-                      <Image
-                        src={selectedLabel.label_url}
-                        alt={selectedLabel.name || "Label"}
-                        width={128}
-                        height={128}
-                        className="object-cover rounded-lg"
-                        unoptimized
-                      />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">
-                      {selectedLabel.name || "Unnamed Label"}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {
-                        bottleVariantOptions.find(
-                          (v) => v.value === bottleVariant
-                        )?.label
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <Tag className="w-16 h-16 text-gray-300 mb-2" />
-                    <p className="text-gray-400">
-                      {selectedLabel?.name || "Select a label"}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      {
-                        bottleVariantOptions.find(
-                          (v) => v.value === bottleVariant
-                        )?.label
-                      }
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
+            {/* Label Preview - SIMPLIFIED */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  {selectedLabel?.label_url ? (
+    <div className="text-center">
+      <div className="w-32 h-32 mx-auto mb-4 relative">
+        <Image
+          src={selectedLabel.label_url}
+          alt={selectedLabel.name || "Label"}
+          fill
+          className="object-contain"
+          sizes="128px"
+          unoptimized
+        />
+      </div>
+      <p className="text-sm font-medium text-gray-900 mb-1">
+        {selectedLabel.name || "Unnamed Label"}
+      </p>
+      <p className="text-xs text-gray-500">
+        {
+          bottleVariantOptions.find(
+            (v) => v.value === bottleVariant
+          )?.label
+        }
+      </p>
+    </div>
+  ) : (
+    <div className="text-center py-12">
+      <Tag className="w-16 h-16 text-gray-300 mb-3 mx-auto" />
+      <p className="text-gray-400 font-medium">
+        {selectedLabel?.name || "Select a label"}
+      </p>
+      <p className="text-sm text-gray-500 mt-2">
+        {
+          bottleVariantOptions.find(
+            (v) => v.value === bottleVariant
+          )?.label
+        }
+      </p>
+    </div>
+  )}
+</div>
+
 
             {/* Selection Options */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
 
@@ -14,11 +13,33 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [otpError, setOtpError] = useState(false);
+  const [canResendOtp, setCanResendOtp] = useState(false);
+  const [resendTimer, setResendTimer] = useState(30);
 
   const [otpAttempts, setOtpAttempts] = useState(0);
   const MAX_OTP_ATTEMPTS = 3;
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { sendOTP, login, profileLoaded } = useAuth();
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (currentStep === 2 && !canResendOtp && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            setCanResendOtp(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [currentStep, canResendOtp, resendTimer]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,16 +49,25 @@ export default function Login() {
     try {
       await sendOTP(email);
       setCurrentStep(2);
+      setCanResendOtp(false);
+      setResendTimer(30);
+      setOtpAttempts(0);
+      toast.success("OTP sent successfully!");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to send OTP";
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleOtpChange = (value: string, index: number) => {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
     if (value.length <= 1) {
       const newOtp = [...otp];
       newOtp[index] = value;
@@ -72,43 +102,59 @@ export default function Login() {
       return;
     }
 
+    if (isLoading || isRedirecting) {
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     setOtpError(false);
-    setIsRedirecting(true);
 
     try {
       await login(email, otpCode);
+      setIsRedirecting(true);
       toast.success("Login successful! Redirecting...");
     } catch (error) {
+      const newAttempts = otpAttempts + 1;
+      
+      setOtpAttempts(newAttempts);
+      setOtpError(true);
+      setIsLoading(false);
+      setIsRedirecting(false);
+      
       const errorMessage =
         error instanceof Error ? error.message : "Login failed";
 
-      const newAttempts = otpAttempts + 1;
-      setOtpAttempts(newAttempts);
-      setOtpError(true);
-
       if (newAttempts >= MAX_OTP_ATTEMPTS) {
-        toast.error("Too many failed attempts. Please request a new OTP.");
+        toast.error("Too many failed attempts. Requesting new OTP...");
         setError("Too many failed attempts. Please request a new OTP.");
+        
         setTimeout(() => {
           handleBackToEmail();
         }, 2000);
       } else {
-        toast.error(
-          `Invalid OTP`
-        );
+        toast.error(`Invalid OTP (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`);
         setError(
           `${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`
         );
-        setOtp(["", "", "", "", "", ""]);
+        
         setTimeout(() => {
           otpRefs.current[0]?.focus();
         }, 100);
       }
+    }
+  };
 
-      setIsRedirecting(false);
-      setIsLoading(false);
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text/plain").trim();
+
+    if (/^\d{6}$/.test(pastedData)) {
+      const newOtp = pastedData.split("");
+      setOtp(newOtp);
+      setOtpError(false);
+      setError("");
+      otpRefs.current[5]?.focus();
     }
   };
 
@@ -121,8 +167,12 @@ export default function Login() {
       await sendOTP(email);
       setOtp(["", "", "", "", "", ""]);
       setOtpAttempts(0);
-      toast.success("OTP sent successfully!");
-      otpRefs.current[0]?.focus();
+      setCanResendOtp(false);
+      setResendTimer(30);
+      toast.success("New OTP sent successfully!");
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to resend OTP";
@@ -133,42 +183,21 @@ export default function Login() {
     }
   };
 
-  // ✅ UPDATE THIS FUNCTION to reset attempts
   const handleBackToEmail = () => {
     setCurrentStep(1);
     setError("");
     setOtpError(false);
     setIsRedirecting(false);
+    setIsLoading(false);
     setOtp(["", "", "", "", "", ""]);
-    setOtpAttempts(0); // ✅ Reset attempts
+    setOtpAttempts(0);
+    setCanResendOtp(false);
+    setResendTimer(30);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      {/* Rest of your JSX remains the same */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md lg:max-w-5xl">
-        <div className="mb-4 px-4 sm:px-0">
-          <Link
-            href="/"
-            className="inline-flex items-center space-x-2 text-cyan-600 hover:text-cyan-700 font-medium transition-colors duration-200 group cursor-pointer"
-          >
-            <svg
-              className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform duration-200"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            <span>Back to Home</span>
-          </Link>
-        </div>
-
+    <div className="bg-gray-100 flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-md lg:max-w-5xl">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 lg:grid lg:grid-cols-2 overflow-hidden">
           <div className="hidden lg:block relative h-full min-h-[600px]">
             <Image
@@ -181,11 +210,11 @@ export default function Login() {
             />
           </div>
 
-          <div className="p-6 sm:p-10 md:p-12">
-            <div className="text-center">
-              <div className="mx-auto h-20 w-20 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+          <div className="p-6 sm:p-8">
+            <div className="text-center mb-6">
+              <div className="mx-auto h-16 w-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -199,10 +228,10 @@ export default function Login() {
                 </svg>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-700 bg-clip-text text-transparent mb-3">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-600 to-cyan-700 bg-clip-text text-transparent mb-2">
                 {currentStep === 1 ? "Welcome Back" : "Verify Your Identity"}
               </h1>
-              <p className="text-gray-600 text-sm sm:text-base mb-8">
+              <p className="text-gray-600 text-sm">
                 {currentStep === 1
                   ? "Sign in securely with passwordless authentication"
                   : "Enter the verification code sent to your email"}
@@ -211,7 +240,7 @@ export default function Login() {
 
             {error && (
               <div
-                className={`mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${
+                className={`mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${
                   otpError ? "animate-shake" : ""
                 }`}
               >
@@ -231,7 +260,6 @@ export default function Login() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-red-700">{error}</p>
-                    {/* ✅ Show different message based on attempts */}
                     {otpError &&
                       currentStep === 2 &&
                       otpAttempts < MAX_OTP_ATTEMPTS && (
@@ -245,7 +273,7 @@ export default function Login() {
             )}
 
             {isRedirecting && (
-              <div className="mb-6 p-4 bg-cyan-50 border-l-4 border-cyan-400 rounded-r-lg">
+              <div className="mb-4 p-3 bg-cyan-50 border-l-4 border-cyan-400 rounded-r-lg">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
@@ -262,7 +290,7 @@ export default function Login() {
             )}
 
             {currentStep === 1 && (
-              <form className="space-y-6" onSubmit={handleEmailSubmit}>
+              <form className="space-y-4" onSubmit={handleEmailSubmit}>
                 <div className="space-y-2">
                   <label
                     htmlFor="email"
@@ -277,12 +305,12 @@ export default function Login() {
                       type="email"
                       autoComplete="email"
                       required
-                      className="w-full px-5 py-4 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-200 placeholder-gray-400 text-black bg-white"
+                      className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-200 placeholder-gray-400 text-black bg-white"
                       placeholder="Enter your email address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
-                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                       <svg
                         className="h-5 w-5 text-gray-400"
                         fill="none"
@@ -303,7 +331,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
+                  className="w-full py-3 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center space-x-2">
@@ -315,7 +343,7 @@ export default function Login() {
                   )}
                 </button>
 
-                <div className="text-center pt-4">
+                <div className="text-center pt-2">
                   <div className="flex items-center justify-center space-x-2 text-xs text-gray-500">
                     <svg
                       className="w-4 h-4"
@@ -337,18 +365,18 @@ export default function Login() {
             )}
 
             {currentStep === 2 && (
-              <form className="space-y-6" onSubmit={handleOtpSubmit}>
+              <form className="space-y-4" onSubmit={handleOtpSubmit}>
                 <div className="space-y-4">
                   <div className="text-center">
-                    <p className="text-sm sm:text-base font-medium text-gray-700 mb-6">
+                    <p className="text-sm font-medium text-gray-700 mb-3">
                       Enter the 6-digit verification code sent to
                     </p>
-                    <p className="text-sm sm:text-base font-semibold text-cyan-600 bg-cyan-50 rounded-lg py-3 px-6 inline-block mb-8 break-all">
+                    <p className="text-sm font-semibold text-cyan-600 bg-cyan-50 rounded-lg py-2 px-4 inline-block mb-4 break-all">
                       {email}
                     </p>
                   </div>
 
-                  <div className="flex justify-center space-x-2 sm:space-x-3">
+                  <div className="flex justify-center gap-2 sm:gap-3">
                     {otp.map((digit, index) => (
                       <input
                         key={index}
@@ -360,7 +388,8 @@ export default function Login() {
                         value={digit}
                         onChange={(e) => handleOtpChange(e.target.value, index)}
                         onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                        className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg sm:text-xl font-bold transition-all duration-200 text-black bg-white ${
+                        onPaste={handleOtpPaste}
+                        className={`w-10 h-10 sm:w-12 sm:h-12 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-xl font-bold transition-all duration-200 text-black bg-white ${
                           otpError
                             ? "border-red-300 bg-red-50"
                             : "border-gray-200"
@@ -376,7 +405,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={isLoading || isRedirecting}
-                  className="w-full py-4 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
+                  className="w-full py-3 px-6 text-base bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 >
                   {isLoading || isRedirecting ? (
                     <div className="flex items-center justify-center space-x-2">
@@ -409,21 +438,23 @@ export default function Login() {
                   )}
                 </button>
 
-                <div className="flex flex-col items-center space-y-3 pt-4">
+                <div className="flex flex-col items-center space-y-2 pt-2">
                   <button
                     type="button"
                     onClick={handleResendOtp}
-                    disabled={isLoading || isRedirecting}
-                    className="text-sm sm:text-base text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200 cursor-pointer"
+                    disabled={isLoading || isRedirecting || !canResendOtp}
+                    className="text-sm text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200 cursor-pointer"
                   >
-                    Didn&apos;t receive the code? Resend OTP
+                    {canResendOtp
+                      ? "Didn't receive the code? Resend"
+                      : `Resend OTP in ${resendTimer}s`}
                   </button>
 
                   <button
                     type="button"
                     onClick={handleBackToEmail}
                     disabled={isRedirecting}
-                    className="text-sm sm:text-base text-gray-500 hover:text-gray-700 transition-colors duration-200 disabled:opacity-50 cursor-pointer"
+                    className="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200 disabled:opacity-50 cursor-pointer"
                   >
                     ← Change Email Address
                   </button>

@@ -97,7 +97,7 @@ const OrderCard = ({
             </div>
 
             {/* ✅ Show warning if payment not uploaded */}
-            {order.payment_status === 'payment_pending' && (
+            {order.payment_status === "payment_pending" && (
               <div className="mt-2 flex items-center text-xs text-amber-600">
                 <svg
                   className="w-3 h-3 mr-1"
@@ -115,7 +115,7 @@ const OrderCard = ({
             )}
 
             {/* ✅ Show payment rejected message */}
-            {order.payment_status === 'payment_rejected' && (
+            {order.payment_status === "payment_rejected" && (
               <div className="mt-2 flex items-center text-xs text-red-600">
                 <svg
                   className="w-3 h-3 mr-1"
@@ -133,9 +133,10 @@ const OrderCard = ({
             )}
 
             {/* Show decline reason if declined */}
-            {order.status === 'declined' && (
+            {order.status === "declined" && (
               <p className="text-xs text-red-600 mt-2">
-                <span className="font-medium">Declined:</span> {order.decline_reason || "Contact support for details"}
+                <span className="font-medium">Declined:</span>{" "}
+                {order.decline_reason || "Contact support for details"}
               </p>
             )}
           </div>
@@ -172,9 +173,9 @@ export default function MainDashboard() {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalOrderType, setModalOrderType] = useState<"active" | "completed" | "rejected">(
-    "active"
-  );
+  const [modalOrderType, setModalOrderType] = useState<
+    "active" | "completed" | "rejected"
+  >("active");
 
   const [showPaymentAlert, setShowPaymentAlert] = useState(false);
 
@@ -216,17 +217,15 @@ export default function MainDashboard() {
     const active = orders.filter(
       (order) =>
         (order.status === "placed" ||
-        order.status === "printing" ||
-        order.status === "ready_for_plant" ||
-        order.status === "plant_processing") &&
+          order.status === "printing" ||
+          order.status === "ready_for_plant" ||
+          order.status === "plant_processing") &&
         order.payment_status !== "payment_rejected"
     );
 
     // Completed orders: dispatched, completed
     const completed = orders.filter(
-      (order) =>
-        order.status === "dispatched" ||
-        order.status === "completed"
+      (order) => order.status === "dispatched" || order.status === "completed"
     );
 
     // ✅ Rejected orders: declined status OR payment_rejected
@@ -238,22 +237,38 @@ export default function MainDashboard() {
 
     // Sort active orders: payment pending first, then by date
     active.sort((a, b) => {
-      if (a.payment_status === 'payment_pending' && b.payment_status !== 'payment_pending') return -1;
-      if (a.payment_status !== 'payment_pending' && b.payment_status === 'payment_pending') return 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (
+        a.payment_status === "payment_pending" &&
+        b.payment_status !== "payment_pending"
+      )
+        return -1;
+      if (
+        a.payment_status !== "payment_pending" &&
+        b.payment_status === "payment_pending"
+      )
+        return 1;
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     });
 
     // Sort rejected orders (newest first)
-    rejected.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    rejected.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     // Sort completed orders (newest first)
-    completed.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    completed.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    return { activeOrders: active, completedOrders: completed, rejectedOrders: rejected };
+    return {
+      activeOrders: active,
+      completedOrders: completed,
+      rejectedOrders: rejected,
+    };
   }, [orders]);
 
   const displayedActiveOrders = useMemo(
@@ -281,7 +296,10 @@ export default function MainDashboard() {
       }
 
       // ✅ If payment status is pending or rejected, redirect to invoice page
-      if (order.payment_status === 'payment_pending' || order.payment_status === 'payment_rejected') {
+      if (
+        order.payment_status === "payment_pending" ||
+        order.payment_status === "payment_rejected"
+      ) {
         setShowPaymentAlert(true);
 
         setTimeout(() => {
@@ -448,7 +466,8 @@ export default function MainDashboard() {
                         Payment screenshot required
                       </p>
                       <p className="text-sm text-amber-700 mt-1">
-                        Please upload payment screenshot to continue. Redirecting...
+                        Please upload payment screenshot to continue.
+                        Redirecting...
                       </p>
                     </div>
                     <button
@@ -647,43 +666,23 @@ export default function MainDashboard() {
                   )}
                 </section>
 
-                {/* ✅ Rejected Orders Section */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      Rejected Orders
-                    </h2>
-                    {rejectedOrders.length > 3 && (
-                      <button
-                        onClick={handleViewAllRejected}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-                      >
-                        View all
-                      </button>
-                    )}
-                  </div>
-
-                  {displayedRejectedOrders.length === 0 ? (
-                    <EmptyState
-                      title="No rejected orders"
-                      description="Rejected orders will appear here"
-                      icon={
-                        <svg
-                          className="w-16 h-16 mx-auto text-gray-300 mb-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                {/* ✅ Rejected Orders Section - Only show if there are rejected orders */}
+                {rejectedOrders.length > 0 && (
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        Rejected Orders
+                      </h2>
+                      {rejectedOrders.length > 3 && (
+                        <button
+                          onClick={handleViewAllRejected}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      }
-                    />
-                  ) : (
+                          View all
+                        </button>
+                      )}
+                    </div>
+
                     <div className="space-y-3">
                       {displayedRejectedOrders.map((order) => (
                         <OrderCard
@@ -693,8 +692,8 @@ export default function MainDashboard() {
                         />
                       ))}
                     </div>
-                  )}
-                </section>
+                  </section>
+                )}
 
                 {/* Completed Orders */}
                 <section>
