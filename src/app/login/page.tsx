@@ -11,111 +11,125 @@ const OTP_LENGTH = 6;
 const RESEND_TIMER_SECONDS = 30;
 
 // ✅ Memoized Error Alert Component
-const ErrorAlert = memo(({ 
-  error, 
-  otpError, 
-  currentStep, 
-  otpAttempts 
-}: { 
-  error: string; 
-  otpError: boolean; 
-  currentStep: number; 
-  otpAttempts: number;
-}) => {
-  if (!error) return null;
+const ErrorAlert = memo(
+  ({
+    error,
+    otpError,
+    currentStep,
+    otpAttempts,
+  }: {
+    error: string;
+    otpError: boolean;
+    currentStep: number;
+    otpAttempts: number;
+  }) => {
+    if (!error) return null;
 
-  return (
-    <div
-      className={`mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${
-        otpError ? "animate-shake" : ""
-      }`}
-    >
-      <div className="flex">
-        <div className="flex-shrink-0">
-          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </div>
-        <div className="ml-3">
-          <p className="text-sm font-medium text-red-700">{error}</p>
-          {otpError && currentStep === 2 && otpAttempts < MAX_OTP_ATTEMPTS && (
-            <p className="text-xs text-red-600 mt-1">
-              Please try again or request a new OTP.
-            </p>
-          )}
+    return (
+      <div
+        className={`mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded-r-lg ${
+          otpError ? "animate-shake" : ""
+        }`}
+      >
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg
+              className="h-5 w-5 text-red-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm font-medium text-red-700">{error}</p>
+            {otpError &&
+              currentStep === 2 &&
+              otpAttempts < MAX_OTP_ATTEMPTS && (
+                <p className="text-xs text-red-600 mt-1">
+                  Please try again or request a new OTP.
+                </p>
+              )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 ErrorAlert.displayName = "ErrorAlert";
 
 // ✅ Memoized Redirecting Alert Component
-const RedirectingAlert = memo(({ profileLoaded }: { profileLoaded: boolean }) => (
-  <div className="mb-4 p-3 bg-cyan-50 border-l-4 border-cyan-400 rounded-r-lg">
-    <div className="flex">
-      <div className="flex-shrink-0">
-        <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
-      </div>
-      <div className="ml-3">
-        <p className="text-sm text-cyan-700">
-          {profileLoaded ? "Redirecting to dashboard..." : "Loading your profile..."}
-        </p>
+const RedirectingAlert = memo(
+  ({ profileLoaded }: { profileLoaded: boolean }) => (
+    <div className="mb-4 p-3 bg-cyan-50 border-l-4 border-cyan-400 rounded-r-lg">
+      <div className="flex">
+        <div className="flex-shrink-0">
+          <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+        </div>
+        <div className="ml-3">
+          <p className="text-sm text-cyan-700">
+            {profileLoaded
+              ? "Redirecting to dashboard..."
+              : "Loading your profile..."}
+          </p>
+        </div>
       </div>
     </div>
-  </div>
-));
+  )
+);
 
 RedirectingAlert.displayName = "RedirectingAlert";
 
 // ✅ Memoized OTP Input Component
-const OTPInput = memo(({ 
-  otp, 
-  otpRefs, 
-  otpError, 
-  isLoading, 
-  isRedirecting,
-  onOtpChange,
-  onOtpKeyDown,
-  onOtpPaste 
-}: {
-  otp: string[];
-  otpRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
-  otpError: boolean;
-  isLoading: boolean;
-  isRedirecting: boolean;
-  onOtpChange: (value: string, index: number) => void;
-  onOtpKeyDown: (e: React.KeyboardEvent, index: number) => void;
-  onOtpPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
-}) => (
-  <div className="flex justify-center gap-2 sm:gap-3">
-    {otp.map((digit, index) => (
-      <input
-        key={index}
-        ref={(ref) => {
-          otpRefs.current[index] = ref;
-        }}
-        type="text"
-        maxLength={1}
-        value={digit}
-        onChange={(e) => onOtpChange(e.target.value, index)}
-        onKeyDown={(e) => onOtpKeyDown(e, index)}
-        onPaste={onOtpPaste}
-        className={`w-10 h-10 sm:w-12 sm:h-12 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-xl font-bold transition-all duration-200 text-black bg-white ${
-          otpError ? "border-red-300 bg-red-50" : "border-gray-200"
-        }`}
-        inputMode="numeric"
-        pattern="\d*"
-        disabled={isLoading || isRedirecting}
-      />
-    ))}
-  </div>
-));
+const OTPInput = memo(
+  ({
+    otp,
+    otpRefs,
+    otpError,
+    isLoading,
+    isRedirecting,
+    onOtpChange,
+    onOtpKeyDown,
+    onOtpPaste,
+  }: {
+    otp: string[];
+    otpRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
+    otpError: boolean;
+    isLoading: boolean;
+    isRedirecting: boolean;
+    onOtpChange: (value: string, index: number) => void;
+    onOtpKeyDown: (e: React.KeyboardEvent, index: number) => void;
+    onOtpPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  }) => (
+    <div className="flex justify-center gap-2 sm:gap-3">
+      {otp.map((digit, index) => (
+        <input
+          key={index}
+          ref={(ref) => {
+            otpRefs.current[index] = ref;
+          }}
+          type="text"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => onOtpChange(e.target.value, index)}
+          onKeyDown={(e) => onOtpKeyDown(e, index)}
+          onPaste={onOtpPaste}
+          className={`w-10 h-10 sm:w-12 sm:h-12 text-center border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-xl font-bold transition-all duration-200 text-black bg-white ${
+            otpError ? "border-red-300 bg-red-50" : "border-gray-200"
+          }`}
+          inputMode="numeric"
+          pattern="\d*"
+          disabled={isLoading || isRedirecting}
+        />
+      ))}
+    </div>
+  )
+);
 
 OTPInput.displayName = "OTPInput";
 
@@ -133,6 +147,9 @@ export default function Login() {
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { sendOTP, login, profileLoaded } = useAuth();
+
+  // ✅ Ref to store handleBackToEmail to avoid dependency issues
+  const handleBackToEmailRef = useRef<(() => void) | undefined>(undefined);
 
   // ✅ Resend timer effect
   useEffect(() => {
@@ -156,33 +173,37 @@ export default function Login() {
   }, [currentStep, canResendOtp, resendTimer]);
 
   // ✅ Memoized email submit handler
-  const handleEmailSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+  const handleEmailSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsLoading(true);
+      setError("");
 
-    try {
-      await sendOTP(email);
-      setCurrentStep(2);
-      setCanResendOtp(false);
-      setResendTimer(RESEND_TIMER_SECONDS);
-      setOtpAttempts(0);
-      toast.success("OTP sent successfully!");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to send OTP";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [email, sendOTP]);
+      try {
+        await sendOTP(email);
+        setCurrentStep(2);
+        setCanResendOtp(false);
+        setResendTimer(RESEND_TIMER_SECONDS);
+        setOtpAttempts(0);
+        toast.success("OTP sent successfully!");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to send OTP";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [email, sendOTP]
+  );
 
   // ✅ Memoized OTP change handler
   const handleOtpChange = useCallback((value: string, index: number) => {
     if (!/^\d*$/.test(value)) return;
 
     if (value.length <= 1) {
-      setOtp(prev => {
+      setOtp((prev) => {
         const newOtp = [...prev];
         newOtp[index] = value;
         return newOtp;
@@ -201,75 +222,107 @@ export default function Login() {
   }, []);
 
   // ✅ Memoized OTP keydown handler
-  const handleOtpKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  }, [otp]);
+  const handleOtpKeyDown = useCallback(
+    (e: React.KeyboardEvent, index: number) => {
+      if (e.key === "Backspace" && !otp[index] && index > 0) {
+        otpRefs.current[index - 1]?.focus();
+      }
+    },
+    [otp]
+  );
 
   // ✅ Memoized OTP paste handler
-  const handleOtpPaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text/plain").trim();
+  const handleOtpPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      const pastedData = e.clipboardData.getData("text/plain").trim();
 
-    if (/^\d{6}$/.test(pastedData)) {
-      const newOtp = pastedData.split("");
-      setOtp(newOtp);
-      setOtpError(false);
-      setError("");
-      otpRefs.current[OTP_LENGTH - 1]?.focus();
-    }
-  }, []);
+      if (/^\d{6}$/.test(pastedData)) {
+        const newOtp = pastedData.split("");
+        setOtp(newOtp);
+        setOtpError(false);
+        setError("");
+        otpRefs.current[OTP_LENGTH - 1]?.focus();
+      }
+    },
+    []
+  );
 
-  // ✅ Memoized OTP submit handler
-  const handleOtpSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpCode = otp.join("");
-
-    if (otpCode.length !== OTP_LENGTH) {
-      toast.error("Please enter complete OTP");
-      setError("Please enter complete OTP");
-      setOtpError(true);
-      return;
-    }
-
-    if (isLoading || isRedirecting) return;
-
-    setIsLoading(true);
+  // ✅ Memoized back to email handler
+  const handleBackToEmail = useCallback(() => {
+    setCurrentStep(1);
     setError("");
     setOtpError(false);
+    setIsRedirecting(false);
+    setIsLoading(false);
+    setOtp(Array(OTP_LENGTH).fill(""));
+    setOtpAttempts(0);
+    setCanResendOtp(false);
+    setResendTimer(RESEND_TIMER_SECONDS);
+  }, []);
 
-    try {
-      await login(email, otpCode);
-      setIsRedirecting(true);
-      toast.success("Login successful! Redirecting...");
-    } catch (error) {
-      const newAttempts = otpAttempts + 1;
-      
-      setOtpAttempts(newAttempts);
-      setOtpError(true);
-      setIsLoading(false);
-      setIsRedirecting(false);
-      
-      const errorMessage = error instanceof Error ? error.message : "Login failed";
+  // ✅ Keep ref in sync with the latest callback
+  useEffect(() => {
+    handleBackToEmailRef.current = handleBackToEmail;
+  }, [handleBackToEmail]);
 
-      if (newAttempts >= MAX_OTP_ATTEMPTS) {
-        toast.error("Too many failed attempts. Requesting new OTP...");
-        setError("Too many failed attempts. Please request a new OTP.");
-        
-        setTimeout(() => {
-          handleBackToEmail();
-        }, 2000);
-      } else {
-        toast.error(`Invalid OTP (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`);
-        setError(`${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`);
-        
-        setTimeout(() => {
-          otpRefs.current[0]?.focus();
-        }, 100);
+  // ✅ Memoized OTP submit handler - uses ref to avoid dependency issues
+  const handleOtpSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const otpCode = otp.join("");
+
+      if (otpCode.length !== OTP_LENGTH) {
+        toast.error("Please enter complete OTP");
+        setError("Please enter complete OTP");
+        setOtpError(true);
+        return;
       }
-    }
-  }, [otp, email, isLoading, isRedirecting, otpAttempts, login]);
+
+      if (isLoading || isRedirecting) return;
+
+      setIsLoading(true);
+      setError("");
+      setOtpError(false);
+
+      try {
+        await login(email, otpCode);
+        setIsRedirecting(true);
+        toast.success("Login successful! Redirecting...");
+      } catch (error) {
+        const newAttempts = otpAttempts + 1;
+
+        setOtpAttempts(newAttempts);
+        setOtpError(true);
+        setIsLoading(false);
+        setIsRedirecting(false);
+
+        const errorMessage =
+          error instanceof Error ? error.message : "Login failed";
+
+        if (newAttempts >= MAX_OTP_ATTEMPTS) {
+          toast.error("Too many failed attempts. Requesting new OTP...");
+          setError("Too many failed attempts. Please request a new OTP.");
+
+          setTimeout(() => {
+            handleBackToEmailRef.current?.(); // ✅ Use ref instead of direct call
+          }, 2000);
+        } else {
+          toast.error(
+            `Invalid OTP (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`
+          );
+          setError(
+            `${errorMessage} (Attempt ${newAttempts}/${MAX_OTP_ATTEMPTS})`
+          );
+
+          setTimeout(() => {
+            otpRefs.current[0]?.focus();
+          }, 100);
+        }
+      }
+    },
+    [otp, email, isLoading, isRedirecting, otpAttempts, login]
+  ); // ✅ No handleBackToEmail dependency
 
   // ✅ Memoized resend OTP handler
   const handleResendOtp = useCallback(async () => {
@@ -288,26 +341,14 @@ export default function Login() {
         otpRefs.current[0]?.focus();
       }, 100);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to resend OTP";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to resend OTP";
       toast.error(errorMessage);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   }, [email, sendOTP]);
-
-  // ✅ Memoized back to email handler
-  const handleBackToEmail = useCallback(() => {
-    setCurrentStep(1);
-    setError("");
-    setOtpError(false);
-    setIsRedirecting(false);
-    setIsLoading(false);
-    setOtp(Array(OTP_LENGTH).fill(""));
-    setOtpAttempts(0);
-    setCanResendOtp(false);
-    setResendTimer(RESEND_TIMER_SECONDS);
-  }, []);
 
   // ✅ Memoized heading text
   const headingText = useMemo(
@@ -341,7 +382,12 @@ export default function Login() {
           <div className="p-6 sm:p-8">
             <div className="text-center mb-6">
               <div className="mx-auto h-16 w-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -357,19 +403,24 @@ export default function Login() {
               <p className="text-gray-600 text-sm">{subHeadingText}</p>
             </div>
 
-            <ErrorAlert 
-              error={error} 
-              otpError={otpError} 
-              currentStep={currentStep} 
-              otpAttempts={otpAttempts} 
+            <ErrorAlert
+              error={error}
+              otpError={otpError}
+              currentStep={currentStep}
+              otpAttempts={otpAttempts}
             />
 
-            {isRedirecting && <RedirectingAlert profileLoaded={profileLoaded} />}
+            {isRedirecting && (
+              <RedirectingAlert profileLoaded={profileLoaded} />
+            )}
 
             {currentStep === 1 && (
               <form className="space-y-4" onSubmit={handleEmailSubmit}>
                 <div className="space-y-2">
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-semibold text-gray-700"
+                  >
                     Email Address
                   </label>
                   <div className="relative">
@@ -385,7 +436,12 @@ export default function Login() {
                       onChange={(e) => setEmail(e.target.value)}
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -414,7 +470,12 @@ export default function Login() {
 
                 <div className="text-center pt-2">
                   <div className="flex items-center justify-center space-x-2 text-xs text-gray-500">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -471,7 +532,12 @@ export default function Login() {
                   ) : (
                     <div className="flex items-center justify-center space-x-2">
                       <span>Access Dashboard</span>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -490,7 +556,9 @@ export default function Login() {
                     disabled={isLoading || isRedirecting || !canResendOtp}
                     className="text-sm text-cyan-600 hover:text-cyan-800 font-medium disabled:opacity-50 transition-colors duration-200 cursor-pointer"
                   >
-                    {canResendOtp ? "Didn't receive the code? Resend" : `Resend OTP in ${resendTimer}s`}
+                    {canResendOtp
+                      ? "Didn't receive the code? Resend"
+                      : `Resend OTP in ${resendTimer}s`}
                   </button>
 
                   <button

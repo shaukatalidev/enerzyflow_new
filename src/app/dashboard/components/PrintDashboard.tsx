@@ -170,7 +170,7 @@ const OrderCard = memo(({
         `label_${order.order_id.slice(0, 8)}.${extension}`
       );
       toast.success("Label downloaded successfully");
-    } catch (error) {
+    } catch {
       toast.error("Download failed, opening in new tab");
     }
   }, [order.label_url, order.order_id]);

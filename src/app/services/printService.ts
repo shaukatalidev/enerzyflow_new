@@ -1,10 +1,6 @@
-// app/services/printService.ts
-
-import axiosInstance from '../lib/axios';
 import { adminService, ORDER_STATUS } from './adminService';
 import type {
   OrderStatusHistory,
-  AllOrderModel,
   AllOrdersResponse,
   OrderStatusUpdateResponse,
 } from './adminService';
@@ -70,7 +66,7 @@ const PRINT_ACTION_LABELS: Record<string, string> = {
 class PrintService {
   /**
    * Get order tracking history
-   * ✅ Delegates to adminService (no duplication)
+   * Delegates to adminService (no duplication)
    */
   async getOrderTracking(orderId: string): Promise<GetOrderTrackingResponse> {
     try {
@@ -83,7 +79,7 @@ class PrintService {
 
   /**
    * Get all orders (for printing/plant role)
-   * ✅ Delegates to adminService
+   * Delegates to adminService
    */
   async getAllOrders(limit: number = 100, offset: number = 0): Promise<AllOrdersResponse> {
     try {

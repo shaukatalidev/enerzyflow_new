@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { orderService } from "@/app/services/orderService";
@@ -217,7 +217,6 @@ InvoiceSection.displayName = "InvoiceSection";
 // ✅ Memoized Timeline Step
 const TimelineStep = memo(({ 
   step, 
-  index, 
   isCompleted, 
   isCurrent, 
   stepDate,

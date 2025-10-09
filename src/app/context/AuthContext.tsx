@@ -124,7 +124,7 @@ const hasValidValue = (value: unknown): boolean => {
 // ✅ Helper to check roles that skip profile
 const ROLES_SKIP_PROFILE = ["admin", "printing", "plant"] as const;
 const shouldSkipProfile = (role?: string): boolean => 
-  role ? ROLES_SKIP_PROFILE.includes(role as any) : false;
+  role ? (ROLES_SKIP_PROFILE as readonly string[]).includes(role) : false;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
