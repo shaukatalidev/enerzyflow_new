@@ -1,12 +1,24 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import MainDashboard from './components/MainDashboard';
-import PrintDashboard from './components/PrintDashboard';
-import PlantDashboard from './components/PlantDashboard';
-import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { useAuth } from '@/app/context/AuthContext';
+
+// ✅ Dynamic imports for code splitting - lazy load dashboards
+const MainDashboard = lazy(() => import('./components/MainDashboard'));
+const PrintDashboard = lazy(() => import('./components/PrintDashboard'));
+const PlantDashboard = lazy(() => import('./components/PlantDashboard'));
+const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
+
+// ✅ Reusable loading component
+const LoadingSpinner = ({ message = 'Loading dashboard...' }: { message?: string }) => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">{message}</p>
+    </div>
+  </div>
+);
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -14,93 +26,79 @@ export default function DashboardPage() {
   
   const redirectAttempted = useRef(false);
 
+  // ✅ Memoize role checks to prevent recalculation
+  const roleChecks = useMemo(() => {
+    const role = user?.role;
+    const skipProfileCheck = role === 'admin' || role === 'printing' || role === 'plant';
+    
+    return {
+      role: role || 'business_owner',
+      skipProfileCheck,
+      needsProfile: !skipProfileCheck && profileLoaded && !isProfileComplete(),
+    };
+  }, [user?.role, profileLoaded, isProfileComplete]);
+
+  // ✅ Optimized useEffect with primitive dependencies
   useEffect(() => {
-    if (isLoading) {
+    // Skip if already loading or already redirected
+    if (isLoading || redirectAttempted.current) {
       return;
     }
 
-    if (redirectAttempted.current) {
-      return;
-    }
-
+    // Redirect to login if not authenticated
     if (!isAuthenticated) {
       redirectAttempted.current = true;
       router.push('/login');
       return;
     }
 
-    // Super admin doesn't need profile completion
-    if (user?.role === 'admin') {
+    // Skip profile completion check for admin, printing, and plant roles
+    if (roleChecks.skipProfileCheck) {
       return;
     }
 
-    // Printing and plant roles don't need profile completion
-    if (user?.role === 'printing' || user?.role === 'plant') {
-      return;
-    }
-
+    // Wait for profile to load before checking completion
     if (!profileLoaded) {
       return;
     }
 
-    if (!isProfileComplete()) {
+    // Redirect to profile if incomplete
+    if (roleChecks.needsProfile) {
       redirectAttempted.current = true;
       router.push('/profile');
-      return;
     }
-  }, [isLoading, isAuthenticated, profileLoaded, isProfileComplete, user?.role, router]);
+  }, [isLoading, isAuthenticated, profileLoaded, roleChecks.skipProfileCheck, roleChecks.needsProfile, router]);
 
+  // ✅ Early returns for loading states
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to login...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Redirecting to login..." />;
   }
 
-  // Skip profile loading check for admin, printing, and plant roles
-  const skipProfileCheck = user?.role === 'admin' || user?.role === 'printing' || user?.role === 'plant';
-  
-  if (!skipProfileCheck && !profileLoaded) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your profile...</p>
-        </div>
-      </div>
-    );
+  if (!roleChecks.skipProfileCheck) {
+    if (!profileLoaded) {
+      return <LoadingSpinner message="Loading your profile..." />;
+    }
+
+    if (roleChecks.needsProfile) {
+      return <LoadingSpinner message="Redirecting to profile..." />;
+    }
   }
 
-  if (!skipProfileCheck && !isProfileComplete()) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to profile...</p>
-        </div>
-      </div>
-    );
-  }
+  // ✅ Role-based dashboard rendering with Suspense for code splitting
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <DashboardRenderer role={roleChecks.role} />
+    </Suspense>
+  );
+}
 
-  const userRole = user?.role || 'business_owner';
-
-  // Role-based dashboard rendering
-  switch (userRole) {
+// ✅ Separate component for dashboard rendering (prevents re-render of parent)
+function DashboardRenderer({ role }: { role: string }) {
+  switch (role) {
     case 'admin':
       return <SuperAdminDashboard />;
     case 'printing':

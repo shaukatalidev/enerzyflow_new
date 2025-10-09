@@ -50,6 +50,7 @@ const initialState: AuthState = {
   profileLoaded: false,
 };
 
+// ✅ Pure reducer function
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
     case "SET_LOADING":
@@ -68,16 +69,12 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         profileLoaded: false,
       };
     case "UPDATE_PROFILE":
-      // ✅ FIXED: Use spread to maintain all User properties
       return {
         ...state,
         user: state.user
           ? {
-              ...state.user, // ✅ Keep all existing User properties (id, email, role, etc.)
-              // ✅ Override/add profile-specific data with new references
-              profile: action.payload.user
-                ? { ...action.payload.user }
-                : undefined,
+              ...state.user,
+              profile: action.payload.user ? { ...action.payload.user } : undefined,
               company: action.payload.company
                 ? {
                     ...action.payload.company,
@@ -86,9 +83,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
                       : [],
                   }
                 : undefined,
-              labels: action.payload.labels
-                ? [...action.payload.labels]
-                : undefined,
+              labels: action.payload.labels ? [...action.payload.labels] : undefined,
             }
           : null,
         profileLoading: false,
@@ -96,13 +91,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       };
     case "LOGOUT":
       return {
-        ...state,
-        user: null,
-        tokens: null,
-        isAuthenticated: false,
+        ...initialState,
         isLoading: false,
-        profileLoading: false,
-        profileLoaded: false,
       };
     default:
       return state;
@@ -120,10 +110,9 @@ interface ExtendedAuthContextType extends AuthContextType {
   getPostLoginRedirectPath: () => string;
 }
 
-const AuthContext = createContext<ExtendedAuthContextType | undefined>(
-  undefined
-);
+const AuthContext = createContext<ExtendedAuthContextType | undefined>(undefined);
 
+// ✅ Helper function outside component
 const hasValidValue = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
   if (typeof value === "string") return value.trim() !== "";
@@ -132,71 +121,43 @@ const hasValidValue = (value: unknown): boolean => {
   return false;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+// ✅ Helper to check roles that skip profile
+const ROLES_SKIP_PROFILE = ["admin", "printing", "plant"] as const;
+const shouldSkipProfile = (role?: string): boolean => 
+  role ? ROLES_SKIP_PROFILE.includes(role as any) : false;
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   const profileLoadAttempted = useRef(false);
   const profileLoadingRef = useRef(false);
   const mountedRef = useRef(true);
-  const loadProfileRef = useRef<
-    ((force?: boolean) => Promise<void>) | undefined
-  >(undefined);
-
   const router = useRouter();
 
-  const isProfileComplete = useCallback(
-    (user: ExtendedUser | null = state.user): boolean => {
-      if (!user) {
-        return false;
-      }
+  // ✅ Memoize isProfileComplete - stable unless user changes
+  const isProfileComplete = useCallback((user: ExtendedUser | null = state.user): boolean => {
+    if (!user) return false;
+    if (shouldSkipProfile(user.role)) return true;
 
-      if (
-        user.role === "admin" ||
-        user.role === "printing" ||
-        user.role === "plant"
-      ) {
-        return true;
-      }
+    const hasProfile = !!user.profile;
+    const hasName = hasValidValue(user.profile?.name);
+    const hasPhone = hasValidValue(user.profile?.phone);
+    const hasCompany = !!user.company;
+    const hasCompanyName = hasValidValue(user.company?.name);
+    const hasCompanyAddress = hasValidValue(user.company?.address);
 
-      const hasProfile = !!user.profile;
-      const hasName = hasValidValue(user.profile?.name);
-      const hasPhone = hasValidValue(user.profile?.phone);
-      const hasCompany = !!user.company;
-      const hasCompanyName = hasValidValue(user.company?.name);
-      const hasCompanyAddress = hasValidValue(user.company?.address);
+    return hasProfile && hasName && hasPhone && hasCompany && hasCompanyName && hasCompanyAddress;
+  }, [state.user]);
 
-      if (
-        !hasProfile ||
-        !hasName ||
-        !hasPhone ||
-        !hasCompany ||
-        !hasCompanyName ||
-        !hasCompanyAddress
-      ) {
-        return false;
-      }
-
-      return true;
-    },
-    [state.user]
-  );
-
+  // ✅ Memoize redirect path calculation
   const getPostLoginRedirectPath = useCallback((): string => {
-    if (
-      state.user?.role === "admin" ||
-      state.user?.role === "printing" ||
-      state.user?.role === "plant"
-    ) {
+    if (shouldSkipProfile(state.user?.role)) {
       return "/dashboard";
     }
-
-    const isComplete = isProfileComplete(state.user);
-    const path = isComplete ? "/dashboard" : "/profile";
-    return path;
+    return isProfileComplete(state.user) ? "/dashboard" : "/profile";
   }, [state.user, isProfileComplete]);
 
+  // ✅ Memoize logout
   const logout = useCallback(async (): Promise<void> => {
     try {
       await authService.logout();
@@ -210,93 +171,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profileLoadAttempted.current = false;
         profileLoadingRef.current = false;
         dispatch({ type: "LOGOUT" });
-
         router.replace("/");
       }
     }
   }, [router]);
 
-  const loadProfile = useCallback(
-    async (force: boolean = false): Promise<void> => {
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken) {
-        return;
-      }
+  // ✅ Memoize loadProfile
+  const loadProfile = useCallback(async (force: boolean = false): Promise<void> => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) return;
 
-      if (
-        !force &&
-        (profileLoadingRef.current || profileLoadAttempted.current)
-      ) {
-        return;
-      }
+    if (!force && (profileLoadingRef.current || profileLoadAttempted.current)) {
+      return;
+    }
 
-      if (force) {
+    if (force) {
+      profileLoadAttempted.current = false;
+      profileLoadingRef.current = false;
+    }
+
+    profileLoadingRef.current = true;
+    profileLoadAttempted.current = true;
+
+    if (mountedRef.current) {
+      dispatch({ type: "SET_PROFILE_LOADING", payload: true });
+    }
+
+    try {
+      const profileData = await profileService.getProfile();
+      if (!mountedRef.current) return;
+
+      const profileResponse: ProfileResponse = {
+        user: profileData.user ?? undefined,
+        company: profileData.company
+          ? {
+              ...profileData.company,
+              outlets: profileData.company.outlets ? [...profileData.company.outlets] : [],
+            }
+          : undefined,
+        labels: profileData.labels ? [...profileData.labels] : undefined,
+      };
+
+      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
+
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const updatedUser: ExtendedUser = {
+        ...currentUser,
+        profile: profileData.user ? { ...profileData.user } : undefined,
+        company: profileData.company
+          ? {
+              ...profileData.company,
+              outlets: profileData.company.outlets ? [...profileData.company.outlets] : [],
+            }
+          : undefined,
+        labels: profileData.labels ? [...profileData.labels] : undefined,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    } catch (err) {
+      if (mountedRef.current) {
+        dispatch({ type: "SET_PROFILE_LOADING", payload: false });
         profileLoadAttempted.current = false;
+      }
+
+      if (err instanceof Error && err.message.includes("401")) {
+        logout();
+      }
+    } finally {
+      if (mountedRef.current) {
         profileLoadingRef.current = false;
       }
+    }
+  }, [logout]);
 
-      profileLoadingRef.current = true;
-      profileLoadAttempted.current = true;
-
-      if (mountedRef.current) {
-        dispatch({ type: "SET_PROFILE_LOADING", payload: true });
-      }
-
-      try {
-        const profileData = await profileService.getProfile();
-
-        if (!mountedRef.current) return;
-
-        const profileResponse: ProfileResponse = {
-          user: profileData.user ?? undefined,
-          company: profileData.company
-            ? {
-                ...profileData.company,
-                outlets: profileData.company.outlets
-                  ? [...profileData.company.outlets]
-                  : [],
-              }
-            : undefined,
-          labels: profileData.labels ? [...profileData.labels] : undefined,
-        };
-
-        dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
-
-        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const updatedUser: ExtendedUser = {
-          ...currentUser, // ✅ Keep all existing User properties
-          profile: profileData.user ? { ...profileData.user } : undefined,
-          company: profileData.company
-            ? {
-                ...profileData.company,
-                outlets: profileData.company.outlets
-                  ? [...profileData.company.outlets]
-                  : [],
-              }
-            : undefined,
-          labels: profileData.labels ? [...profileData.labels] : undefined,
-        };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      } catch (err) {
-        if (mountedRef.current) {
-          dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-          profileLoadAttempted.current = false;
-        }
-
-        if (err instanceof Error && err.message.includes("401")) {
-          logout();
-        }
-      } finally {
-        if (mountedRef.current) {
-          profileLoadingRef.current = false;
-        }
-      }
-    },
-    [logout]
-  );
-
-  loadProfileRef.current = loadProfile;
-
+  // ✅ Load stored auth on mount
   useEffect(() => {
     const loadStoredAuth = async (): Promise<void> => {
       try {
@@ -305,9 +252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (storedUser && storedAccessToken) {
           const user: User = JSON.parse(storedUser);
-          const tokens: AuthTokens = {
-            accessToken: storedAccessToken,
-          };
+          const tokens: AuthTokens = { accessToken: storedAccessToken };
 
           dispatch({ type: "LOGIN_SUCCESS", payload: { user, tokens } });
 
@@ -335,77 +280,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  // ✅ Auto-load profile for business owners
   useEffect(() => {
     if (
       state.isAuthenticated &&
-      state.user?.role !== "admin" &&
-      state.user?.role !== "printing" &&
-      state.user?.role !== "plant" &&
+      !shouldSkipProfile(state.user?.role) &&
       !state.profileLoaded &&
       !state.user?.profile &&
       !profileLoadAttempted.current &&
       !profileLoadingRef.current
     ) {
-      loadProfileRef.current?.();
+      loadProfile();
     }
-  }, [
-    state.isAuthenticated,
-    state.profileLoaded,
-    state.user?.profile,
-    state.user?.role,
-  ]);
+  }, [state.isAuthenticated, state.profileLoaded, state.user?.profile, state.user?.role, loadProfile]);
 
-  const updateProfile = useCallback(
-    async (profileData: SaveProfileRequest): Promise<void> => {
-      dispatch({ type: "SET_PROFILE_LOADING", payload: true });
-      try {
-        const result = await profileService.saveProfile(profileData);
+  // ✅ Memoize updateProfile
+  const updateProfile = useCallback(async (profileData: SaveProfileRequest): Promise<void> => {
+    dispatch({ type: "SET_PROFILE_LOADING", payload: true });
+    try {
+      const result = await profileService.saveProfile(profileData);
 
-        // ✅ FIXED: Remove 'as any' casts
-        const profileResponse: ProfileResponse = {
-          user: result.user ?? undefined,
-          company: result.company
-            ? {
-                ...result.company,
-                outlets: result.company.outlets
-                  ? [...result.company.outlets]
-                  : [],
-              }
-            : undefined,
-          labels: result.labels ? [...result.labels] : undefined,
-        };
+      const profileResponse: ProfileResponse = {
+        user: result.user ?? undefined,
+        company: result.company
+          ? {
+              ...result.company,
+              outlets: result.company.outlets ? [...result.company.outlets] : [],
+            }
+          : undefined,
+        labels: result.labels ? [...result.labels] : undefined,
+      };
 
-        dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
+      dispatch({ type: "UPDATE_PROFILE", payload: profileResponse });
 
-        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const updatedUser: ExtendedUser = {
-          ...currentUser, // ✅ Keep all existing User properties
-          profile: result.user ? { ...result.user } : undefined,
-          company: result.company
-            ? {
-                ...result.company,
-                outlets: result.company.outlets
-                  ? [...result.company.outlets]
-                  : [],
-              }
-            : undefined,
-          labels: result.labels ? [...result.labels] : undefined,
-        };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const updatedUser: ExtendedUser = {
+        ...currentUser,
+        profile: result.user ? { ...result.user } : undefined,
+        company: result.company
+          ? {
+              ...result.company,
+              outlets: result.company.outlets ? [...result.company.outlets] : [],
+            }
+          : undefined,
+        labels: result.labels ? [...result.labels] : undefined,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        dispatch({ type: "SET_PROFILE_LOADED", payload: true });
-        profileLoadAttempted.current = true;
+      dispatch({ type: "SET_PROFILE_LOADED", payload: true });
+      profileLoadAttempted.current = true;
 
-        // ✅ Force reload to ensure fresh data
-        await loadProfile(true);
-      } catch (err) {
-        dispatch({ type: "SET_PROFILE_LOADING", payload: false });
-        throw err;
-      }
-    },
-    [loadProfile]
-  );
+      await loadProfile(true);
+    } catch (err) {
+      dispatch({ type: "SET_PROFILE_LOADING", payload: false });
+      throw err;
+    }
+  }, [loadProfile]);
 
+  // ✅ Memoize getUserLabelId
   const getUserLabelId = useCallback((): string | null => {
     if (state.user?.labels && state.user.labels.length > 0) {
       return state.user.labels[0].label_id || null;
@@ -413,6 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return null;
   }, [state.user?.labels]);
 
+  // ✅ Memoize sendOTP
   const sendOTP = useCallback(async (email: string): Promise<void> => {
     const sanitizedEmail = email.trim().toLowerCase();
 
@@ -433,7 +366,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             status?: number;
             data?: { message?: string; error?: string };
           };
-          message?: string;
         };
 
         if (axiosError.response?.data) {
@@ -444,111 +376,106 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw new Error(msg);
         }
       }
-
       throw err instanceof Error ? err : new Error("Failed to send OTP");
     }
   }, []);
 
-  const login = useCallback(
-    async (email: string, otp: string): Promise<void> => {
-      const sanitizedEmail = email.trim().toLowerCase();
-      const sanitizedOtp = otp.trim();
+  // ✅ Memoize login
+  const login = useCallback(async (email: string, otp: string): Promise<void> => {
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedOtp = otp.trim();
 
-      if (!sanitizedEmail || !sanitizedOtp) {
-        throw new Error("Email and OTP are required");
+    if (!sanitizedEmail || !sanitizedOtp) {
+      throw new Error("Email and OTP are required");
+    }
+
+    if (!/^\d{6}$/.test(sanitizedOtp)) {
+      throw new Error("OTP must be 6 digits");
+    }
+
+    try {
+      const response = await authService.verifyOTP(sanitizedEmail, sanitizedOtp);
+
+      const user: User = response.user;
+      const tokens: AuthTokens = { accessToken: response.accessToken };
+
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("accessToken", tokens.accessToken);
+      localStorage.removeItem("refreshToken");
+
+      dispatch({ type: "LOGIN_SUCCESS", payload: { user, tokens } });
+
+      profileLoadAttempted.current = false;
+      profileLoadingRef.current = false;
+
+      if (user.role === "business_owner") {
+        await loadProfile();
       }
-
-      if (!/^\d{6}$/.test(sanitizedOtp)) {
-        throw new Error("OTP must be 6 digits");
-      }
-
-      try {
-        const response = await authService.verifyOTP(
-          sanitizedEmail,
-          sanitizedOtp
-        );
-
-        const user: User = response.user;
-        const tokens: AuthTokens = {
-          accessToken: response.accessToken,
+    } catch (err) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as {
+          response?: {
+            status?: number;
+            data?: { message?: string; error?: string };
+          };
         };
 
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("accessToken", tokens.accessToken);
-        localStorage.removeItem("refreshToken");
-
-        dispatch({ type: "LOGIN_SUCCESS", payload: { user, tokens } });
-
-        profileLoadAttempted.current = false;
-        profileLoadingRef.current = false;
-
-        if (user.role === "business_owner") {
-          await loadProfile();
-        }
-      } catch (err) {
-        if (err && typeof err === "object" && "response" in err) {
-          const axiosError = err as {
-            response?: {
-              status?: number;
-              data?: { message?: string; error?: string };
-            };
-          };
-
-          if (
-            axiosError.response?.status === 400 ||
-            axiosError.response?.status === 401
-          ) {
-            throw new Error("Incorrect OTP. Please try again.");
-          }
-
-          if (axiosError.response?.data) {
-            const backendError = axiosError.response.data;
-            const errorMessage =
-              backendError.message || backendError.error || "Login failed";
-            throw new Error(errorMessage);
-          }
+        if (axiosError.response?.status === 400 || axiosError.response?.status === 401) {
+          throw new Error("Incorrect OTP. Please try again.");
         }
 
-        throw err instanceof Error ? err : new Error("Login failed");
+        if (axiosError.response?.data) {
+          const backendError = axiosError.response.data;
+          const errorMessage = backendError.message || backendError.error || "Login failed";
+          throw new Error(errorMessage);
+        }
       }
-    },
-    [loadProfile]
-  );
+      throw err instanceof Error ? err : new Error("Login failed");
+    }
+  }, [loadProfile]);
 
-  const value: ExtendedAuthContextType = useMemo(
-    () => ({
-      user: state.user,
-      tokens: state.tokens,
-      isLoading: state.isLoading,
-      isAuthenticated: state.isAuthenticated,
-      profileLoading: state.profileLoading,
-      profileLoaded: state.profileLoaded,
-      login,
-      sendOTP,
-      logout,
-      loadProfile,
-      updateProfile,
-      getUserLabelId,
-      isProfileComplete: () => isProfileComplete(state.user),
-      getPostLoginRedirectPath,
-    }),
-    [
-      state.user,
-      state.tokens,
-      state.isLoading,
-      state.isAuthenticated,
-      state.profileLoading,
-      state.profileLoaded,
-      login,
-      sendOTP,
-      logout,
-      loadProfile,
-      updateProfile,
-      getUserLabelId,
-      isProfileComplete,
-      getPostLoginRedirectPath,
-    ]
-  );
+  // ✅ Split context value into memoized parts
+  const authData = useMemo(() => ({
+    user: state.user,
+    tokens: state.tokens,
+    isLoading: state.isLoading,
+    isAuthenticated: state.isAuthenticated,
+    profileLoading: state.profileLoading,
+    profileLoaded: state.profileLoaded,
+  }), [
+    state.user,
+    state.tokens,
+    state.isLoading,
+    state.isAuthenticated,
+    state.profileLoading,
+    state.profileLoaded,
+  ]);
+
+  const authActions = useMemo(() => ({
+    login,
+    sendOTP,
+    logout,
+    loadProfile,
+    updateProfile,
+    getUserLabelId,
+    isProfileComplete: () => isProfileComplete(state.user),
+    getPostLoginRedirectPath,
+  }), [
+    login,
+    sendOTP,
+    logout,
+    loadProfile,
+    updateProfile,
+    getUserLabelId,
+    isProfileComplete,
+    getPostLoginRedirectPath,
+    state.user,
+  ]);
+
+  const value = useMemo<ExtendedAuthContextType>(() => ({
+    ...authData,
+    ...authActions,
+  }), [authData, authActions]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

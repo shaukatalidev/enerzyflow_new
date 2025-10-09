@@ -1,5 +1,7 @@
-import { axiosInstance } from '../lib/axios';
+import axiosInstance from '../lib/axios';
 import { AxiosError } from 'axios';
+
+// ==================== Types ====================
 
 export interface UserProfile {
   name?: string;
@@ -93,21 +95,19 @@ export interface SaveProfileResponse {
     label_id?: string;
     name?: string;
     label_url?: string;
-  }> | null; 
-  blocked_labels?: Array<{  
+  }> | null;
+  blocked_labels?: Array<{
     label_id: string;
     name: string;
   }>;
 }
 
-// ✅ Define error response type
 interface ApiErrorResponse {
   error?: string;
   message?: string;
   msg?: string;
 }
 
-// ✅ Define types for outlet and label data
 interface OutletData {
   id?: string;
   name?: string;
@@ -120,30 +120,31 @@ interface LabelData {
   label_url?: string;
 }
 
+// ==================== Profile Service ====================
+
 class ProfileService {
+  /**
+   * Get user profile
+   * GET /users/profile
+   */
   async getProfile(): Promise<ProfileResponse> {
     try {
       const response = await axiosInstance.get<ProfileResponse>('/users/profile');
       return response.data;
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        const errorMessage = 
-          errorData.error || 
-          errorData.message || 
-          errorData.msg || 
-          'Failed to fetch profile';
-        throw new Error(errorMessage);
-      }
-      throw new Error('Failed to fetch profile');
+      console.error('❌ Failed to fetch profile:', error);
+      throw this.handleError(error, 'Failed to fetch profile');
     }
   }
 
+  /**
+   * Save user profile
+   * POST /users/profile
+   */
   async saveProfile(profileData: SaveProfileRequest): Promise<SaveProfileResponse> {
     try {
       const response = await axiosInstance.post<SaveProfileResponse>(
-        '/users/profile', 
+        '/users/profile',
         profileData,
         {
           headers: {
@@ -153,41 +154,15 @@ class ProfileService {
       );
       return response.data;
     } catch (error) {
-      console.error('Error saving profile:', error);
-      
-      // ✅ IMPROVED: Better error extraction
-      if (error instanceof AxiosError) {
-        // Check if response has error data
-        if (error.response?.data) {
-          const errorData = error.response.data as ApiErrorResponse;
-          
-          // Try multiple common error field names
-          const errorMessage = 
-            errorData.error || 
-            errorData.message || 
-            errorData.msg || 
-            'Failed to save profile';
-          
-          console.error('Backend error message:', errorMessage);
-          throw new Error(errorMessage);
-        }
-        
-        // If no response data, use axios error message
-        if (error.message) {
-          throw new Error(error.message);
-        }
-      }
-      
-      // If it's already an Error, re-throw it
-      if (error instanceof Error) {
-        throw error;
-      }
-      
-      // Fallback
-      throw new Error('Failed to save profile');
+      console.error('❌ Failed to save profile:', error);
+      throw this.handleError(error, 'Failed to save profile');
     }
   }
 
+  /**
+   * Save profile with image URLs and label/outlet data
+   * Convenience method that combines all profile data
+   */
   async saveProfileWithImages(
     baseProfileData: {
       profile?: {
@@ -219,49 +194,189 @@ class ProfileService {
         company: {
           ...baseProfileData.company,
           logo_url: companyLogoUrl,
-          outlets: outletsData?.map(outlet => {
-            const outletData: OutletData = {
-              name: outlet.name,
-              address: outlet.address
-            };
-            // Include id only if it exists (for updates)
-            if (outlet.id) {
-              outletData.id = outlet.id;
-            }
-            return outletData;
-          }) || baseProfileData.company?.outlets || [],
+          outlets: this.mapOutletsData(outletsData, baseProfileData.company?.outlets),
         },
-        labels: labelsData?.map(label => {
-          const labelData: LabelData = {
-            name: label.name,
-            label_url: label.url
-          };
-          // Include label_id only if it exists (for updates)
-          if (label.label_id) {
-            labelData.label_id = label.label_id;
-          }
-          return labelData;
-        }) || [],
+        labels: this.mapLabelsData(labelsData),
       };
 
       return await this.saveProfile(requestData);
     } catch (error) {
-      // ✅ FIXED: Just log and re-throw - don't wrap in new Error
-      console.error('Error saving profile with images:', error);
-      
-      // ✅ If saveProfile already threw a proper Error, just re-throw it
-      if (error instanceof Error) {
-        throw error;
-      }
-      
-      // ✅ Only create new error if it's not already an Error
-      throw new Error('Failed to save profile');
+      console.error('❌ Failed to save profile with images:', error);
+      // Re-throw the error as-is (already handled by saveProfile)
+      throw error;
     }
   }
 
+  // ==================== Helper Methods ====================
+
+  /**
+   * Handle API errors consistently (same pattern as other services)
+   */
+  private handleError(error: unknown, defaultMessage: string): Error {
+    if (error instanceof AxiosError && error.response?.data) {
+      const data = error.response.data as ApiErrorResponse;
+
+      // Try multiple common error field names
+      if (data.error) return new Error(data.error);
+      if (data.message) return new Error(data.message);
+      if (data.msg) return new Error(data.msg);
+    }
+
+    if (error instanceof Error) {
+      return new Error(error.message);
+    }
+
+    return new Error(defaultMessage);
+  }
+
+  /**
+   * Map outlets data for API request
+   */
+  private mapOutletsData(
+    outletsData?: Array<{id?: string; name: string; address: string}>,
+    fallbackOutlets?: Array<{id?: string; name?: string; address?: string}>
+  ): Array<OutletData> {
+    if (outletsData) {
+      return outletsData.map(outlet => {
+        const outletData: OutletData = {
+          name: outlet.name,
+          address: outlet.address,
+        };
+        // Include id only if it exists (for updates)
+        if (outlet.id) {
+          outletData.id = outlet.id;
+        }
+        return outletData;
+      });
+    }
+    return fallbackOutlets || [];
+  }
+
+  /**
+   * Map labels data for API request
+   */
+  private mapLabelsData(
+    labelsData?: Array<{label_id?: string; name: string; url: string}>
+  ): Array<LabelData> {
+    if (!labelsData) return [];
+
+    return labelsData.map(label => {
+      const labelData: LabelData = {
+        name: label.name,
+        label_url: label.url,
+      };
+      // Include label_id only if it exists (for updates)
+      if (label.label_id) {
+        labelData.label_id = label.label_id;
+      }
+      return labelData;
+    });
+  }
+
+  /**
+   * Validate Cloudinary URL format
+   */
   validateCloudinaryUrl(url: string): boolean {
     return url.includes('res.cloudinary.com') && url.startsWith('https://');
   }
+
+  /**
+   * Validate profile data before submission
+   */
+  validateProfileData(data: SaveProfileRequest): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Validate profile
+    if (!data.profile?.name?.trim()) {
+      errors.push('Name is required');
+    }
+    if (!data.profile?.phone?.trim()) {
+      errors.push('Phone number is required');
+    }
+
+    // Validate company
+    if (!data.company?.name?.trim()) {
+      errors.push('Company name is required');
+    }
+    if (!data.company?.address?.trim()) {
+      errors.push('Company address is required');
+    }
+
+    // Validate labels
+    if (data.labels) {
+      data.labels.forEach((label, index) => {
+        if (!label.name?.trim()) {
+          errors.push(`Label ${index + 1}: Name is required`);
+        }
+        if (!label.label_url?.trim()) {
+          errors.push(`Label ${index + 1}: Image URL is required`);
+        }
+      });
+    }
+
+    // Validate outlets
+    if (data.company?.outlets) {
+      data.company.outlets.forEach((outlet, index) => {
+        if (!outlet.name?.trim()) {
+          errors.push(`Outlet ${index + 1}: Name is required`);
+        }
+        if (!outlet.address?.trim()) {
+          errors.push(`Outlet ${index + 1}: Address is required`);
+        }
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Check if profile has image URLs
+   */
+  hasProfileImage(profile?: ProfileResponse): boolean {
+    return !!(profile?.user?.profile_url && profile.user.profile_url.trim());
+  }
+
+  /**
+   * Check if company has logo
+   */
+  hasCompanyLogo(profile?: ProfileResponse): boolean {
+    return !!(profile?.company?.logo && profile.company.logo.trim());
+  }
+
+  /**
+   * Get label count
+   */
+  getLabelCount(profile?: ProfileResponse): number {
+    return profile?.labels?.length || 0;
+  }
+
+  /**
+   * Get outlet count
+   */
+  getOutletCount(profile?: ProfileResponse): number {
+    return profile?.company?.outlets?.length || 0;
+  }
+
+  /**
+   * Check if profile is complete
+   */
+  isProfileComplete(profile?: ProfileResponse): boolean {
+    if (!profile) return false;
+
+    const hasBasicInfo = !!(
+      profile.user?.name &&
+      profile.user?.phone &&
+      profile.company?.name &&
+      profile.company?.address
+    );
+
+    return hasBasicInfo;
+  }
 }
 
+// ✅ Export singleton instance
 export const profileService = new ProfileService();
+export default profileService;

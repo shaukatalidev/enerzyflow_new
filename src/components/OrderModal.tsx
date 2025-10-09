@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import Image from "next/image";
 import { X, Loader2 } from "lucide-react";
 import { orderService, Order } from "@/app/services/orderService";
@@ -8,11 +8,171 @@ import { orderService, Order } from "@/app/services/orderService";
 interface OrdersModalProps {
   isOpen: boolean;
   onClose: () => void;
-  orderType: "active" | "completed" | "rejected"; // ✅ Added "rejected"
+  orderType: "active" | "completed" | "rejected";
   onOrderClick: (orderId: string) => void;
 }
 
 const ITEMS_PER_PAGE = 10;
+
+// ✅ OPTIMIZATION: Memoized components
+const LoadingSpinner = memo(() => (
+  <div className="flex flex-col items-center justify-center py-12">
+    <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+    <p className="text-gray-600">Loading orders...</p>
+  </div>
+));
+
+LoadingSpinner.displayName = "LoadingSpinner";
+
+const EmptyState = memo(({ orderType }: { orderType: string }) => {
+  const getMessage = () => {
+    switch (orderType) {
+      case "active":
+        return "You don't have any ongoing orders";
+      case "rejected":
+        return "You don't have any rejected orders";
+      case "completed":
+        return "You don't have any completed orders";
+      default:
+        return "No orders found";
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <svg
+        className="w-16 h-16 text-gray-300 mb-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        {orderType === "rejected" ? (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        ) : (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+          />
+        )}
+      </svg>
+      <p className="text-gray-500 font-medium mb-2">No orders found</p>
+      <p className="text-sm text-gray-400">{getMessage()}</p>
+    </div>
+  );
+});
+
+EmptyState.displayName = "EmptyState";
+
+const ErrorMessage = memo(({ message }: { message: string }) => (
+  <div className="mx-4 sm:mx-6 mt-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+    <p className="text-sm text-red-700">{message}</p>
+  </div>
+));
+
+ErrorMessage.displayName = "ErrorMessage";
+
+// ✅ OPTIMIZATION: Memoized OrderCard
+const OrderCard = memo(({
+  order,
+  onClick,
+}: {
+  order: Order;
+  onClick: () => void;
+}) => {
+  const productName = useMemo(() => {
+    const variant = order.variant.charAt(0).toUpperCase() + order.variant.slice(1);
+    const capColor = order.cap_color.charAt(0).toUpperCase() + 
+                     order.cap_color.slice(1).replace("_", " ");
+    return `${variant} Bottle ${capColor} Cap - ${order.volume}ml`;
+  }, [order.variant, order.cap_color, order.volume]);
+
+  const formattedDate = useMemo(() => {
+    const date = new Date(order.created_at);
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }, [order.created_at]);
+
+  const statusColor = useMemo(() => 
+    orderService.getOrderStatusColor(order.status), 
+    [order.status]
+  );
+
+  const paymentStatusColor = useMemo(() => 
+    orderService.getPaymentStatusColor(order.payment_status),
+    [order.payment_status]
+  );
+
+  const showDeclineReason = useMemo(() => 
+    (order.status === 'declined' || order.payment_status === 'payment_rejected') && 
+    order.decline_reason,
+    [order.status, order.payment_status, order.decline_reason]
+  );
+
+  return (
+    <button onClick={onClick} className="w-full text-left cursor-pointer">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+        <div className="flex items-start space-x-4">
+          <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+            {order.label_url ? (
+              <Image
+                src={order.label_url}
+                alt="Label"
+                width={48}
+                height={48}
+                className="w-full h-full object-cover rounded-xl"
+                loading="lazy"
+                unoptimized
+              />
+            ) : (
+              <span className="text-white text-xs font-bold">Label</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-gray-900 mb-1 leading-tight truncate">
+              {productName}
+            </h3>
+            <p className="text-xs text-gray-500 mb-1 truncate">
+              Order ID: {order.order_id.slice(0, 13)}...
+            </p>
+            <p className="text-xs text-gray-500 mb-2">Date: {formattedDate}</p>
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
+                {orderService.formatOrderStatus(order.status)}
+              </span>
+              <span className="text-xs text-gray-500">
+                Qty: {order.qty.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${paymentStatusColor}`}>
+                {orderService.formatPaymentStatus(order.payment_status)}
+              </span>
+            </div>
+
+            {showDeclineReason && (
+              <p className="text-xs text-red-600 mt-2">
+                Reason: {order.decline_reason}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+});
+
+OrderCard.displayName = "OrderCard";
 
 export default function OrdersModal({
   isOpen,
@@ -25,76 +185,32 @@ export default function OrdersModal({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState("");
-  
+
   const offsetRef = useRef(0);
   const fetchingRef = useRef(false);
 
-  const getProductName = useCallback((order: Order) => {
-    const variant =
-      order.variant.charAt(0).toUpperCase() + order.variant.slice(1);
-    const capColor =
-      order.cap_color.charAt(0).toUpperCase() +
-      order.cap_color.slice(1).replace("_", " ");
-    return `${variant} Bottle ${capColor} Cap - ${order.volume}ml`;
-  }, []);
-
-  const getStatusColor = useCallback((status: string) => {
-    switch (status) {
-      case "placed":
-        return "text-purple-600 bg-purple-50";
-      case "printing":
-        return "text-blue-500 bg-blue-50";
-      case "ready_for_plant":
-        return "text-yellow-500 bg-yellow-50";
-      case "plant_processing":
-        return "text-orange-500 bg-orange-50";
-      case "dispatched":
-        return "text-cyan-500 bg-cyan-50";
-      case "completed":
-        return "text-green-500 bg-green-50";
-      case "declined":
-        return "text-red-500 bg-red-50";
-      default:
-        return "text-gray-500 bg-gray-50";
-    }
-  }, []);
-
-  const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  }, []);
-
-  // ✅ Updated filter logic - includes rejected orders
+  // ✅ OPTIMIZATION: Memoized filter function
   const filterOrdersByType = useCallback(
     (allOrders: Order[]) => {
       if (orderType === "active") {
-        // Active: placed, printing, ready_for_plant, plant_processing
-        // Exclude payment_rejected
         return allOrders.filter(
           (order) =>
             (order.status === "placed" ||
-            order.status === "printing" ||
-            order.status === "ready_for_plant" ||
-            order.status === "plant_processing") &&
+              order.status === "printing" ||
+              order.status === "ready_for_plant" ||
+              order.status === "plant_processing") &&
             order.payment_status !== "payment_rejected"
         );
       } else if (orderType === "rejected") {
-        // ✅ Rejected: declined status OR payment_rejected
         return allOrders.filter(
           (order) =>
             order.status === "declined" ||
             order.payment_status === "payment_rejected"
         );
       } else {
-        // Completed: dispatched, completed
         return allOrders.filter(
           (order) =>
-            order.status === "dispatched" ||
-            order.status === "completed"
+            order.status === "dispatched" || order.status === "completed"
         );
       }
     },
@@ -113,10 +229,10 @@ export default function OrdersModal({
       }
 
       try {
-        const response = await orderService.getOrders({
-          limit: ITEMS_PER_PAGE,
-          offset: isLoadMore ? offsetRef.current : 0,
-        });
+        const response = await orderService.getOrders(
+          ITEMS_PER_PAGE,
+          isLoadMore ? offsetRef.current : 0
+        );
 
         const filteredOrders = filterOrdersByType(response.orders || []);
 
@@ -153,22 +269,30 @@ export default function OrdersModal({
     }
   }, [isOpen, orderType, fetchOrders]);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
       fetchOrders(true);
     }
-  };
+  }, [isLoadingMore, hasMore, fetchOrders]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setOrders([]);
     offsetRef.current = 0;
     setHasMore(true);
     setError("");
     onClose();
-  };
+  }, [onClose]);
 
-  // ✅ Updated modal title logic
-  const getModalTitle = () => {
+  const handleOrderClick = useCallback(
+    (orderId: string) => {
+      onOrderClick(orderId);
+      handleClose();
+    },
+    [onOrderClick, handleClose]
+  );
+
+  // ✅ OPTIMIZATION: Memoized modal title
+  const modalTitle = useMemo(() => {
     switch (orderType) {
       case "active":
         return "Ongoing Orders";
@@ -179,21 +303,7 @@ export default function OrdersModal({
       default:
         return "Orders";
     }
-  };
-
-  // ✅ Updated empty state message
-  const getEmptyStateMessage = () => {
-    switch (orderType) {
-      case "active":
-        return "You don't have any ongoing orders";
-      case "rejected":
-        return "You don't have any rejected orders";
-      case "completed":
-        return "You don't have any completed orders";
-      default:
-        return "No orders found";
-    }
-  };
+  }, [orderType]);
 
   if (!isOpen) return null;
 
@@ -211,7 +321,7 @@ export default function OrdersModal({
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {getModalTitle()}
+              {modalTitle}
             </h2>
             <button
               onClick={handleClose}
@@ -222,120 +332,22 @@ export default function OrdersModal({
           </div>
 
           {/* Error Message */}
-          {error && (
-            <div className="mx-4 sm:mx-6 mt-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
+          {error && <ErrorMessage message={error} />}
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-                <p className="text-gray-600">Loading orders...</p>
-              </div>
+              <LoadingSpinner />
             ) : orders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <svg
-                  className="w-16 h-16 text-gray-300 mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {orderType === "rejected" ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                    />
-                  )}
-                </svg>
-                <p className="text-gray-500 font-medium mb-2">No orders found</p>
-                <p className="text-sm text-gray-400">{getEmptyStateMessage()}</p>
-              </div>
+              <EmptyState orderType={orderType} />
             ) : (
               <div className="space-y-3">
                 {orders.map((order) => (
-                  <button
+                  <OrderCard
                     key={order.order_id}
-                    onClick={() => {
-                      onOrderClick(order.order_id);
-                      handleClose();
-                    }}
-                    className="w-full text-left cursor-pointer"
-                  >
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                          {order.label_url ? (
-                            <Image
-                              src={order.label_url}
-                              alt="Label"
-                              width={48}
-                              height={48}
-                              className="w-full h-full object-cover rounded-xl"
-                              loading="lazy"
-                              unoptimized
-                            />
-                          ) : (
-                            <span className="text-white text-xs font-bold">
-                              Label
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium text-gray-900 mb-1 leading-tight truncate">
-                            {getProductName(order)}
-                          </h3>
-                          <p className="text-xs text-gray-500 mb-1 truncate">
-                            Order ID: {order.order_id.slice(0, 13)}...
-                          </p>
-                          <p className="text-xs text-gray-500 mb-2">
-                            Date: {formatDate(order.created_at)}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
-                                order.status
-                              )}`}
-                            >
-                              {orderService.formatOrderStatus(order.status)}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              Qty: {order.qty.toLocaleString()}
-                            </span>
-                          </div>
-
-                          {/* ✅ Show payment status badge */}
-                          <div className="mt-2 flex items-center gap-2">
-                            <span
-                              className={`text-xs font-medium px-2 py-1 rounded-full ${orderService.getPaymentStatusColor(
-                                order.payment_status
-                              )}`}
-                            >
-                              {orderService.formatPaymentStatus(order.payment_status)}
-                            </span>
-                          </div>
-
-                          {/* ✅ Show decline reason for rejected orders */}
-                          {(order.status === 'declined' || order.payment_status === 'payment_rejected') && order.decline_reason && (
-                            <p className="text-xs text-red-600 mt-2">
-                              Reason: {order.decline_reason}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
+                    order={order}
+                    onClick={() => handleOrderClick(order.order_id)}
+                  />
                 ))}
 
                 {/* Load More Button */}

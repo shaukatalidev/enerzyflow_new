@@ -1,5 +1,6 @@
 import axiosInstance from '../lib/axios';
 
+// ✅ Constants remain the same
 export const PAYMENT_STATUS = {
   PENDING: 'payment_pending',
   UPLOADED: 'payment_uploaded',
@@ -106,15 +107,93 @@ export interface UploadInvoiceResponse {
   url: string;
 }
 
-// ==================== Admin Service ====================
+// ✅ OPTIMIZATION: Move constant maps outside class to avoid recreation
+const STATUS_DISPLAY_MAP: Record<string, string> = {
+  [ORDER_STATUS.PLACED]: 'Placed',
+  [ORDER_STATUS.PRINTING]: 'Printing',
+  [ORDER_STATUS.DECLINED]: 'Declined',
+  [ORDER_STATUS.READY_FOR_PLANT]: 'Ready for Plant',
+  [ORDER_STATUS.PLANT_PROCESSING]: 'Plant Processing',
+  [ORDER_STATUS.DISPATCHED]: 'Dispatched',
+  [ORDER_STATUS.COMPLETED]: 'Completed',
+};
+
+const PAYMENT_DISPLAY_MAP: Record<string, string> = {
+  [PAYMENT_STATUS.PENDING]: 'Payment Pending',
+  [PAYMENT_STATUS.UPLOADED]: 'Payment Uploaded',
+  [PAYMENT_STATUS.VERIFIED]: 'Payment Verified',
+  [PAYMENT_STATUS.REJECTED]: 'Payment Rejected',
+};
+
+const STATUS_COLOR_MAP: Record<string, string> = {
+  [ORDER_STATUS.PLACED]: 'bg-purple-100 text-purple-700',
+  [ORDER_STATUS.PRINTING]: 'bg-blue-100 text-blue-700',
+  [ORDER_STATUS.DECLINED]: 'bg-red-100 text-red-700',
+  [ORDER_STATUS.READY_FOR_PLANT]: 'bg-yellow-100 text-yellow-700',
+  [ORDER_STATUS.PLANT_PROCESSING]: 'bg-orange-100 text-orange-700',
+  [ORDER_STATUS.DISPATCHED]: 'bg-cyan-100 text-cyan-700',
+  [ORDER_STATUS.COMPLETED]: 'bg-green-100 text-green-700',
+};
+
+const PAYMENT_COLOR_MAP: Record<string, string> = {
+  [PAYMENT_STATUS.PENDING]: 'bg-amber-100 text-amber-700',
+  [PAYMENT_STATUS.UPLOADED]: 'bg-indigo-100 text-indigo-700',
+  [PAYMENT_STATUS.VERIFIED]: 'bg-teal-100 text-teal-700',
+  [PAYMENT_STATUS.REJECTED]: 'bg-red-100 text-red-700',
+};
+
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  [ORDER_STATUS.PLACED]: [ORDER_STATUS.PRINTING, ORDER_STATUS.DECLINED],
+  [ORDER_STATUS.PRINTING]: [ORDER_STATUS.DECLINED, ORDER_STATUS.READY_FOR_PLANT],
+  [ORDER_STATUS.READY_FOR_PLANT]: [ORDER_STATUS.PLANT_PROCESSING],
+  [ORDER_STATUS.PLANT_PROCESSING]: [ORDER_STATUS.DISPATCHED],
+  [ORDER_STATUS.DISPATCHED]: [ORDER_STATUS.COMPLETED],
+};
+
+const ROLE_TRANSITIONS: Record<string, Record<string, string>> = {
+  admin: {
+    [ORDER_STATUS.PLACED]: ORDER_STATUS.PRINTING,
+    [ORDER_STATUS.PRINTING]: ORDER_STATUS.READY_FOR_PLANT,
+    [ORDER_STATUS.READY_FOR_PLANT]: ORDER_STATUS.PLANT_PROCESSING,
+    [ORDER_STATUS.PLANT_PROCESSING]: ORDER_STATUS.DISPATCHED,
+    [ORDER_STATUS.DISPATCHED]: ORDER_STATUS.COMPLETED,
+  },
+  printing: {
+    [ORDER_STATUS.PLACED]: ORDER_STATUS.PRINTING,
+    [ORDER_STATUS.PRINTING]: ORDER_STATUS.READY_FOR_PLANT,
+  },
+  plant: {
+    [ORDER_STATUS.READY_FOR_PLANT]: ORDER_STATUS.PLANT_PROCESSING,
+    [ORDER_STATUS.PLANT_PROCESSING]: ORDER_STATUS.DISPATCHED,
+  },
+};
+
+const STATUS_PROGRESS_MAP: Record<string, number> = {
+  [ORDER_STATUS.PLACED]: 0,
+  [ORDER_STATUS.PRINTING]: 20,
+  [ORDER_STATUS.READY_FOR_PLANT]: 40,
+  [ORDER_STATUS.PLANT_PROCESSING]: 60,
+  [ORDER_STATUS.DISPATCHED]: 80,
+  [ORDER_STATUS.COMPLETED]: 100,
+  [ORDER_STATUS.DECLINED]: 0,
+};
+
+// ✅ OPTIMIZATION: Email regex compiled once
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ✅ OPTIMIZATION: Date formatter options
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric'
+};
+
+// ✅ OPTIMIZATION: Constants for time calculations
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 class AdminService {
   // ==================== User Management ====================
 
-  /**
-   * Get all users (Admin only)
-   * GET /users/all
-   */
   async getAllUsers(): Promise<AllUsersResponse> {
     try {
       const response = await axiosInstance.get<AllUsersResponse>('/users/all');
@@ -125,16 +204,9 @@ class AdminService {
     }
   }
 
-  /**
-   * Create a new user (Admin only)
-   * POST /users/create
-   */
   async createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
     try {
-      const response = await axiosInstance.post<CreateUserResponse>(
-        '/users/create',
-        data
-      );
+      const response = await axiosInstance.post<CreateUserResponse>('/users/create', data);
       return response.data;
     } catch (error) {
       console.error('❌ Failed to create user:', error);
@@ -144,18 +216,11 @@ class AdminService {
 
   // ==================== Order Management ====================
 
-  /**
-   * Get all orders across all users (Admin only)
-   * GET /orders/get-all-orders?limit=10&offset=0
-   */
   async getAllOrders(limit: number = 100, offset: number = 0): Promise<AllOrdersResponse> {
     try {
-      const response = await axiosInstance.get<AllOrdersResponse>(
-        '/orders/get-all-orders',
-        {
-          params: { limit, offset }
-        }
-      );
+      const response = await axiosInstance.get<AllOrdersResponse>('/orders/get-all-orders', {
+        params: { limit, offset }
+      });
       return response.data;
     } catch (error) {
       console.error('❌ Failed to fetch all orders:', error);
@@ -163,12 +228,6 @@ class AdminService {
     }
   }
 
-  /**
-   * Update order status (Admin/Printing/Plant role)
-   * PUT /orders/:id/status
-   * 
-   * ⚠️ IMPORTANT: If status is 'declined', the 'reason' field is REQUIRED
-   */
   async updateOrderStatus(
     orderId: string,
     status: string,
@@ -195,14 +254,6 @@ class AdminService {
     }
   }
 
-  /**
-   * Update payment status (Admin only)
-   * PUT /orders/:id/payment
-   * 
-   * ⚠️ IMPORTANT: 
-   * - Only accepts 'payment_verified' or 'payment_rejected'
-   * - If status is 'payment_rejected', the 'reason' field is REQUIRED
-   */
   async updatePaymentStatus(
     orderId: string,
     status: 'payment_verified' | 'payment_rejected',
@@ -233,15 +284,9 @@ class AdminService {
     }
   }
 
-  /**
-   * Get order tracking history
-   * GET /orders/:id/tracking
-   */
   async getOrderTracking(orderId: string): Promise<OrderTrackingResponse> {
     try {
-      const response = await axiosInstance.get<OrderTrackingResponse>(
-        `/orders/${orderId}/tracking`
-      );
+      const response = await axiosInstance.get<OrderTrackingResponse>(`/orders/${orderId}/tracking`);
       return response.data;
     } catch (error) {
       console.error('❌ Failed to fetch order tracking:', error);
@@ -249,10 +294,6 @@ class AdminService {
     }
   }
 
-  /**
-   * Upload invoice for order (Admin only)
-   * POST /orders/:id/upload-invoice
-   */
   async uploadInvoice(orderId: string, file: File): Promise<UploadInvoiceResponse> {
     try {
       const formData = new FormData();
@@ -302,6 +343,7 @@ class AdminService {
     return new Error(defaultMessage);
   }
 
+  // ✅ OPTIMIZATION: Simple boolean checks - no complex logic
   isAdmin(role: string): boolean {
     return role === 'admin';
   }
@@ -310,211 +352,90 @@ class AdminService {
     return role === 'admin' || role === 'printing';
   }
 
+  // ✅ OPTIMIZATION: Use pre-compiled regex
   validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return EMAIL_REGEX.test(email);
   }
 
   requiresReason(status: string): boolean {
     return status === ORDER_STATUS.DECLINED || status === PAYMENT_STATUS.REJECTED;
   }
 
-  /**
-   * Format order status for display
-   * ✅ Updated without ready_for_dispatch
-   */
+  // ✅ OPTIMIZATION: Use pre-defined maps
   formatOrderStatus(status: string): string {
-    const statusMap: Record<string, string> = {
-      [ORDER_STATUS.PLACED]: 'Placed',
-      [ORDER_STATUS.PRINTING]: 'Printing',
-      [ORDER_STATUS.DECLINED]: 'Declined',
-      [ORDER_STATUS.READY_FOR_PLANT]: 'Ready for Plant',
-      [ORDER_STATUS.PLANT_PROCESSING]: 'Plant Processing',
-      [ORDER_STATUS.DISPATCHED]: 'Dispatched',
-      [ORDER_STATUS.COMPLETED]: 'Completed',
-    };
-    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+    return STATUS_DISPLAY_MAP[status] || 
+           status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
   }
 
-  /**
-   * Format payment status for display
-   */
   formatPaymentStatus(status: string): string {
-    const statusMap: Record<string, string> = {
-      [PAYMENT_STATUS.PENDING]: 'Payment Pending',
-      [PAYMENT_STATUS.UPLOADED]: 'Payment Uploaded',
-      [PAYMENT_STATUS.VERIFIED]: 'Payment Verified',
-      [PAYMENT_STATUS.REJECTED]: 'Payment Rejected',
-    };
-    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+    return PAYMENT_DISPLAY_MAP[status] || 
+           status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
   }
 
-  /**
-   * Get status color class for UI
-   * ✅ Updated without ready_for_dispatch
-   */
   getStatusColorClass(status: string): string {
-    const colorMap: Record<string, string> = {
-      [ORDER_STATUS.PLACED]: 'bg-purple-100 text-purple-700',
-      [ORDER_STATUS.PRINTING]: 'bg-blue-100 text-blue-700',
-      [ORDER_STATUS.DECLINED]: 'bg-red-100 text-red-700',
-      [ORDER_STATUS.READY_FOR_PLANT]: 'bg-yellow-100 text-yellow-700',
-      [ORDER_STATUS.PLANT_PROCESSING]: 'bg-orange-100 text-orange-700',
-      [ORDER_STATUS.DISPATCHED]: 'bg-cyan-100 text-cyan-700',
-      [ORDER_STATUS.COMPLETED]: 'bg-green-100 text-green-700',
-    };
-    return colorMap[status] || 'bg-gray-100 text-gray-700';
+    return STATUS_COLOR_MAP[status] || 'bg-gray-100 text-gray-700';
   }
 
-  /**
-   * Get payment status badge color
-   */
   getPaymentStatusColorClass(paymentStatus: string): string {
-    const colorMap: Record<string, string> = {
-      [PAYMENT_STATUS.PENDING]: 'bg-amber-100 text-amber-700',
-      [PAYMENT_STATUS.UPLOADED]: 'bg-indigo-100 text-indigo-700',
-      [PAYMENT_STATUS.VERIFIED]: 'bg-teal-100 text-teal-700',
-      [PAYMENT_STATUS.REJECTED]: 'bg-red-100 text-red-700',
-    };
-    return colorMap[paymentStatus] || 'bg-gray-100 text-gray-700';
+    return PAYMENT_COLOR_MAP[paymentStatus] || 'bg-gray-100 text-gray-700';
   }
 
-  /**
-   * Validate order status transition
-   * ✅ Updated flow: plant_processing → dispatched (no ready_for_dispatch)
-   */
+  // ✅ OPTIMIZATION: Use pre-defined transition map
   isValidStatusTransition(currentStatus: string, newStatus: string, userRole: string): boolean {
-    const allowedTransitions: Record<string, string[]> = {
-      [ORDER_STATUS.PLACED]: [ORDER_STATUS.PRINTING, ORDER_STATUS.DECLINED],
-      [ORDER_STATUS.PRINTING]: [ORDER_STATUS.DECLINED, ORDER_STATUS.READY_FOR_PLANT],
-      [ORDER_STATUS.READY_FOR_PLANT]: [ORDER_STATUS.PLANT_PROCESSING],
-      [ORDER_STATUS.PLANT_PROCESSING]: [ORDER_STATUS.DISPATCHED],
-      [ORDER_STATUS.DISPATCHED]: [ORDER_STATUS.COMPLETED],
-    };
-
     if (userRole === 'admin') {
       return true;
     }
 
-    if (userRole === 'printing') {
-      const allowed = allowedTransitions[currentStatus] || [];
-      return allowed.includes(newStatus);
-    }
-
-    if (userRole === 'plant') {
-      const allowed = allowedTransitions[currentStatus] || [];
-      return allowed.includes(newStatus);
-    }
-
-    return false;
+    const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+    return allowed.includes(newStatus);
   }
 
-  /**
-   * Check if payment is verified
-   */
   isPaymentVerified(paymentStatus: string): boolean {
     return paymentStatus === PAYMENT_STATUS.VERIFIED;
   }
 
-  /**
-   * Check if payment is pending
-   */
   isPaymentPending(paymentStatus: string): boolean {
     return paymentStatus === PAYMENT_STATUS.PENDING || paymentStatus === PAYMENT_STATUS.UPLOADED;
   }
 
-  /**
-   * Format date for display
-   */
+  // ✅ OPTIMIZATION: Use pre-defined date format options
   formatDate(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    return date.toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS);
   }
 
-  /**
-   * Calculate order age in days
-   */
+  // ✅ OPTIMIZATION: Use constant for milliseconds per day
   getOrderAgeDays(createdAt: string): number {
     const created = new Date(createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - created.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffTime / MS_PER_DAY);
   }
 
-  /**
-   * Check if order is overdue
-   */
   isOrderOverdue(expectedDelivery: string): boolean {
-    const expected = new Date(expectedDelivery);
-    const now = new Date();
-    return now > expected;
+    return new Date() > new Date(expectedDelivery);
   }
 
-  /**
-   * Get all valid order statuses as array
-   */
   getAllOrderStatuses(): string[] {
     return Object.values(ORDER_STATUS);
   }
 
-  /**
-   * Get all valid payment statuses as array
-   */
   getAllPaymentStatuses(): string[] {
     return Object.values(PAYMENT_STATUS);
   }
 
-  /**
- * Check if status is a terminal state
- */
   isTerminalStatus(status: string): boolean {
     return status === ORDER_STATUS.COMPLETED || status === ORDER_STATUS.DECLINED;
   }
 
-
-  /**
-   * Get the next logical status in the workflow
-   */
+  // ✅ OPTIMIZATION: Use pre-defined role transitions map
   getNextStatus(currentStatus: string, userRole: string): string | null {
-    const transitions: Record<string, Record<string, string>> = {
-      admin: {
-        [ORDER_STATUS.PLACED]: ORDER_STATUS.PRINTING,
-        [ORDER_STATUS.PRINTING]: ORDER_STATUS.READY_FOR_PLANT,
-        [ORDER_STATUS.READY_FOR_PLANT]: ORDER_STATUS.PLANT_PROCESSING,
-        [ORDER_STATUS.PLANT_PROCESSING]: ORDER_STATUS.DISPATCHED,
-        [ORDER_STATUS.DISPATCHED]: ORDER_STATUS.COMPLETED,
-      },
-      printing: {
-        [ORDER_STATUS.PLACED]: ORDER_STATUS.PRINTING,
-        [ORDER_STATUS.PRINTING]: ORDER_STATUS.READY_FOR_PLANT,
-      },
-      plant: {
-        [ORDER_STATUS.READY_FOR_PLANT]: ORDER_STATUS.PLANT_PROCESSING,
-        [ORDER_STATUS.PLANT_PROCESSING]: ORDER_STATUS.DISPATCHED,
-      },
-    };
-
-    return transitions[userRole]?.[currentStatus] || null;
+    return ROLE_TRANSITIONS[userRole]?.[currentStatus] || null;
   }
 
-  /**
-   * Get status progress percentage
-   */
+  // ✅ OPTIMIZATION: Use pre-defined progress map
   getStatusProgress(status: string): number {
-    const progressMap: Record<string, number> = {
-      [ORDER_STATUS.PLACED]: 0,
-      [ORDER_STATUS.PRINTING]: 20,
-      [ORDER_STATUS.READY_FOR_PLANT]: 40,
-      [ORDER_STATUS.PLANT_PROCESSING]: 60,
-      [ORDER_STATUS.DISPATCHED]: 80,
-      [ORDER_STATUS.COMPLETED]: 100,
-      [ORDER_STATUS.DECLINED]: 0,
-    };
-    return progressMap[status] || 0;
+    return STATUS_PROGRESS_MAP[status] || 0;
   }
 }
 

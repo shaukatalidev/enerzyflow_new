@@ -1,11 +1,13 @@
-// app/services/orderService.ts
-
 import axiosInstance from '../lib/axios';
 import { AxiosError } from 'axios';
-// ✅ Import shared types and constants from adminService
-import type { 
-  OrderStatus,
-  PaymentStatus 
+
+// ✅ Import shared constants and utilities from adminService
+import {
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+  type OrderStatus,
+  type PaymentStatus,
+  adminService, // Import to reuse helper methods
 } from './adminService';
 
 // ==================== Order-Specific Types ====================
@@ -18,7 +20,6 @@ export interface CreateOrderRequest {
   volume: number;
 }
 
-// ✅ Updated to match backend response exactly
 export interface Order {
   order_id: string;
   company_id: string;
@@ -44,10 +45,9 @@ export interface CreateOrderResponse {
 
 export interface GetOrdersResponse {
   orders: Order[];
-  count: number;      
-  has_more: boolean;  
+  count: number;
+  has_more: boolean;
 }
-
 
 export interface GetOrderResponse {
   order: Order;
@@ -78,18 +78,20 @@ export interface OrderHistoryItem {
 export interface GetOrderTrackingResponse {
   order_id: string;
   status: string;
-  history: OrderHistoryItem[];  
+  history: OrderHistoryItem[];
 }
 
+// ✅ OPTIMIZATION: Constants for time calculations
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 // ==================== Order Service ====================
 
-export class OrderService {
+class OrderService {
   /**
    * Get order tracking history
    * GET /orders/:id/tracking
    */
-  static async getOrderTracking(orderId: string): Promise<GetOrderTrackingResponse> {
+  async getOrderTracking(orderId: string): Promise<GetOrderTrackingResponse> {
     try {
       const response = await axiosInstance.get<GetOrderTrackingResponse>(
         `/orders/${orderId}/tracking`
@@ -97,12 +99,7 @@ export class OrderService {
       return response.data;
     } catch (error) {
       console.error('❌ Order tracking fetch error:', error instanceof AxiosError ? error.response : error);
-
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to fetch order tracking');
-      }
-      throw new Error('Failed to fetch order tracking');
+      throw this.handleError(error, 'Failed to fetch order tracking');
     }
   }
 
@@ -110,48 +107,46 @@ export class OrderService {
    * Create a new order
    * POST /orders/create
    */
-  static async createOrder(orderData: CreateOrderRequest): Promise<CreateOrderResponse> {
+  async createOrder(orderData: CreateOrderRequest): Promise<CreateOrderResponse> {
     try {
       const response = await axiosInstance.post<CreateOrderResponse>('/orders/create', orderData);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to create order');
-      }
-      throw new Error('Failed to create order');
+      console.error('❌ Failed to create order:', error);
+      throw this.handleError(error, 'Failed to create order');
     }
   }
 
   /**
-   * Get all orders for the logged-in user's company
-   * GET /orders/get-all?limit=10&offset=0
-   */
-  static async getOrders(params?: PaginationParams): Promise<GetOrdersResponse> {
+ * Get all orders for the logged-in user's company
+ * GET /orders/get-all?limit=10&offset=0
+ */
+  async getOrders(limit: number, offset: number): Promise<GetOrdersResponse>;
+  async getOrders(params: PaginationParams): Promise<GetOrdersResponse>;
+  async getOrders(
+    limitOrParams: number | PaginationParams,
+    offset?: number
+  ): Promise<GetOrdersResponse> {
     try {
-      const queryParams = new URLSearchParams();
+      let finalLimit: number;
+      let finalOffset: number;
 
-      if (params?.limit) {
-        queryParams.append('limit', params.limit.toString());
+      if (typeof limitOrParams === 'object') {
+        finalLimit = limitOrParams.limit || 10;
+        finalOffset = limitOrParams.offset || 0;
+      } else {
+        finalLimit = limitOrParams;
+        finalOffset = offset || 0;
       }
 
-      if (params?.offset !== undefined) {
-        queryParams.append('offset', params.offset.toString());
-      }
-
-      const url = `/orders/get-all${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-
-      const response = await axiosInstance.get<GetOrdersResponse>(url);
+      const response = await axiosInstance.get<GetOrdersResponse>('/orders/get-all', {
+        params: { limit: finalLimit, offset: finalOffset },
+      });
 
       return response.data;
     } catch (error) {
       console.error('❌ Order service error:', error instanceof AxiosError ? error.response : error);
-
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to fetch orders');
-      }
-      throw new Error('Failed to fetch orders');
+      throw this.handleError(error, 'Failed to fetch orders');
     }
   }
 
@@ -159,16 +154,13 @@ export class OrderService {
    * Get a single order by ID
    * GET /orders/:id
    */
-  static async getOrder(orderId: string): Promise<GetOrderResponse> {
+  async getOrder(orderId: string): Promise<GetOrderResponse> {
     try {
       const response = await axiosInstance.get<GetOrderResponse>(`/orders/${orderId}`);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to fetch order');
-      }
-      throw new Error('Failed to fetch order');
+      console.error('❌ Failed to fetch order:', error);
+      throw this.handleError(error, 'Failed to fetch order');
     }
   }
 
@@ -176,7 +168,7 @@ export class OrderService {
    * Upload payment screenshot for an order
    * POST /orders/:id/payment-screenshot
    */
-  static async uploadPaymentScreenshot(
+  async uploadPaymentScreenshot(
     orderId: string,
     file: File
   ): Promise<UploadPaymentScreenshotResponse> {
@@ -197,149 +189,165 @@ export class OrderService {
       return response.data;
     } catch (error) {
       console.error('❌ Payment screenshot upload error:', error instanceof AxiosError ? error.response : error);
-
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to upload payment screenshot');
-      }
-      throw new Error('Failed to upload payment screenshot');
+      throw this.handleError(error, 'Failed to upload payment screenshot');
     }
   }
 
   // ==================== Helper Methods ====================
 
   /**
-   * Format order status for display
+   * Handle API errors consistently
    */
-  static formatOrderStatus(status: string): string {
-    const statusMap: Record<string, string> = {
-      placed: 'Placed',
-      printing: 'Printing',
-      declined: 'Declined',
-      ready_for_plant: 'Ready for Plant',
-      plant_processing: 'Plant Processing',
-      dispatched: 'Dispatched',
-      completed: 'Completed',
-    };
-    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+  private handleError(error: unknown, defaultMessage: string): Error {
+    if (error instanceof AxiosError && error.response?.data) {
+      const data = error.response.data as ApiErrorResponse;
+      if (data.error) {
+        return new Error(data.error);
+      }
+      if (data.message) {
+        return new Error(data.message);
+      }
+    }
+
+    if (error instanceof Error) {
+      return new Error(error.message);
+    }
+
+    return new Error(defaultMessage);
+  }
+
+  // ✅ REMOVED DUPLICATION: Delegate to adminService for all formatting methods
+
+  /**
+   * Format order status for display
+   * @deprecated Use adminService.formatOrderStatus() instead
+   */
+  formatOrderStatus(status: string): string {
+    return adminService.formatOrderStatus(status);
   }
 
   /**
    * Format payment status for display
+   * @deprecated Use adminService.formatPaymentStatus() instead
    */
-  static formatPaymentStatus(status: string): string {
-    const statusMap: Record<string, string> = {
-      payment_pending: 'Payment Pending',
-      payment_uploaded: 'Payment Uploaded',
-      payment_verified: 'Payment Verified',
-      payment_rejected: 'Payment Rejected',
-    };
-    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+  formatPaymentStatus(status: string): string {
+    return adminService.formatPaymentStatus(status);
   }
 
   /**
    * Get order status color class
+   * @deprecated Use adminService.getStatusColorClass() instead
    */
-  static getOrderStatusColor(status: string): string {
-    const colorMap: Record<string, string> = {
-      placed: 'bg-purple-100 text-purple-700',
-      printing: 'bg-blue-100 text-blue-700',
-      declined: 'bg-red-100 text-red-700',
-      ready_for_plant: 'bg-yellow-100 text-yellow-700',
-      plant_processing: 'bg-orange-100 text-orange-700',
-      dispatched: 'bg-cyan-100 text-cyan-700',
-      completed: 'bg-green-100 text-green-700',
-    };
-    return colorMap[status] || 'bg-gray-100 text-gray-700';
+  getOrderStatusColor(status: string): string {
+    return adminService.getStatusColorClass(status);
   }
 
   /**
    * Get payment status color class
+   * @deprecated Use adminService.getPaymentStatusColorClass() instead
    */
-  static getPaymentStatusColor(status: string): string {
-    const colorMap: Record<string, string> = {
-      payment_pending: 'bg-amber-100 text-amber-700',
-      payment_uploaded: 'bg-indigo-100 text-indigo-700',
-      payment_verified: 'bg-teal-100 text-teal-700',
-      payment_rejected: 'bg-red-100 text-red-700',
-    };
-    return colorMap[status] || 'bg-gray-100 text-gray-700';
+  getPaymentStatusColor(status: string): string {
+    return adminService.getPaymentStatusColorClass(status);
   }
 
   /**
    * Check if payment is verified
+   * @deprecated Use adminService.isPaymentVerified() instead
    */
-  static isPaymentVerified(paymentStatus: string): boolean {
-    return paymentStatus === 'payment_verified';
+  isPaymentVerified(paymentStatus: string): boolean {
+    return adminService.isPaymentVerified(paymentStatus);
   }
 
   /**
    * Check if payment is pending action
+   * @deprecated Use adminService.isPaymentPending() instead
    */
-  static isPaymentPending(paymentStatus: string): boolean {
-    return paymentStatus === 'payment_pending' || paymentStatus === 'payment_uploaded';
+  isPaymentPending(paymentStatus: string): boolean {
+    return adminService.isPaymentPending(paymentStatus);
   }
 
   /**
-   * Check if order can be edited
+   * Format date for display
+   * @deprecated Use adminService.formatDate() instead
    */
-  static canEditOrder(status: string): boolean {
-    return status === 'placed';
+  formatDate(dateString: string): string {
+    return adminService.formatDate(dateString);
+  }
+
+  /**
+   * Check if order is overdue
+   * @deprecated Use adminService.isOrderOverdue() instead
+   */
+  isOrderOverdue(expectedDelivery: string): boolean {
+    return adminService.isOrderOverdue(expectedDelivery);
+  }
+
+  /**
+   * Get status progress percentage
+   * @deprecated Use adminService.getStatusProgress() instead
+   */
+  getStatusProgress(status: string): number {
+    return adminService.getStatusProgress(status);
+  }
+
+  // ✅ Order-specific methods (not in adminService)
+
+  /**
+   * Check if order can be edited (only placed orders)
+   */
+  canEditOrder(status: string): boolean {
+    return status === ORDER_STATUS.PLACED;
   }
 
   /**
    * Check if payment can be uploaded
    */
-  static canUploadPayment(paymentStatus: string): boolean {
-    return paymentStatus === 'payment_pending';
-  }
-
-  /**
-   * Format date for display
-   */
-  static formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  canUploadPayment(paymentStatus: string): boolean {
+    return paymentStatus === PAYMENT_STATUS.PENDING;
   }
 
   /**
    * Calculate days until expected delivery
    */
-  static getDaysUntilDelivery(expectedDelivery: string): number {
+  getDaysUntilDelivery(expectedDelivery: string): number {
     const expected = new Date(expectedDelivery);
     const now = new Date();
     const diffTime = expected.getTime() - now.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffTime / MS_PER_DAY);
   }
 
   /**
-   * Check if order is overdue
+   * Check if order can be cancelled
    */
-  static isOrderOverdue(expectedDelivery: string): boolean {
-    const expected = new Date(expectedDelivery);
-    const now = new Date();
-    return now > expected;
+  canCancelOrder(status: string): boolean {
+    return status === ORDER_STATUS.PLACED || status === ORDER_STATUS.PRINTING;
   }
 
   /**
-   * Get status progress percentage (for progress bars)
+   * Check if order is in terminal state
    */
-  static getStatusProgress(status: string): number {
-    const progressMap: Record<string, number> = {
-      placed: 0,
-      printing: 20,
-      ready_for_plant: 40,
-      plant_processing: 60,
-      dispatched: 80,
-      completed: 100,
-      declined: 0,
-    };
-    return progressMap[status] || 0;
+  isTerminalStatus(status: string): boolean {
+    return adminService.isTerminalStatus(status);
+  }
+
+  /**
+   * Get order status badge color (alias for consistency)
+   */
+  getStatusBadgeColor(status: string): string {
+    return this.getOrderStatusColor(status);
+  }
+
+  /**
+   * Get payment status badge color (alias for consistency)
+   */
+  getPaymentBadgeColor(paymentStatus: string): string {
+    return this.getPaymentStatusColor(paymentStatus);
   }
 }
 
-export const orderService = OrderService;
+// ✅ Export singleton instance
+export const orderService = new OrderService();
+export default orderService;
+
+// ✅ Re-export constants from adminService for convenience
+export { ORDER_STATUS, PAYMENT_STATUS };
