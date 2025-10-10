@@ -154,13 +154,11 @@ const SuperAdminDashboard = () => {
         return;
       }
 
-      // ✅ Only block if payment is pending (not uploaded)
       if (order.payment_status === "payment_pending") {
         toast.error("Payment screenshot has not been uploaded yet");
         return;
       }
 
-      // ✅ Check if already in same status
       if (order.payment_status === status) {
         toast.error(
           `Payment is already ${
@@ -170,7 +168,6 @@ const SuperAdminDashboard = () => {
         return;
       }
 
-      // Validate rejection reason
       if (status === "payment_rejected") {
         if (!reason || !reason.trim()) {
           toast.error("Reason is required for rejecting payment");
@@ -250,8 +247,8 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <StatCard
             icon={Users}

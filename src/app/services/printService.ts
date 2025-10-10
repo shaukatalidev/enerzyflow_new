@@ -1,10 +1,8 @@
-// app/services/printService.ts
-
-import { axiosInstance } from '../lib/axios';
-import { AxiosError } from 'axios';
+import { adminService, ORDER_STATUS } from './adminService';
 import type {
   OrderStatusHistory,
-  AllOrderModel
+  AllOrdersResponse,
+  OrderStatusUpdateResponse,
 } from './adminService';
 
 // ==================== Print Service Specific Types ====================
@@ -12,18 +10,7 @@ import type {
 export interface GetOrderTrackingResponse {
   order_id: string;
   status: string;
-  history: OrderStatusHistory[];  
-}
-
-
-export interface GetAllOrdersResponse {
-  orders: AllOrderModel[];
-  count: number;
-}
-
-export interface GetAllOrdersParams {
-  limit?: number;
-  offset?: number;
+  history: OrderStatusHistory[];
 }
 
 export interface UpdateOrderStatusRequest {
@@ -31,76 +18,86 @@ export interface UpdateOrderStatusRequest {
   reason?: string;
 }
 
-export interface UpdateOrderStatusResponse {
-  message: string;
-}
+// ✅ OPTIMIZATION: Constants outside class with proper typing
+const PRINT_STATUS_TRANSITIONS: Record<string, string[]> = {
+  [ORDER_STATUS.PLACED]: [ORDER_STATUS.PRINTING, ORDER_STATUS.DECLINED],
+  [ORDER_STATUS.PRINTING]: [ORDER_STATUS.READY_FOR_PLANT, ORDER_STATUS.DECLINED],
+  [ORDER_STATUS.DECLINED]: [],
+  [ORDER_STATUS.READY_FOR_PLANT]: [],
+};
 
-interface ApiErrorResponse {
-  error?: string;
-  message?: string;
-}
+const PLANT_STATUS_TRANSITIONS: Record<string, string[]> = {
+  [ORDER_STATUS.READY_FOR_PLANT]: [ORDER_STATUS.PLANT_PROCESSING],
+  [ORDER_STATUS.PLANT_PROCESSING]: [ORDER_STATUS.DISPATCHED],
+  [ORDER_STATUS.DISPATCHED]: [ORDER_STATUS.COMPLETED],
+};
+
+// ✅ FIX: Define as string arrays to avoid TypeScript errors
+const PRINT_ALLOWED_STATUSES: string[] = [
+  ORDER_STATUS.PLACED,
+  ORDER_STATUS.PRINTING,
+  ORDER_STATUS.DECLINED,
+  ORDER_STATUS.READY_FOR_PLANT,
+];
+
+const PLANT_ALLOWED_STATUSES: string[] = [
+  ORDER_STATUS.READY_FOR_PLANT,
+  ORDER_STATUS.PLANT_PROCESSING,
+  ORDER_STATUS.DISPATCHED,
+];
+
+const STATUS_DESCRIPTIONS: Record<string, string> = {
+  [ORDER_STATUS.PLACED]: 'Order has been placed',
+  [ORDER_STATUS.PRINTING]: 'Labels are being printed',
+  [ORDER_STATUS.DECLINED]: 'Order has been declined',
+  [ORDER_STATUS.READY_FOR_PLANT]: 'Printing complete, ready for plant processing',
+  [ORDER_STATUS.PLANT_PROCESSING]: 'Order is being processed at the plant',
+  [ORDER_STATUS.DISPATCHED]: 'Order has been dispatched',
+  [ORDER_STATUS.COMPLETED]: 'Order has been completed',
+};
+
+const PRINT_ACTION_LABELS: Record<string, string> = {
+  [ORDER_STATUS.PLACED]: 'Start Printing',
+  [ORDER_STATUS.PRINTING]: 'Mark Ready for Plant',
+};
 
 // ==================== Print Service ====================
 
 class PrintService {
   /**
    * Get order tracking history
-   * GET /orders/:id/tracking
+   * Delegates to adminService (no duplication)
    */
   async getOrderTracking(orderId: string): Promise<GetOrderTrackingResponse> {
     try {
-      const response = await axiosInstance.get<GetOrderTrackingResponse>(
-        `/orders/${orderId}/tracking`
-      );
-      return response.data;
+      return await adminService.getOrderTracking(orderId);
     } catch (error) {
-      console.error('❌ Order tracking fetch error:', error);
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to fetch order tracking');
-      }
-      throw new Error('Failed to fetch order tracking');
+      console.error('❌ [Print] Order tracking fetch error:', error);
+      throw this.handleError(error, 'Failed to fetch order tracking');
     }
   }
 
   /**
    * Get all orders (for printing/plant role)
-   * GET /orders/get-all-orders?limit=10&offset=0
+   * Delegates to adminService
    */
-  async getAllOrders(params?: GetAllOrdersParams): Promise<GetAllOrdersResponse> {
+  async getAllOrders(limit: number = 100, offset: number = 0): Promise<AllOrdersResponse> {
     try {
-      const queryParams = {
-        limit: params?.limit || 10,
-        offset: params?.offset || 0,
-      };
-
-      const response = await axiosInstance.get<GetAllOrdersResponse>(
-        '/orders/get-all-orders',
-        { params: queryParams }
-      );
-      return response.data;
+      return await adminService.getAllOrders(limit, offset);
     } catch (error) {
-      console.error('Error fetching all orders:', error);
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to fetch orders');
-      }
-      throw new Error('Failed to fetch orders');
+      console.error('❌ [Print] Failed to fetch orders:', error);
+      throw this.handleError(error, 'Failed to fetch orders');
     }
   }
 
   /**
    * Update order status
    * PUT /orders/:id/status
-   * 
-   * ⚠️ Accepts any valid order status based on user role
-   * - Printing role: printing, declined, ready_for_plant
-   * - Plant role: plant_processing, dispatched (no ready_for_dispatch)
    */
   async updateOrderStatus(
     orderId: string,
     statusData: UpdateOrderStatusRequest
-  ): Promise<UpdateOrderStatusResponse> {
+  ): Promise<OrderStatusUpdateResponse> {
     try {
       if (!orderId) {
         throw new Error('Order ID is required');
@@ -110,273 +107,281 @@ class PrintService {
         throw new Error('Status is required');
       }
 
-      if (statusData.status === 'declined' && !statusData.reason) {
+      if (statusData.status === ORDER_STATUS.DECLINED && !statusData.reason) {
         throw new Error('Reason is required when declining an order');
       }
 
-      const response = await axiosInstance.put<UpdateOrderStatusResponse>(
-        `/orders/${orderId}/status`,
-        statusData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      return response.data;
+      return await adminService.updateOrderStatus(orderId, statusData.status, statusData.reason);
     } catch (error) {
-      console.error('Error updating order status:', error);
-      if (error instanceof AxiosError && error.response?.data) {
-        const errorData = error.response.data as ApiErrorResponse;
-        throw new Error(errorData.error || errorData.message || 'Failed to update order status');
-      }
-      throw new Error('Failed to update order status');
+      console.error('❌ [Print] Failed to update order status:', error);
+      throw this.handleError(error, 'Failed to update order status');
     }
   }
+
+  // ==================== Convenience Methods ====================
 
   /**
    * Move order to printing status
    */
-  async startPrinting(orderId: string): Promise<UpdateOrderStatusResponse> {
-    return this.updateOrderStatus(orderId, { status: 'accepted' });
+  async startPrinting(orderId: string): Promise<OrderStatusUpdateResponse> {
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.PRINTING });
   }
 
   /**
    * Mark order as ready for plant
    */
-  async markReadyForPlant(orderId: string): Promise<UpdateOrderStatusResponse> {
-    return this.updateOrderStatus(orderId, { status: 'ready_for_plant' });
+  async markReadyForPlant(orderId: string): Promise<OrderStatusUpdateResponse> {
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.READY_FOR_PLANT });
   }
 
   /**
    * Decline order with reason
    */
-  async declineOrder(orderId: string, reason: string): Promise<UpdateOrderStatusResponse> {
+  async declineOrder(orderId: string, reason: string): Promise<OrderStatusUpdateResponse> {
     if (!reason || !reason.trim()) {
       throw new Error('Reason is required when declining an order');
     }
-    return this.updateOrderStatus(orderId, { status: 'declined', reason });
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.DECLINED, reason });
   }
 
   /**
    * Start plant processing (for plant role)
    */
-  async startPlantProcessing(orderId: string): Promise<UpdateOrderStatusResponse> {
-    return this.updateOrderStatus(orderId, { status: 'plant_processing' });
+  async startPlantProcessing(orderId: string): Promise<OrderStatusUpdateResponse> {
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.PLANT_PROCESSING });
   }
-
-  // ✅ REMOVED markReadyForDispatch - doesn't exist in backend
 
   /**
    * Mark as dispatched (directly from plant_processing)
    */
-  async markDispatched(orderId: string): Promise<UpdateOrderStatusResponse> {
-    return this.updateOrderStatus(orderId, { status: 'dispatched' });
+  async markDispatched(orderId: string): Promise<OrderStatusUpdateResponse> {
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.DISPATCHED });
   }
 
   /**
    * Mark as completed
    */
-  async markCompleted(orderId: string): Promise<UpdateOrderStatusResponse> {
-    return this.updateOrderStatus(orderId, { status: 'completed' });
+  async markCompleted(orderId: string): Promise<OrderStatusUpdateResponse> {
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.COMPLETED });
   }
 
   // ==================== Helper Methods ====================
 
   /**
-   * Get status color based on actual backend statuses
-   * ✅ Removed ready_for_dispatch
+   * Handle API errors consistently
+   */
+  private handleError(error: unknown, defaultMessage: string): Error {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'response' in error &&
+      error.response &&
+      typeof error.response === 'object' &&
+      'data' in error.response
+    ) {
+      const data = error.response.data as { error?: string; message?: string };
+
+      if (data.error) return new Error(data.error);
+      if (data.message) return new Error(data.message);
+    }
+
+    if (error instanceof Error) return new Error(error.message);
+    return new Error(defaultMessage);
+  }
+
+  // ✅ All formatting methods delegate to adminService
+
+  /**
+   * Get status color
+   * @deprecated Use adminService.getStatusColorClass() directly
    */
   getStatusColor(status: string): string {
-    const colors: Record<string, string> = {
-      // Order statuses (7 total)
-      placed: 'purple',
-      printing: 'blue',
-      declined: 'red',
-      ready_for_plant: 'yellow',
-      plant_processing: 'orange',
-      dispatched: 'cyan',
-      completed: 'green',
-      
-      // Payment statuses
-      payment_pending: 'amber',
-      payment_uploaded: 'indigo',
-      payment_verified: 'teal',
-      payment_rejected: 'red',
-    };
-    return colors[status] || 'gray';
+    // Convert class to color name for backwards compatibility
+    const colorClass = adminService.getStatusColorClass(status);
+    return colorClass.split('-')[1] || 'gray'; // Extract color from "bg-purple-100"
   }
 
   /**
-   * Get status label with correct names
-   * ✅ Removed ready_for_dispatch
+   * Get status label
+   * @deprecated Use adminService.formatOrderStatus() directly
    */
   getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      // Order statuses
-      placed: 'Order Placed',
-      printing: 'Printing',
-      declined: 'Declined',
-      ready_for_plant: 'Ready for Plant',
-      plant_processing: 'Plant Processing',
-      dispatched: 'Dispatched',
-      completed: 'Completed',
-      
-      // Payment statuses
-      payment_pending: 'Payment Pending',
-      payment_uploaded: 'Payment Uploaded',
-      payment_verified: 'Payment Verified',
-      payment_rejected: 'Payment Rejected',
-    };
-    return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return adminService.formatOrderStatus(status);
   }
 
   /**
    * Get status description
-   * ✅ Removed ready_for_dispatch
    */
   getStatusDescription(status: string): string {
-    const descriptions: Record<string, string> = {
-      placed: 'Order has been placed',
-      printing: 'Labels are being printed',
-      declined: 'Order has been declined',
-      ready_for_plant: 'Printing complete, ready for plant processing',
-      plant_processing: 'Order is being processed at the plant',
-      dispatched: 'Order has been dispatched',
-      completed: 'Order has been completed',
-      
-      // Payment statuses
-      payment_pending: 'Payment verification pending',
-      payment_uploaded: 'Payment screenshot uploaded',
-      payment_verified: 'Payment has been verified',
-      payment_rejected: 'Payment has been rejected',
-    };
-    return descriptions[status] || '';
+    return STATUS_DESCRIPTIONS[status] || '';
   }
 
   /**
    * Check if order can be updated by printing role
+   * ✅ FIXED: Now works with string arrays
    */
   canUpdateOrderPrinting(status: string, paymentStatus: string): boolean {
-    return paymentStatus === 'payment_verified' && 
-           ['placed', 'printing', 'declined', 'ready_for_plant'].includes(status);
+    return adminService.isPaymentVerified(paymentStatus) &&
+      PRINT_ALLOWED_STATUSES.includes(status);
   }
 
   /**
    * Check if order can be updated by plant role
-   * ✅ Updated: plant_processing can now go directly to dispatched
+   * ✅ FIXED: Now works with string arrays
    */
   canUpdateOrderPlant(status: string): boolean {
-    return ['ready_for_plant', 'plant_processing', 'dispatched'].includes(status);
+    return PLANT_ALLOWED_STATUSES.includes(status);
   }
 
   /**
    * Get next possible statuses for printing role
+   * ✅ Uses pre-defined transitions map
    */
   getNextStatusesPrinting(currentStatus: string): string[] {
-    const transitions: Record<string, string[]> = {
-      placed: ['printing', 'declined'],
-      printing: ['ready_for_plant', 'declined'],
-      declined: [],
-      ready_for_plant: [],
-    };
-    return transitions[currentStatus] || [];
+    return PRINT_STATUS_TRANSITIONS[currentStatus] || [];
   }
 
   /**
    * Get next possible statuses for plant role
-   * ✅ Updated: plant_processing → dispatched (no ready_for_dispatch)
+   * ✅ Uses pre-defined transitions map
    */
   getNextStatusesPlant(currentStatus: string): string[] {
-    const transitions: Record<string, string[]> = {
-      ready_for_plant: ['plant_processing'],
-      plant_processing: ['dispatched'],
-      dispatched: ['completed'],
-    };
-    return transitions[currentStatus] || [];
+    return PLANT_STATUS_TRANSITIONS[currentStatus] || [];
   }
 
   /**
    * Check if payment is verified
+   * @deprecated Use adminService.isPaymentVerified() directly
    */
   isPaymentVerified(paymentStatus: string): boolean {
-    return paymentStatus === 'payment_verified';
+    return adminService.isPaymentVerified(paymentStatus);
   }
 
   /**
    * Format date for display
+   * @deprecated Use adminService.formatDate() directly
    */
   formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    return adminService.formatDate(dateString);
   }
 
   /**
    * Get status progress percentage
-   * ✅ Removed ready_for_dispatch
+   * @deprecated Use adminService.getStatusProgress() directly
    */
   getStatusProgress(status: string): number {
-    const progressMap: Record<string, number> = {
-      placed: 0,
-      printing: 20,
-      ready_for_plant: 40,
-      plant_processing: 60,
-      dispatched: 80,
-      completed: 100,
-      declined: 0,
-    };
-    return progressMap[status] || 0;
+    return adminService.getStatusProgress(status);
   }
 
   /**
-   * Check if status is terminal (no further updates)
+   * Check if status is terminal
+   * @deprecated Use adminService.isTerminalStatus() directly
    */
   isTerminalStatus(status: string): boolean {
-    return status === 'completed' || status === 'declined';
+    return adminService.isTerminalStatus(status);
   }
 
+  /**
+   * Format payment status
+   * @deprecated Use adminService.formatPaymentStatus() directly
+   */
   formatPaymentStatus(status: string): string {
-  const labels: Record<string, string> = {
-    payment_pending: 'Payment Pending',
-    payment_uploaded: 'Payment Uploaded',
-    payment_verified: 'Payment Verified',
-    payment_rejected: 'Payment Rejected',
-  };
-  return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
+    return adminService.formatPaymentStatus(status);
+  }
 
   /**
-   * Get Tailwind CSS color classes for status badges
+   * Get status color class
+   * @deprecated Use adminService.getStatusColorClass() directly
    */
   getStatusColorClass(status: string): string {
-    const colorMap: Record<string, string> = {
-      placed: 'bg-purple-100 text-purple-700',
-      printing: 'bg-blue-100 text-blue-700',
-      declined: 'bg-red-100 text-red-700',
-      ready_for_plant: 'bg-yellow-100 text-yellow-700',
-      plant_processing: 'bg-orange-100 text-orange-700',
-      dispatched: 'bg-cyan-100 text-cyan-700',
-      completed: 'bg-green-100 text-green-700',
-    };
-    return colorMap[status] || 'bg-gray-100 text-gray-700';
+    return adminService.getStatusColorClass(status);
   }
 
   /**
-   * Get Tailwind CSS color classes for payment status badges
+   * Get payment status color class
+   * @deprecated Use adminService.getPaymentStatusColorClass() directly
    */
   getPaymentStatusColorClass(paymentStatus: string): string {
-    const colorMap: Record<string, string> = {
-      payment_pending: 'bg-amber-100 text-amber-700',
-      payment_uploaded: 'bg-indigo-100 text-indigo-700',
-      payment_verified: 'bg-teal-100 text-teal-700',
-      payment_rejected: 'bg-red-100 text-red-700',
-    };
-    return colorMap[paymentStatus] || 'bg-gray-100 text-gray-700';
+    return adminService.getPaymentStatusColorClass(paymentStatus);
+  }
+
+  // ✅ Print-specific helper methods
+
+  /**
+   * Check if printing role can accept order
+   */
+  canAcceptOrder(status: string, paymentStatus: string): boolean {
+    return status === ORDER_STATUS.PLACED &&
+      adminService.isPaymentVerified(paymentStatus);
+  }
+
+  /**
+   * Check if printing role can decline order
+   */
+  canDeclineOrder(status: string): boolean {
+    return status === ORDER_STATUS.PLACED || status === ORDER_STATUS.PRINTING;
+  }
+
+  /**
+   * Get action label for printing role
+   */
+  getPrintActionLabel(status: string): string {
+    return PRINT_ACTION_LABELS[status] || 'Update Status';
+  }
+
+  /**
+   * Validate status transition for printing role
+   */
+  isValidPrintTransition(currentStatus: string, newStatus: string): boolean {
+    const allowedNext = this.getNextStatusesPrinting(currentStatus);
+    return allowedNext.includes(newStatus);
+  }
+
+  /**
+   * Validate status transition for plant role
+   */
+  isValidPlantTransition(currentStatus: string, newStatus: string): boolean {
+    const allowedNext = this.getNextStatusesPlant(currentStatus);
+    return allowedNext.includes(newStatus);
+  }
+
+  /**
+   * Check if order requires attention (payment verified but not processed)
+   */
+  requiresAttention(status: string, paymentStatus: string): boolean {
+    return status === ORDER_STATUS.PLACED &&
+      adminService.isPaymentVerified(paymentStatus);
+  }
+
+  /**
+   * Get order age in days
+   */
+  getOrderAgeDays(createdAt: string): number {
+    return adminService.getOrderAgeDays(createdAt);
+  }
+
+  /**
+   * Check if order is overdue
+   */
+  isOrderOverdue(expectedDelivery: string): boolean {
+    return adminService.isOrderOverdue(expectedDelivery);
+  }
+
+  /**
+   * Get all print statuses
+   */
+  getPrintStatuses(): string[] {
+    return [...PRINT_ALLOWED_STATUSES];
+  }
+
+  /**
+   * Get all plant statuses
+   */
+  getPlantStatuses(): string[] {
+    return [...PLANT_ALLOWED_STATUSES];
   }
 }
 
 export const printService = new PrintService();
+export default printService;
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -21,84 +21,305 @@ interface Label {
   label_url?: string;
 }
 
-const CustomDropdown = ({
-  label,
-  value,
-  options,
-  onSelect,
-  hasEditIcon = false,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onSelect: (value: string) => void;
-  hasEditIcon?: boolean;
-  disabled?: boolean;
-}) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-      {label}
-    </label>
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onSelect(e.target.value)}
-        disabled={disabled}
-        className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-        }`}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-      {hasEditIcon && (
-        <Edit3 className="absolute right-10 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-      )}
+// ✅ Constants outside component
+const CAP_COLOR_OPTIONS = [
+  { name: "white", displayName: "White", color: "#FFFFFF", recommended: true },
+  { name: "black", displayName: "Black", color: "#000000", recommended: true },
+  { name: "red", displayName: "Red", color: "#FF0000", recommended: true },
+  {
+    name: "bislery_green",
+    displayName: "Bislery Green",
+    color: "#00994D",
+    recommended: false,
+  },
+  {
+    name: "kinley_blue",
+    displayName: "Kinley Blue",
+    color: "#0072BC",
+    recommended: false,
+  },
+] as const;
+
+const BOTTLE_VARIANT_OPTIONS = [
+  { value: "conical", label: "Conical Bottle" },
+  { value: "round", label: "Round Bottle" },
+  { value: "square", label: "Square Bottle" },
+] as const;
+
+const VOLUME_OPTIONS = [
+  { value: 200, label: "200 ml" },
+  { value: 250, label: "250 ml" },
+  { value: 500, label: "500 ml" },
+  { value: 1000, label: "1 Litre" },
+  { value: 2000, label: "2 Litre" },
+] as const;
+
+// ✅ Memoized Components
+// ✅ Fix the CustomDropdown to handle both string and number values
+const CustomDropdown = memo(
+  ({
+    label,
+    value,
+    options,
+    onSelect,
+    hasEditIcon = false,
+    disabled = false,
+  }: {
+    label: string;
+    value: string;
+    options: readonly { value: string | number; label: string }[] | string[];
+    onSelect: (value: string) => void;
+    hasEditIcon?: boolean;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onSelect(e.target.value)}
+          disabled={disabled}
+          className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
+            disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          }`}
+        >
+          {options.map((option) => {
+            const optValue =
+              typeof option === "string" ? option : String(option.value);
+            const optLabel = typeof option === "string" ? option : option.label;
+            return (
+              <option key={optValue} value={optValue}>
+                {optLabel}
+              </option>
+            );
+          })}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+        {hasEditIcon && (
+          <Edit3 className="absolute right-10 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        )}
+      </div>
     </div>
-  </div>
+  )
 );
 
-const NumberInput = ({
-  label,
-  value,
-  onChange,
-  min = 1,
-  disabled = false,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  min?: number;
-  disabled?: boolean;
-}) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-      {label}
-    </label>
-    <input
-      type="number"
-      value={value}
-      onChange={(e) => onChange(parseInt(e.target.value) || min)}
-      min={min}
-      disabled={disabled}
-      className={`w-full px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] ${
-        disabled ? "opacity-50 cursor-not-allowed" : ""
-      }`}
-    />
-  </div>
+CustomDropdown.displayName = "CustomDropdown";
+
+CustomDropdown.displayName = "CustomDropdown";
+
+const NumberInput = memo(
+  ({
+    label,
+    value,
+    onChange,
+    min = 1,
+    disabled = false,
+  }: {
+    label: string;
+    value: number;
+    onChange: (value: number) => void;
+    min?: number;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label}
+      </label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value) || min)}
+        min={min}
+        disabled={disabled}
+        className={`w-full px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
+      />
+    </div>
+  )
 );
 
-const ColorSwatch = ({ color }: { color: string }) => (
+NumberInput.displayName = "NumberInput";
+
+const ColorSwatch = memo(({ color }: { color: string }) => (
   <span
     className="w-5 h-5 rounded-full border border-gray-300"
     style={{ backgroundColor: color }}
   ></span>
+));
+
+ColorSwatch.displayName = "ColorSwatch";
+
+// ✅ Memoized Label Preview
+const LabelPreview = memo(
+  ({
+    selectedLabel,
+    bottleVariant,
+  }: {
+    selectedLabel?: Label;
+    bottleVariant: string;
+  }) => {
+    const variantLabel = BOTTLE_VARIANT_OPTIONS.find(
+      (v) => v.value === bottleVariant
+    )?.label;
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {selectedLabel?.label_url ? (
+          <div className="text-center">
+            <div className="w-32 h-32 mx-auto mb-4 relative">
+              <Image
+                src={selectedLabel.label_url}
+                alt={selectedLabel.name || "Label"}
+                fill
+                className="object-contain"
+                sizes="128px"
+                unoptimized
+              />
+            </div>
+            <p className="text-sm font-medium text-gray-900 mb-1">
+              {selectedLabel.name || "Unnamed Label"}
+            </p>
+            <p className="text-xs text-gray-500">{variantLabel}</p>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Tag className="w-16 h-16 text-gray-300 mb-3 mx-auto" />
+            <p className="text-gray-400 font-medium">
+              {selectedLabel?.name || "Select a label"}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">{variantLabel}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 );
+
+LabelPreview.displayName = "LabelPreview";
+
+// ✅ Memoized Order Summary
+const OrderSummary = memo(
+  ({
+    selectedLabel,
+    bottleVariant,
+    quantity,
+    capColor,
+    volume,
+    selectedLabelId,
+  }: {
+    selectedLabel?: Label;
+    bottleVariant: string;
+    quantity: number;
+    capColor: string;
+    volume: number;
+    selectedLabelId: string;
+  }) => {
+    const variantLabel = BOTTLE_VARIANT_OPTIONS.find(
+      (v) => v.value === bottleVariant
+    )?.label;
+    const capColorLabel = CAP_COLOR_OPTIONS.find(
+      (c) => c.name === capColor
+    )?.displayName;
+    const volumeLabel = VOLUME_OPTIONS.find((v) => v.value === volume)?.label;
+
+    return (
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <h3 className="text-sm font-semibold text-blue-900 mb-3">
+          Order Summary
+        </h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Label:</span>
+            <span className="font-medium text-gray-900">
+              {selectedLabel?.name || "Not selected"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Variant:</span>
+            <span className="font-medium text-gray-900">{variantLabel}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Quantity:</span>
+            <span className="font-medium text-gray-900">{quantity} pcs</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Cap Color:</span>
+            <span className="font-medium text-gray-900">{capColorLabel}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Volume:</span>
+            <span className="font-medium text-gray-900">{volumeLabel}</span>
+          </div>
+          {selectedLabelId && (
+            <div className="flex justify-between pt-2 border-t border-blue-200">
+              <span className="text-gray-600">Label ID:</span>
+              <span className="font-mono text-xs text-gray-900">
+                {selectedLabelId.slice(0, 8)}...
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+
+OrderSummary.displayName = "OrderSummary";
+
+// ✅ Memoized Cap Color Selector
+const CapColorSelector = memo(
+  ({
+    capColor,
+    onCapColorChange,
+    loading,
+  }: {
+    capColor: string;
+    onCapColorChange: (color: string) => void;
+    loading: boolean;
+  }) => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <h3 className="text-sm font-medium text-gray-700 mb-2">Cap Color</h3>
+      <div className="space-y-3">
+        {CAP_COLOR_OPTIONS.map((option) => (
+          <label
+            key={option.name}
+            className={`flex items-center justify-between cursor-pointer p-3 rounded-lg border-2 transition-all ${
+              capColor === option.name
+                ? "border-[#4A90E2] bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
+            } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <div className="flex items-center gap-3">
+              <input
+                type="radio"
+                name="capColor"
+                value={option.name}
+                checked={capColor === option.name}
+                onChange={(e) => onCapColorChange(e.target.value)}
+                disabled={loading}
+                className="h-4 w-4 text-[#4A90E2] border-gray-300 focus:ring-[#4A90E2] disabled:opacity-50 cursor-pointer"
+              />
+              <ColorSwatch color={option.color} />
+              <span className="text-gray-800 font-medium">
+                {option.displayName}
+              </span>
+            </div>
+            {option.recommended && (
+              <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                Recommended
+              </span>
+            )}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+);
+
+CapColorSelector.displayName = "CapColorSelector";
 
 export default function CreateOrderPage() {
   const router = useRouter();
@@ -116,24 +337,26 @@ export default function CreateOrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
+  // ✅ Memoized user labels
   const userLabels: Label[] = useMemo(() => {
     return (user?.labels || []) as Label[];
   }, [user?.labels]);
 
+  // ✅ Memoized selected label
   const selectedLabel = useMemo(() => {
     return userLabels.find((l) => l.label_id === selectedLabelId);
   }, [userLabels, selectedLabelId]);
 
   useEffect(() => {
-    const shouldLoadProfile = 
-      user && 
-      !profileLoaded && 
-      !profileLoading && 
+    const shouldLoadProfile =
+      user &&
+      !profileLoaded &&
+      !profileLoading &&
       !profileLoadAttempted.current;
 
     if (shouldLoadProfile) {
       profileLoadAttempted.current = true;
-      
+
       const loadUserProfile = async () => {
         try {
           await loadProfile();
@@ -145,14 +368,11 @@ export default function CreateOrderPage() {
 
       loadUserProfile();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profileLoaded, profileLoading]);
+  }, [user, profileLoaded, profileLoading, loadProfile]);
 
   useEffect(() => {
-    const shouldSetDefaultLabel = 
-      userLabels.length > 0 && 
-      !selectedLabelId && 
-      !labelSelectedRef.current;
+    const shouldSetDefaultLabel =
+      userLabels.length > 0 && !selectedLabelId && !labelSelectedRef.current;
 
     if (shouldSetDefaultLabel) {
       const firstLabel = userLabels[0];
@@ -161,7 +381,7 @@ export default function CreateOrderPage() {
         labelSelectedRef.current = true;
       }
     }
-  }, [userLabels, selectedLabelId]); 
+  }, [userLabels, selectedLabelId]);
 
   useEffect(() => {
     if (!user) {
@@ -170,49 +390,8 @@ export default function CreateOrderPage() {
     }
   }, [user]);
 
-  const capColorOptions = [
-    {
-      name: "white",
-      displayName: "White",
-      color: "#FFFFFF",
-      recommended: true,
-    },
-    {
-      name: "black",
-      displayName: "Black",
-      color: "#000000",
-      recommended: true,
-    },
-    { name: "red", displayName: "Red", color: "#FF0000", recommended: true },
-    {
-      name: "bislery_green",
-      displayName: "Bislery Green",
-      color: "#00994D",
-      recommended: false,
-    },
-    {
-      name: "kinley_blue",
-      displayName: "Kinley Blue",
-      color: "#0072BC",
-      recommended: false,
-    },
-  ];
-
-  const bottleVariantOptions = [
-    { value: "conical", label: "Conical Bottle" },
-    { value: "round", label: "Round Bottle" },
-    { value: "square", label: "Square Bottle" },
-  ];
-
-  const volumeOptions = [
-    { value: 200, label: "200 ml" },
-    { value: 250, label: "250 ml" },
-    { value: 500, label: "500 ml" },
-    { value: 1000, label: "1 Litre" },
-    { value: 2000, label: "2 Litre" },
-  ];
-
-  const handleGenerateOrder = async () => {
+  // ✅ Memoized handlers
+  const handleGenerateOrder = useCallback(async () => {
     setError(null);
     setCreatedOrderId(null);
 
@@ -238,24 +417,27 @@ export default function CreateOrderPage() {
       };
 
       const result = await orderService.createOrder(orderData);
-
       setCreatedOrderId(result.order.order_id);
 
-      // Navigate to invoice page
       setTimeout(() => {
         router.push(`/order/${result.order.order_id}/invoice`);
       }, 2000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create order';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create order";
       setError(errorMessage);
       console.error("❌ Failed to create order:", err);
       setLoading(false);
     }
-  };
+  }, [selectedLabelId, quantity, bottleVariant, capColor, volume, router]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.push("/dashboard");
-  };
+  }, [router]);
+
+  const handleGoToProfile = useCallback(() => {
+    router.push("/profile");
+  }, [router]);
 
   if (profileLoading && !profileLoaded) {
     return (
@@ -295,7 +477,7 @@ export default function CreateOrderPage() {
                   You need to add labels to your profile before creating orders.
                 </p>
                 <button
-                  onClick={() => router.push("/profile")}
+                  onClick={handleGoToProfile}
                   className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer"
                 >
                   Go to Profile
@@ -311,7 +493,6 @@ export default function CreateOrderPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto max-w-5xl px-4 py-8">
-        {/* Page Header */}
         <header className="flex items-center gap-4 mb-8">
           <button
             onClick={handleBack}
@@ -324,7 +505,6 @@ export default function CreateOrderPage() {
           </h1>
         </header>
 
-        {/* Profile Info Banner */}
         {user?.company?.name && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2">
@@ -341,7 +521,6 @@ export default function CreateOrderPage() {
           </div>
         )}
 
-        {/* Success Message */}
         {createdOrderId && (
           <div className="mb-6 p-4 bg-green-50 border border-green-400 rounded-lg">
             <div className="flex items-center gap-2">
@@ -359,7 +538,6 @@ export default function CreateOrderPage() {
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-400 rounded-lg">
             <div className="flex items-center gap-2">
@@ -369,60 +547,19 @@ export default function CreateOrderPage() {
           </div>
         )}
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 md:gap-8 lg:gap-12">
-          {/* Left Column: Preview & Initial Selection */}
+          {/* Left Column */}
           <div className="space-y-6">
-            {/* Label Preview - SIMPLIFIED */}
-<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-  {selectedLabel?.label_url ? (
-    <div className="text-center">
-      <div className="w-32 h-32 mx-auto mb-4 relative">
-        <Image
-          src={selectedLabel.label_url}
-          alt={selectedLabel.name || "Label"}
-          fill
-          className="object-contain"
-          sizes="128px"
-          unoptimized
-        />
-      </div>
-      <p className="text-sm font-medium text-gray-900 mb-1">
-        {selectedLabel.name || "Unnamed Label"}
-      </p>
-      <p className="text-xs text-gray-500">
-        {
-          bottleVariantOptions.find(
-            (v) => v.value === bottleVariant
-          )?.label
-        }
-      </p>
-    </div>
-  ) : (
-    <div className="text-center py-12">
-      <Tag className="w-16 h-16 text-gray-300 mb-3 mx-auto" />
-      <p className="text-gray-400 font-medium">
-        {selectedLabel?.name || "Select a label"}
-      </p>
-      <p className="text-sm text-gray-500 mt-2">
-        {
-          bottleVariantOptions.find(
-            (v) => v.value === bottleVariant
-          )?.label
-        }
-      </p>
-    </div>
-  )}
-</div>
+            <LabelPreview
+              selectedLabel={selectedLabel}
+              bottleVariant={bottleVariant}
+            />
 
-
-            {/* Selection Options */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
               {/* Label Selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Select Label
-                  <span className="text-red-500 ml-1">*</span>
+                  Select Label<span className="text-red-500 ml-1">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -430,7 +567,9 @@ export default function CreateOrderPage() {
                     onChange={(e) => setSelectedLabelId(e.target.value)}
                     disabled={loading}
                     className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
-                      loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                      loading
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer"
                     }`}
                   >
                     {userLabels.length === 0 && (
@@ -455,7 +594,7 @@ export default function CreateOrderPage() {
               <CustomDropdown
                 label="Bottle Variant"
                 value={bottleVariant}
-                options={bottleVariantOptions.map((v) => v.value)}
+                options={BOTTLE_VARIANT_OPTIONS}
                 onSelect={setBottleVariant}
                 disabled={loading}
                 hasEditIcon={true}
@@ -471,130 +610,34 @@ export default function CreateOrderPage() {
             </div>
           </div>
 
-          {/* Right Column: Details & Actions */}
+          {/* Right Column */}
           <div className="space-y-6 mt-6 md:mt-0">
-            {/* Cap Color Selection */}
+            <CapColorSelector
+              capColor={capColor}
+              onCapColorChange={setCapColor}
+              loading={loading}
+            />
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                Cap Color
-              </h3>
-              <div className="space-y-3">
-                {capColorOptions.map((option) => (
-                  <label
-                    key={option.name}
-                    className={`flex items-center justify-between cursor-pointer p-3 rounded-lg border-2 transition-all ${
-                      capColor === option.name
-                        ? "border-[#4A90E2] bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="capColor"
-                        value={option.name}
-                        checked={capColor === option.name}
-                        onChange={(e) => setCapColor(e.target.value)}
-                        disabled={loading}
-                        className="h-4 w-4 text-[#4A90E2] border-gray-300 focus:ring-[#4A90E2] disabled:opacity-50 cursor-pointer"
-                      />
-                      <ColorSwatch color={option.color} />
-                      <span className="text-gray-800 font-medium">
-                        {option.displayName}
-                      </span>
-                    </div>
-                    {option.recommended && (
-                      <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                        Recommended
-                      </span>
-                    )}
-                  </label>
-                ))}
-              </div>
+              <CustomDropdown
+                label="Volume"
+                value={volume.toString()}
+                options={VOLUME_OPTIONS}
+                onSelect={(v) => setVolume(parseInt(v))}
+                disabled={loading}
+                hasEditIcon={true}
+              />
             </div>
 
-            {/* Volume Selection */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Volume
-                </label>
-                <div className="relative">
-                  <select
-                    value={volume}
-                    onChange={(e) => setVolume(parseInt(e.target.value))}
-                    disabled={loading}
-                    className={`w-full appearance-none px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] transition-all pr-10 ${
-                      loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                    }`}
-                  >
-                    {volumeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                  <Edit3 className="absolute right-10 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
+            <OrderSummary
+              selectedLabel={selectedLabel}
+              bottleVariant={bottleVariant}
+              quantity={quantity}
+              capColor={capColor}
+              volume={volume}
+              selectedLabelId={selectedLabelId}
+            />
 
-            {/* Order Summary Preview */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h3 className="text-sm font-semibold text-blue-900 mb-3">
-                Order Summary
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Label:</span>
-                  <span className="font-medium text-gray-900">
-                    {selectedLabel?.name || "Not selected"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Variant:</span>
-                  <span className="font-medium text-gray-900">
-                    {
-                      bottleVariantOptions.find(
-                        (v) => v.value === bottleVariant
-                      )?.label
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Quantity:</span>
-                  <span className="font-medium text-gray-900">
-                    {quantity} pcs
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cap Color:</span>
-                  <span className="font-medium text-gray-900">
-                    {
-                      capColorOptions.find((c) => c.name === capColor)
-                        ?.displayName
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Volume:</span>
-                  <span className="font-medium text-gray-900">
-                    {volumeOptions.find((v) => v.value === volume)?.label}
-                  </span>
-                </div>
-                {selectedLabelId && (
-                  <div className="flex justify-between pt-2 border-t border-blue-200">
-                    <span className="text-gray-600">Label ID:</span>
-                    <span className="font-mono text-xs text-gray-900">
-                      {selectedLabelId.slice(0, 8)}...
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Submit Button */}
             <div className="pt-4">
               <button
                 onClick={handleGenerateOrder}
