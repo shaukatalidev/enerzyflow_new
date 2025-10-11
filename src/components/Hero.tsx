@@ -30,23 +30,19 @@ const Hero = () => {
     );
   }, []);
 
-  // ✅ Handle video ended event to auto-advance
   const handleVideoEnded = useCallback(() => {
     goToNext();
   }, [goToNext]);
 
-  // ✅ Play current video and pause others when index changes
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
       if (video) {
         if (index === currentIndex) {
-          // Play current video
-          video.currentTime = 0; // Reset to start
+          video.currentTime = 0;
           video.play().catch((error) => {
             console.log("Video autoplay failed:", error);
           });
         } else {
-          // Pause other videos
           video.pause();
         }
       }
@@ -66,10 +62,10 @@ const Hero = () => {
               index === currentIndex ? "opacity-100" : "opacity-0"
             }`}
             src={video.src}
-            autoPlay={index === 0} // Only autoplay first video initially
-            muted // Required for autoplay to work in most browsers
-            playsInline // Required for iOS Safari
-            onEnded={handleVideoEnded} // Auto-advance when video ends
+            autoPlay={index === 0}
+            muted
+            playsInline
+            onEnded={handleVideoEnded}
             preload={index === 0 ? "auto" : "metadata"}
             aria-label={video.alt}
           >
@@ -81,22 +77,7 @@ const Hero = () => {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/40 z-10" />
 
-      <div className="relative z-20 h-full flex flex-col items-center justify-center p-4">
-        <div className="text-center text-white animate-fade-in">
-          <h1 className="text-4xl md:text-5xl font-bold">
-            Brand your own bottled water
-          </h1>
-          <p className="mt-4 text-lg max-w-md mx-auto">
-            Premium water bottles with attitude.
-          </p>
-          <button
-            onClick={() => router.push('/products')}
-            className="mt-8 bg-cyan-500 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-cyan-600 transition-colors hover:cursor-pointer"
-          >
-            Shop Now
-          </button>
-        </div>
-
+      <div className="relative z-20 h-full flex flex-col items-center justify-end p-4">
         {/* Navigation Controls */}
         <button
           onClick={goToPrev}
@@ -113,18 +94,38 @@ const Hero = () => {
           <ChevronRight size={28} />
         </button>
 
-        {/* Slide Indicators */}
-        <div className="absolute bottom-8 flex space-x-3">
-          {heroVideos.map((_, index) => (
+        {/* Wrapper for main text and CTA - Reduced bottom margin from mb-8 to mb-4 */}
+        <div className="flex flex-col items-center gap-6 mb-4">
+          <div className="text-center text-white animate-fade-in">
+            <h1 className="text-4xl md:text-5xl font-bold">
+              Brand your own bottled water
+            </h1>
+          </div>
+
+          {/* Bottom Section - CTA + Indicators */}
+          <div className="flex flex-col items-center space-y-2">
+            {/* Shop Now Button */}
             <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`h-3 w-3 rounded-full transition-all ${
-                index === currentIndex ? "bg-white scale-125" : "bg-white/50"
-              }`}
-              aria-label={`Go to video ${index + 1}`}
-            />
-          ))}
+              onClick={() => router.push('/products')}
+              className="bg-cyan-500 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-cyan-600 hover:cursor-pointer shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform"
+            >
+              Shop Now
+            </button>
+
+            {/* Slide Indicators */}
+            <div className="flex space-x-3">
+              {heroVideos.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`h-3 w-3 rounded-full transition-all ${
+                    index === currentIndex ? "bg-white scale-125" : "bg-white/50"
+                  }`}
+                  aria-label={`Go to video ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

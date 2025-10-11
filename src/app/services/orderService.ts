@@ -33,6 +33,7 @@ export interface Order {
   decline_reason: string;
   payment_url: string;
   invoice_url: string;
+  pi_url: string;
   expected_delivery: string;
   created_at: string;
   updated_at: string;
@@ -118,9 +119,9 @@ class OrderService {
   }
 
   /**
- * Get all orders for the logged-in user's company
- * GET /orders/get-all?limit=10&offset=0
- */
+   * Get all orders for the logged-in user's company
+   * GET /orders/get-all?limit=10&offset=0
+   */
   async getOrders(limit: number, offset: number): Promise<GetOrdersResponse>;
   async getOrders(params: PaginationParams): Promise<GetOrdersResponse>;
   async getOrders(
@@ -342,6 +343,29 @@ class OrderService {
    */
   getPaymentBadgeColor(paymentStatus: string): string {
     return this.getPaymentStatusColor(paymentStatus);
+  }
+
+  // ✅ NEW: Helper methods for document checks
+  
+  /**
+   * Check if invoice is available
+   */
+  hasInvoice(order: Order): boolean {
+    return !!order.invoice_url && order.invoice_url.trim().length > 0;
+  }
+
+  /**
+   * Check if PI (Proforma Invoice) is available
+   */
+  hasPI(order: Order): boolean {
+    return !!order.pi_url && order.pi_url.trim().length > 0;
+  }
+
+  /**
+   * Check if both invoice and PI are available
+   */
+  hasAllDocuments(order: Order): boolean {
+    return this.hasInvoice(order) && this.hasPI(order);
   }
 }
 

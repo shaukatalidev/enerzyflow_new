@@ -6,7 +6,6 @@ const AUTH_STORAGE_KEYS = {
   USER: 'user',
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
-  // Legacy keys for cleanup
   AUTH_TOKEN: 'authToken',
   USER_EMAIL: 'userEmail',
 } as const;

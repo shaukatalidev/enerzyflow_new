@@ -1,8 +1,12 @@
+import axiosInstance from '../lib/axios';
 import { adminService, ORDER_STATUS } from './adminService';
 import type {
   OrderStatusHistory,
   AllOrdersResponse,
   OrderStatusUpdateResponse,
+  OrderComment,
+  AddCommentResponse,
+  GetCommentsResponse,
 } from './adminService';
 
 // ==================== Print Service Specific Types ====================
@@ -18,9 +22,25 @@ export interface UpdateOrderStatusRequest {
   reason?: string;
 }
 
+export interface OrderLabelDetails {
+  no_of_sheets: number;
+  cutting_type: string;
+  labels_per_sheet: number;
+  description: string;
+}
+
+export interface GetOrderLabelDetailsResponse {
+  no_of_sheets: number;
+  cutting_type: string;
+  labels_per_sheet: number;
+  description: string;
+}
+
+
 // ✅ OPTIMIZATION: Constants outside class with proper typing
 const PRINT_STATUS_TRANSITIONS: Record<string, string[]> = {
-  [ORDER_STATUS.PLACED]: [ORDER_STATUS.PRINTING, ORDER_STATUS.DECLINED],
+  [ORDER_STATUS.PLACED]: [ORDER_STATUS.ACCEPTED, ORDER_STATUS.DECLINED],
+  [ORDER_STATUS.ACCEPTED]: [ORDER_STATUS.PRINTING, ORDER_STATUS.DECLINED],
   [ORDER_STATUS.PRINTING]: [ORDER_STATUS.READY_FOR_PLANT, ORDER_STATUS.DECLINED],
   [ORDER_STATUS.DECLINED]: [],
   [ORDER_STATUS.READY_FOR_PLANT]: [],
@@ -35,6 +55,7 @@ const PLANT_STATUS_TRANSITIONS: Record<string, string[]> = {
 // ✅ FIX: Define as string arrays to avoid TypeScript errors
 const PRINT_ALLOWED_STATUSES: string[] = [
   ORDER_STATUS.PLACED,
+  ORDER_STATUS.ACCEPTED,
   ORDER_STATUS.PRINTING,
   ORDER_STATUS.DECLINED,
   ORDER_STATUS.READY_FOR_PLANT,
@@ -48,6 +69,7 @@ const PLANT_ALLOWED_STATUSES: string[] = [
 
 const STATUS_DESCRIPTIONS: Record<string, string> = {
   [ORDER_STATUS.PLACED]: 'Order has been placed',
+  [ORDER_STATUS.ACCEPTED]: 'Order has been accepted',
   [ORDER_STATUS.PRINTING]: 'Labels are being printed',
   [ORDER_STATUS.DECLINED]: 'Order has been declined',
   [ORDER_STATUS.READY_FOR_PLANT]: 'Printing complete, ready for plant processing',
@@ -57,7 +79,8 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
 };
 
 const PRINT_ACTION_LABELS: Record<string, string> = {
-  [ORDER_STATUS.PLACED]: 'Start Printing',
+  [ORDER_STATUS.PLACED]: 'Accept Order',
+  [ORDER_STATUS.ACCEPTED]: 'Start Printing',
   [ORDER_STATUS.PRINTING]: 'Mark Ready for Plant',
 };
 
@@ -118,7 +141,62 @@ class PrintService {
     }
   }
 
+  // ==================== Order Comments ====================
+
+  /**
+   * Add comment to an order (Print role)
+   * POST /orders/:id/comment
+   */
+  async addOrderComment(
+    orderId: string,
+    comment: string
+  ): Promise<AddCommentResponse> {
+    try {
+      return await adminService.addOrderComment(orderId, comment);
+    } catch (error) {
+      console.error('❌ [Print] Failed to add comment:', error);
+      throw this.handleError(error, 'Failed to add comment');
+    }
+  }
+
+  /**
+   * Get all comments for an order (Print role)
+   * GET /orders/:id/comment
+   */
+  async getOrderComments(orderId: string): Promise<GetCommentsResponse> {
+    try {
+      return await adminService.getOrderComments(orderId);
+    } catch (error) {
+      console.error('❌ [Print] Failed to fetch comments:', error);
+      throw this.handleError(error, 'Failed to fetch comments');
+    }
+  }
+
+  /**
+ * Get order label details
+ * GET /orders/:id/label
+ */
+async getOrderLabelDetails(orderId: string): Promise<GetOrderLabelDetailsResponse> {
+  try {
+    const response = await axiosInstance.get<GetOrderLabelDetailsResponse>(
+      `/orders/${orderId}/label`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to fetch label details:', error);
+    throw this.handleError(error, 'Failed to fetch label details');
+  }
+}
+
+
   // ==================== Convenience Methods ====================
+
+  /**
+   * Accept order (moves from placed → accepted)
+   */
+  async acceptOrder(orderId: string): Promise<OrderStatusUpdateResponse> {
+    return this.updateOrderStatus(orderId, { status: ORDER_STATUS.ACCEPTED });
+  }
 
   /**
    * Move order to printing status
@@ -199,6 +277,16 @@ class PrintService {
     // Convert class to color name for backwards compatibility
     const colorClass = adminService.getStatusColorClass(status);
     return colorClass.split('-')[1] || 'gray'; // Extract color from "bg-purple-100"
+  }
+
+  // Check if date is zero value
+  isZeroDate(dateString: string): boolean {
+    return adminService.isZeroDate(dateString);
+  }
+
+  // Format deadline with date and time
+  formatDeadlineDateTime(deadlineString: string): string {
+    return adminService.formatDeadlineDateTime(deadlineString);
   }
 
   /**
@@ -305,6 +393,22 @@ class PrintService {
     return adminService.getPaymentStatusColorClass(paymentStatus);
   }
 
+  /**
+   * Format comment timestamp
+   * @deprecated Use adminService.formatCommentTime() directly
+   */
+  formatCommentTime(createdAt: string): string {
+    return adminService.formatCommentTime(createdAt);
+  }
+
+  /**
+   * Get role badge color
+   * @deprecated Use adminService.getRoleBadgeColor() directly
+   */
+  getRoleBadgeColor(role: string): string {
+    return adminService.getRoleBadgeColor(role);
+  }
+
   // ✅ Print-specific helper methods
 
   /**
@@ -385,3 +489,5 @@ class PrintService {
 export const printService = new PrintService();
 export default printService;
 
+// ✅ Re-export types for convenience
+export type { OrderComment };

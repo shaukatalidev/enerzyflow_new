@@ -129,12 +129,12 @@ const InvoiceSection = memo(({
   onDownload: () => void;
 }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-    <h3 className="font-semibold text-gray-900 mb-4">Download your PI / Invoice</h3>
+    <h3 className="font-semibold text-gray-900 mb-4">Invoice</h3>
     
     {invoiceUrl ? (
       <button
         onClick={onDownload}
-        className="w-full bg-[#4A90E2] hover:bg-[#357ABD] text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
       >
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -154,6 +154,41 @@ const InvoiceSection = memo(({
 ));
 
 InvoiceSection.displayName = 'InvoiceSection';
+
+// ✅ NEW: Memoized PISection
+const PISection = memo(({ 
+  piUrl, 
+  onDownload 
+}: { 
+  piUrl?: string; 
+  onDownload: () => void;
+}) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <h3 className="font-semibold text-gray-900 mb-4">Proforma Invoice (PI)</h3>
+    
+    {piUrl ? (
+      <button
+        onClick={onDownload}
+        className="w-full bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+      >
+        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Download PI
+      </button>
+    ) : (
+      <div className="border-2 border-dashed border-purple-300 rounded-xl p-6 text-center bg-purple-50">
+        <svg className="w-12 h-12 mx-auto text-purple-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p className="text-sm text-purple-600 mb-1 font-medium">No PI available yet</p>
+        <p className="text-xs text-purple-500">PI will be generated after order confirmation</p>
+      </div>
+    )}
+  </div>
+));
+
+PISection.displayName = 'PISection';
 
 // ✅ Memoized PaymentUploadSection
 const PaymentUploadSection = memo(({
@@ -357,6 +392,15 @@ export default function InvoiceDownloadPage() {
     window.open(order.invoice_url, '_blank', 'noopener,noreferrer');
   }, [order]);
 
+  // ✅ NEW: Handler for downloading PI
+  const handleDownloadPI = useCallback(() => {
+    if (!order?.pi_url) {
+      alert('No Proforma Invoice available yet. PI will be generated after order confirmation.');
+      return;
+    }
+    window.open(order.pi_url, '_blank', 'noopener,noreferrer');
+  }, [order]);
+
   const handleTrackOrder = useCallback(() => {
     if (!uploadSuccess && order?.payment_status === 'payment_pending') {
       alert('Please upload payment screenshot before tracking your order');
@@ -419,9 +463,15 @@ export default function InvoiceDownloadPage() {
 
           {/* Actions Column */}
           <div className="space-y-6">
+            {/* ✅ Documents Section - Stacked vertically */}
             <InvoiceSection 
               invoiceUrl={order.invoice_url} 
               onDownload={handleDownloadInvoice} 
+            />
+
+            <PISection 
+              piUrl={order.pi_url} 
+              onDownload={handleDownloadPI} 
             />
 
             <PaymentUploadSection
