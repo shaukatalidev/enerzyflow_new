@@ -17,6 +17,9 @@ import {
   Clock,
   CreditCard,
   Filter,
+  ClipboardList,
+  MessageSquare,
+  MoreVertical,
 } from "lucide-react";
 import {
   adminService,
@@ -26,6 +29,7 @@ import {
 } from "@/app/services/adminService";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import OrderComments from "@/components/OrderComments";
 
 interface DashboardStats {
   totalUsers: number;
@@ -45,6 +49,97 @@ function isPendingStatus(status: string): boolean {
   ];
   return pendingStatuses.includes(status);
 }
+
+// ✅ Component definitions BEFORE main component
+
+// Component: Stat Card
+interface StatCardProps {
+  icon: React.ElementType;
+  label: string;
+  value: number;
+  color: "blue" | "purple" | "orange" | "green" | "red";
+}
+
+const StatCard: React.FC<StatCardProps> = ({
+  icon: Icon,
+  label,
+  value,
+  color,
+}) => {
+  const colorClasses = {
+    blue: "bg-blue-100 text-blue-600",
+    purple: "bg-purple-100 text-purple-600",
+    orange: "bg-orange-100 text-orange-600",
+    green: "bg-green-100 text-green-600",
+    red: "bg-red-100 text-red-600",
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div
+        className={`p-3 rounded-lg ${colorClasses[color]} inline-block mb-2`}
+      >
+        <Icon className="w-5 h-5" />
+      </div>
+      <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+      <p className="text-sm text-gray-600 mt-1">{label}</p>
+    </div>
+  );
+};
+
+// Component: Tab Button
+interface TabButtonProps {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({ active, onClick, label }) => (
+  <button
+    onClick={onClick}
+    className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+      active
+        ? "bg-white text-blue-600 shadow-sm"
+        : "text-gray-600 hover:text-gray-900"
+    }`}
+  >
+    {label}
+  </button>
+);
+
+// Component: Person Card
+interface PersonCardProps {
+  person: User;
+  color: "blue" | "green" | "red";
+}
+
+const PersonCard: React.FC<PersonCardProps> = ({ person, color }) => {
+  const colorMap = {
+    blue: "bg-blue-100 text-blue-800",
+    green: "bg-green-100 text-green-800",
+    red: "bg-red-100 text-red-800",
+  };
+
+  return (
+    <div className="bg-gray-50 p-3 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors">
+      <div className="flex justify-between items-start">
+        <div>
+          <h4 className="font-medium text-gray-900">{person.Name || "N/A"}</h4>
+          <p className="text-sm text-gray-600">{person.Email}</p>
+          <p className="text-sm text-gray-600">{person.Phone || "N/A"}</p>
+          {person.Designation && (
+            <p className="text-xs text-gray-500 mt-1">{person.Designation}</p>
+          )}
+        </div>
+        <span
+          className={`${colorMap[color]} text-xs px-2 py-1 rounded capitalize`}
+        >
+          {person.Role}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<"orders" | "users" | "roles">(
@@ -76,8 +171,10 @@ const SuperAdminDashboard = () => {
   );
   const [isAddingPerson, setIsAddingPerson] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState<string | null>(null);
+  const [editingLabelDetails, setEditingLabelDetails] =
+    useState<AllOrderModel | null>(null);
+  const [viewingComments, setViewingComments] = useState<string | null>(null);
 
-  // Fetch all data on mount
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -96,7 +193,6 @@ const SuperAdminDashboard = () => {
       setOrders(fetchedOrders);
       setUsers(fetchedUsers);
 
-      // Calculate stats using helper function
       const pendingCount = fetchedOrders.filter((o) =>
         isPendingStatus(o.status)
       ).length;
@@ -191,18 +287,61 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleInvoiceUpload = async (orderId: string, file: File) => {
+  const handleDocumentsUpload = async (
+    orderId: string,
+    invoiceFile: File | null,
+    piFile: File | null
+  ) => {
     try {
+      if (!invoiceFile && !piFile) {
+        toast.error("Please select at least one file to upload");
+        return;
+      }
+
       setUploadingInvoice(orderId);
-      await adminService.uploadInvoice(orderId, file);
+
+      if (invoiceFile && piFile) {
+        await adminService.uploadInvoiceAndPI(orderId, invoiceFile, piFile);
+        toast.success("Invoice and PI uploaded successfully");
+      } else if (invoiceFile) {
+        await adminService.uploadInvoiceOnly(orderId, invoiceFile);
+        toast.success("Invoice uploaded successfully");
+      } else if (piFile) {
+        await adminService.uploadPIOnly(orderId, piFile);
+        toast.success("PI uploaded successfully");
+      }
+
       await fetchDashboardData();
-      toast.success("Invoice uploaded successfully");
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to upload invoice";
+        error instanceof Error ? error.message : "Failed to upload documents";
       toast.error(errorMessage);
     } finally {
       setUploadingInvoice(null);
+    }
+  };
+
+  const handleLabelDetailsSave = async (
+    orderId: string,
+    noOfSheets: number,
+    cuttingType: string,
+    labelsPerSheet: number,
+    description: string
+  ) => {
+    try {
+      await adminService.saveOrderLabelDetails(orderId, {
+        no_of_sheets: noOfSheets,
+        cutting_type: cuttingType,
+        labels_per_sheet: labelsPerSheet,
+        description: description,
+      });
+      toast.success("Label details saved successfully");
+      await fetchDashboardData();
+      setEditingLabelDetails(null);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save label details";
+      toast.error(errorMessage);
     }
   };
 
@@ -229,8 +368,15 @@ const SuperAdminDashboard = () => {
     window.open(cleanUrl, "_blank", "noopener,noreferrer");
   };
 
+  // ✅ UPDATED: Separate admins from other users
+  const adminUsers = users.filter((u) => u.Role === "admin");
+  const nonAdminUsers = users.filter((u) => u.Role !== "admin");
+
   const filteredUsers =
-    roleFilter === "all" ? users : users.filter((u) => u.Role === roleFilter);
+    roleFilter === "all"
+      ? nonAdminUsers
+      : nonAdminUsers.filter((u) => u.Role === roleFilter);
+
   const printingPersons = users.filter((u) => u.Role === "printing");
   const plantPersons = users.filter((u) => u.Role === "plant");
 
@@ -308,8 +454,10 @@ const SuperAdminDashboard = () => {
             onEdit={setEditingOrder}
             onEditPayment={setEditingPayment}
             onViewScreenshot={setViewingScreenshot}
-            onUploadInvoice={handleInvoiceUpload}
+            onUploadDocuments={handleDocumentsUpload}
             onViewInvoice={handleViewInvoice}
+            onEditLabelDetails={setEditingLabelDetails}
+            onViewComments={setViewingComments}
             uploadingInvoice={uploadingInvoice}
           />
         )}
@@ -317,6 +465,7 @@ const SuperAdminDashboard = () => {
         {/* Users Tab */}
         {activeTab === "users" && (
           <UsersTable
+            adminUsers={adminUsers}
             users={filteredUsers}
             roleFilter={roleFilter}
             onRoleFilterChange={setRoleFilter}
@@ -363,73 +512,53 @@ const SuperAdminDashboard = () => {
           onSave={handleCreateUser}
         />
       )}
+
+      {editingLabelDetails && (
+        <LabelDetailsModal
+          order={editingLabelDetails}
+          onClose={() => setEditingLabelDetails(null)}
+          onSave={handleLabelDetailsSave}
+        />
+      )}
+
+      {/* ✅ Comments Modal - Read Only for Admin */}
+      {viewingComments && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="max-w-2xl w-full relative">
+            <button
+              onClick={() => setViewingComments(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors cursor-pointer"
+              aria-label="Close comments"
+            >
+              <X size={32} />
+            </button>
+            <OrderComments
+              orderId={viewingComments}
+              userRole="admin"
+              onClose={() => setViewingComments(null)}
+              readOnly={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Component: Stat Card
-interface StatCardProps {
-  icon: React.ElementType;
-  label: string;
-  value: number;
-  color: "blue" | "purple" | "orange" | "green" | "red";
-}
-
-const StatCard: React.FC<StatCardProps> = ({
-  icon: Icon,
-  label,
-  value,
-  color,
-}) => {
-  const colorClasses = {
-    blue: "bg-blue-100 text-blue-600",
-    purple: "bg-purple-100 text-purple-600",
-    orange: "bg-orange-100 text-orange-600",
-    green: "bg-green-100 text-green-600",
-    red: "bg-red-100 text-red-600",
-  };
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-      <div
-        className={`p-3 rounded-lg ${colorClasses[color]} inline-block mb-2`}
-      >
-        <Icon className="w-5 h-5" />
-      </div>
-      <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-      <p className="text-sm text-gray-600 mt-1">{label}</p>
-    </div>
-  );
-};
-
-// Component: Tab Button
-interface TabButtonProps {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}
-
-const TabButton: React.FC<TabButtonProps> = ({ active, onClick, label }) => (
-  <button
-    onClick={onClick}
-    className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-      active
-        ? "bg-white text-blue-600 shadow-sm"
-        : "text-gray-600 hover:text-gray-900"
-    }`}
-  >
-    {label}
-  </button>
-);
-
-// Component: Orders Table
+// ✅ UPDATED Orders Table Component - All actions in dropdown
 interface OrdersTableProps {
   orders: AllOrderModel[];
   onEdit: (order: AllOrderModel) => void;
   onEditPayment: (order: AllOrderModel) => void;
   onViewScreenshot: (url: string) => void;
-  onUploadInvoice: (orderId: string, file: File) => void;
+  onUploadDocuments: (
+    orderId: string,
+    invoiceFile: File | null,
+    piFile: File | null
+  ) => void;
   onViewInvoice: (url: string) => void;
+  onEditLabelDetails: (order: AllOrderModel) => void;
+  onViewComments: (orderId: string) => void;
   uploadingInvoice: string | null;
 }
 
@@ -438,326 +567,885 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   onEdit,
   onEditPayment,
   onViewScreenshot,
-  onUploadInvoice,
+  onUploadDocuments,
   onViewInvoice,
+  onEditLabelDetails,
+  onViewComments,
   uploadingInvoice,
-}) => (
-  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Order ID
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Company
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              User
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Quantity
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Order Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Payment Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Date
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {orders.map((order) => (
-            <tr key={order.order_id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {order.order_id.slice(0, 8)}...
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-900">
-                  {order.company_name}
-                </div>
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-900">{order.user_name}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {order.qty} pcs
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-2 py-1 text-xs rounded-full ${adminService.getStatusColorClass(
-                    order.status
-                  )}`}
-                >
-                  {adminService.formatOrderStatus(order.status)}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-2 py-1 text-xs rounded-full ${adminService.getPaymentStatusColorClass(
-                    order.payment_status
-                  )}`}
-                >
-                  {adminService.formatPaymentStatus(order.payment_status)}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                {adminService.formatDate(order.created_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => onEdit(order)}
-                    className="text-blue-600 hover:text-blue-800 cursor-pointer"
-                    title="Edit Order Status"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => onEditPayment(order)}
-                    className="text-purple-600 hover:text-purple-800 cursor-pointer"
-                    title="Update Payment Status"
-                  >
-                    <CreditCard size={18} />
-                  </button>
-                  {order.payment_url && (
-                    <button
-                      onClick={() => onViewScreenshot(order.payment_url!)}
-                      className="text-indigo-600 hover:text-indigo-800 cursor-pointer"
-                      title="View Payment Screenshot"
-                    >
-                      <Eye size={18} />
-                    </button>
-                  )}
-                  {!order.invoice_url ? (
-                    <label
-                      className="cursor-pointer text-green-600 hover:text-green-800"
-                      title="Upload Invoice"
-                    >
-                      {uploadingInvoice === order.order_id ? (
-                        <Loader2 size={18} className="animate-spin" />
-                      ) : (
-                        <Upload size={18} />
-                      )}
-                      <input
-                        type="file"
-                        accept="application/pdf,image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) onUploadInvoice(order.order_id, file);
-                        }}
-                        disabled={uploadingInvoice === order.order_id}
-                      />
-                    </label>
-                  ) : (
-                    <button
-                      onClick={() => onViewInvoice(order.invoice_url!)}
-                      className="text-teal-600 hover:text-teal-800 cursor-pointer"
-                      title="View Invoice"
-                    >
-                      <FileText size={18} />
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
-// Component: Users Table
-interface UsersTableProps {
-  users: User[];
-  roleFilter: string;
-  onRoleFilterChange: (role: string) => void;
-}
-
-const UsersTable: React.FC<UsersTableProps> = ({
-  users,
-  roleFilter,
-  onRoleFilterChange,
 }) => {
-  // ✅ Separate admins from other users
-  const adminUsers = users.filter((u) => u.Role === "admin");
-  const nonAdminUsers = users.filter((u) => u.Role !== "admin");
-
-  // ✅ Filter non-admin users only
-  const filteredNonAdminUsers =
-    roleFilter === "all"
-      ? nonAdminUsers
-      : nonAdminUsers.filter((u) => u.Role === roleFilter);
+  const [uploadModalOrder, setUploadModalOrder] =
+    useState<AllOrderModel | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   return (
-    <div className="space-y-6">
-      {/* ✅ Admin Users Section - Always shown separately */}
-      {adminUsers.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-purple-50">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">
-                ADMIN
-              </span>
-              Administrators
-            </h2>
-            <div className="text-sm text-gray-500">
-              Total: {adminUsers.length}
-            </div>
-          </div>
+    <>
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Order ID
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Company
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Email
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Quantity
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Role
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Order Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Designation
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Payment Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Documents
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Date
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {adminUsers.map((user) => (
-                <tr key={user.UserID} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold">
-                        {user.Name?.charAt(0) ||
-                          user.Email.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.Name || "N/A"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.Phone || "N/A"}
-                        </div>
-                      </div>
+              {orders.map((order) => (
+                <tr key={order.order_id} className="hover:bg-gray-50">
+                  <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {order.order_id.slice(0, 8)}...
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="text-sm text-gray-900">
+                      {order.company_name}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {user.Email}
+                  <td className="px-6 py-5">
+                    <div className="text-sm text-gray-900">
+                      {order.user_name}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs capitalize">
-                      {user.Role}
+                  <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900">
+                    {order.qty} pcs
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${adminService.getStatusColorClass(
+                        order.status
+                      )}`}
+                    >
+                      {adminService.formatOrderStatus(order.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {user.Designation || "N/A"}
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${adminService.getPaymentStatusColorClass(
+                        order.payment_status
+                      )}`}
+                    >
+                      {adminService.formatPaymentStatus(order.payment_status)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <div className="flex flex-col space-y-1">
+                      {adminService.hasInvoiceUrl(order) && (
+                        <button
+                          onClick={() => onViewInvoice(order.invoice_url || "")}
+                          className="text-xs text-teal-600 hover:text-teal-800 flex items-center"
+                          title="View Invoice"
+                        >
+                          <FileText size={14} className="mr-1" />
+                          Invoice
+                        </button>
+                      )}
+                      {adminService.hasPIUrl(order) && (
+                        <button
+                          onClick={() => onViewInvoice(order.pi_url || "")}
+                          className="text-xs text-purple-600 hover:text-purple-800 flex items-center"
+                          title="View PI"
+                        >
+                          <FileText size={14} className="mr-1" />
+                          PI
+                        </button>
+                      )}
+
+                      {!adminService.hasAllDocuments(order) && (
+                        <span className="text-xs text-gray-400">
+                          {adminService.hasInvoiceUrl(order)
+                            ? "PI missing"
+                            : adminService.hasPIUrl(order)
+                            ? "Invoice missing"
+                            : "No docs"}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  {/* ✅ UPDATED: Show date with time */}
+                  <td className="px-6 py-5 text-sm text-gray-600">
+                    {adminService.formatDateWithTime(order.created_at)}
+                  </td>
+                  {/* ✅ UPDATED: All actions in dropdown menu */}
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setOpenMenuId(
+                            openMenuId === order.order_id
+                              ? null
+                              : order.order_id
+                          )
+                        }
+                        className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900 cursor-pointer transition-colors"
+                        title="More Actions"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {openMenuId === order.order_id && (
+                        <div className="absolute right-0 mt-1 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                          <div className="py-1">
+                            {/* Edit Order Status */}
+                            <button
+                              onClick={() => {
+                                onEdit(order);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer"
+                            >
+                              <Edit2 size={16} className="mr-3 text-blue-600" />
+                              Edit Order Status
+                            </button>
+
+                            {/* Update Payment Status */}
+                            <button
+                              onClick={() => {
+                                onEditPayment(order);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer"
+                            >
+                              <CreditCard
+                                size={16}
+                                className="mr-3 text-purple-600"
+                              />
+                              Update Payment Status
+                            </button>
+
+                            {/* View Payment Screenshot */}
+                            {order.payment_url && (
+                              <button
+                                onClick={() => {
+                                  onViewScreenshot(order.payment_url!);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer"
+                              >
+                                <Eye
+                                  size={16}
+                                  className="mr-3 text-indigo-600"
+                                />
+                                View Payment Screenshot
+                              </button>
+                            )}
+
+                            {/* Upload Invoice/PI */}
+                            <button
+                              onClick={() => {
+                                setUploadModalOrder(order);
+                                setOpenMenuId(null);
+                              }}
+                              disabled={uploadingInvoice === order.order_id}
+                              className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer disabled:opacity-50"
+                            >
+                              {uploadingInvoice === order.order_id ? (
+                                <Loader2
+                                  size={16}
+                                  className="mr-3 text-green-600 animate-spin"
+                                />
+                              ) : (
+                                <Upload
+                                  size={16}
+                                  className="mr-3 text-green-600"
+                                />
+                              )}
+                              Upload Invoice/PI
+                            </button>
+
+                            {/* Label Details */}
+                            <button
+                              onClick={() => {
+                                onEditLabelDetails(order);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer"
+                            >
+                              <ClipboardList
+                                size={16}
+                                className="mr-3 text-orange-600"
+                              />
+                              Label Details
+                            </button>
+
+                            {/* View Comments */}
+                            <button
+                              onClick={() => {
+                                onViewComments(order.order_id);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 flex items-center cursor-pointer"
+                            >
+                              <MessageSquare
+                                size={16}
+                                className="mr-3 text-pink-600"
+                              />
+                              View Comments
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Click outside to close dropdown */}
+      {openMenuId && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setOpenMenuId(null)}
+        />
       )}
 
-      {/* ✅ Other Users Section - With filter (no admin, no user) */}
+      {uploadModalOrder && (
+        <UploadDocumentsModal
+          order={uploadModalOrder}
+          onClose={() => setUploadModalOrder(null)}
+          onUpload={onUploadDocuments}
+          uploading={uploadingInvoice === uploadModalOrder.order_id}
+        />
+      )}
+    </>
+  );
+};
+
+// ✅ UPDATED Users Table Component - Admins separated
+interface UsersTableProps {
+  adminUsers: User[];
+  users: User[];
+  roleFilter: string;
+  onRoleFilterChange: (role: string) => void;
+}
+
+const UsersTable: React.FC<UsersTableProps> = ({
+  adminUsers,
+  users,
+  roleFilter,
+  onRoleFilterChange,
+}) => (
+  <div className="space-y-6">
+    {/* ✅ Admins Section */}
+    {adminUsers.length > 0 && (
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">All Users</h2>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Filter size={18} className="text-gray-500" />
-              <select
-                value={roleFilter}
-                onChange={(e) => onRoleFilterChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
-              >
-                <option value="all">All Roles</option>
-                <option value="business_owner">Business Owner</option>
-                <option value="printing">Printing</option>
-                <option value="plant">Plant</option>
-              </select>
-            </div>
-            <div className="text-sm text-gray-500">
-              Total: {filteredNonAdminUsers.length}
-            </div>
+        <div className="p-4 border-b border-gray-200 bg-red-50">
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <Users className="w-5 h-5 text-red-600" />
+            Administrators ({adminUsers.length})
+          </h2>
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {adminUsers.map((user) => (
+              <PersonCard key={user.UserID} person={user} color="red" />
+            ))}
           </div>
         </div>
+      </div>
+    )}
+
+    {/* ✅ Other Users Section with Filters */}
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">
+          All Users ({users.length})
+        </h2>
+        <div className="flex items-center space-x-2">
+          <Filter size={18} className="text-gray-500" />
+          <select
+            value={roleFilter}
+            onChange={(e) => onRoleFilterChange(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="all">All Roles</option>
+            <option value="printing">Printing</option>
+            <option value="plant">Plant</option>
+          </select>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                User
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
                 Email
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Role
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                Phone
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
                 Designation
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                Role
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredNonAdminUsers.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                  No users found
+            {users.map((user) => (
+              <tr key={user.UserID} className="hover:bg-gray-50">
+                <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {user.Name || "N/A"}
+                </td>
+                <td className="px-6 py-5 text-sm text-gray-600">
+                  {user.Email}
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-600">
+                  {user.Phone || "N/A"}
+                </td>
+                <td className="px-6 py-5 text-sm text-gray-600">
+                  {user.Designation || "N/A"}
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <span
+                    className={`px-2 py-1 text-xs rounded-full ${adminService.getRoleBadgeColor(
+                      user.Role
+                    )}`}
+                  >
+                    {user.Role}
+                  </span>
                 </td>
               </tr>
-            ) : (
-              filteredNonAdminUsers.map((user) => (
-                <tr key={user.UserID} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                        {user.Name?.charAt(0) ||
-                          user.Email.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.Name || "N/A"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.Phone || "N/A"}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {user.Email}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs capitalize">
-                      {user.Role === "business_owner"
-                        ? "Business Owner"
-                        : user.Role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {user.Designation || "N/A"}
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
+      </div>
+      {users.length === 0 && (
+        <div className="p-8 text-center text-gray-500">
+          No users found with selected filter
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// ✅ Order Edit Modal
+// Order Edit Modal Component - UPDATED for Admin restrictions
+interface OrderEditModalProps {
+  order: AllOrderModel;
+  onClose: () => void;
+  onUpdateStatus: (orderId: string, status: string, reason?: string) => void;
+}
+
+const OrderEditModal: React.FC<OrderEditModalProps> = ({
+  order,
+  onClose,
+  onUpdateStatus,
+}) => {
+  const [newStatus, setNewStatus] = useState(order.status);
+  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ✅ Only allow admin to update to these 3 statuses
+  const adminAllowedStatuses = [
+    ORDER_STATUS.DISPATCHED,
+    ORDER_STATUS.COMPLETED,
+    ORDER_STATUS.DECLINED,
+  ];
+
+  const requiresReason = newStatus === ORDER_STATUS.DECLINED;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (requiresReason && !reason.trim()) {
+      toast.error("Please provide a reason for declining the order");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onUpdateStatus(
+        order.order_id,
+        newStatus,
+        reason.trim() || undefined
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Update Order Status
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Order ID
+            </label>
+            <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+              {order.order_id}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Current Status
+            </label>
+            <p
+              className={`inline-block px-3 py-1 rounded-full text-sm ${adminService.getStatusColorClass(
+                order.status
+              )}`}
+            >
+              {adminService.formatOrderStatus(order.status)}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              New Status
+            </label>
+            <select
+              value={newStatus}
+              onChange={(e) =>
+                setNewStatus(
+                  e.target
+                    .value as (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS]
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {/* ✅ Only show the 3 allowed statuses for admin */}
+              {adminAllowedStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {adminService.formatOrderStatus(status)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {requiresReason && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for Declining <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Please provide a reason..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                required
+              />
+            </div>
+          )}
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 cursor-pointer"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 cursor-pointer flex items-center justify-center"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Update Status
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
 
-// Component: Roles Panel
+// ✅ Payment Edit Modal
+interface PaymentEditModalProps {
+  order: AllOrderModel;
+  onClose: () => void;
+  onUpdatePayment: (
+    orderId: string,
+    status: "payment_verified" | "payment_rejected",
+    reason?: string
+  ) => void;
+}
+
+const PaymentEditModal: React.FC<PaymentEditModalProps> = ({
+  order,
+  onClose,
+  onUpdatePayment,
+}) => {
+  const [selectedStatus, setSelectedStatus] = useState<
+    "payment_verified" | "payment_rejected"
+  >("payment_verified");
+  const [reason, setReason] = useState("");
+
+  const handleSubmit = () => {
+    if (selectedStatus === "payment_rejected" && !reason.trim()) {
+      toast.error("Reason is required for rejected payment");
+      return;
+    }
+    onUpdatePayment(order.order_id, selectedStatus, reason || undefined);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">
+            Update Payment Status
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 mb-2">
+            Order ID: {order.order_id.slice(0, 13)}...
+          </p>
+          <p className="text-sm text-gray-600">Company: {order.company_name}</p>
+          <p className="text-sm text-gray-600 mt-2">
+            Current: {adminService.formatPaymentStatus(order.payment_status)}
+          </p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            New Payment Status
+          </label>
+          <select
+            value={selectedStatus}
+            onChange={(e) =>
+              setSelectedStatus(
+                e.target.value as "payment_verified" | "payment_rejected"
+              )
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="payment_verified">Payment Verified</option>
+            <option value="payment_rejected">Payment Rejected</option>
+          </select>
+        </div>
+
+        {selectedStatus === "payment_rejected" && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Reason <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter reason for rejection..."
+            />
+          </div>
+        )}
+
+        <div className="flex space-x-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer"
+          >
+            Update Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ✅ Screenshot Modal
+interface ScreenshotModalProps {
+  imageUrl: string;
+  onClose: () => void;
+}
+
+const ScreenshotModal: React.FC<ScreenshotModalProps> = ({
+  imageUrl,
+  onClose,
+}) => (
+  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="relative max-w-4xl w-full">
+      <button
+        onClick={onClose}
+        className="absolute -top-12 right-0 text-white hover:text-gray-300 cursor-pointer"
+      >
+        <X size={32} />
+      </button>
+      <div className="bg-white rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Payment Screenshot
+        </h3>
+        <div className="relative w-full h-[70vh]">
+          <Image
+            src={imageUrl}
+            alt="Payment Screenshot"
+            fill
+            className="object-contain"
+            unoptimized
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ✅ Add Person Modal
+interface AddPersonModalProps {
+  onClose: () => void;
+  onSave: (email: string, role: "printing" | "plant") => void;
+}
+
+const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose, onSave }) => {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"printing" | "plant">("printing");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    if (!adminService.validateEmail(email)) {
+      toast.error("Invalid email format");
+      return;
+    }
+    onSave(email, role);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">
+            Add New Person
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter email address"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Role <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as "printing" | "plant")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="printing">Printing</option>
+              <option value="plant">Plant</option>
+            </select>
+          </div>
+
+          <div className="flex space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
+            >
+              Create User
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ✅ Upload Documents Modal
+interface UploadDocumentsModalProps {
+  order: AllOrderModel;
+  onClose: () => void;
+  onUpload: (
+    orderId: string,
+    invoiceFile: File | null,
+    piFile: File | null
+  ) => void;
+  uploading: boolean;
+}
+
+const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({
+  order,
+  onClose,
+  onUpload,
+  uploading,
+}) => {
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [piFile, setPiFile] = useState<File | null>(null);
+
+  const handleSubmit = () => {
+    if (!invoiceFile && !piFile) {
+      toast.error("Please select at least one file");
+      return;
+    }
+    onUpload(order.order_id, invoiceFile, piFile);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">
+            Upload Documents
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 mb-2">
+            Order ID: {order.order_id.slice(0, 13)}...
+          </p>
+          <p className="text-sm text-gray-600">Company: {order.company_name}</p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Invoice (PDF)
+          </label>
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+            className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+          />
+          {invoiceFile && (
+            <p className="text-xs text-green-600 mt-1">✓ {invoiceFile.name}</p>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Proforma Invoice (PDF)
+          </label>
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setPiFile(e.target.files?.[0] || null)}
+            className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
+          />
+          {piFile && (
+            <p className="text-xs text-green-600 mt-1">✓ {piFile.name}</p>
+          )}
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={onClose}
+            disabled={uploading}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={uploading}
+            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 cursor-pointer flex items-center justify-center"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={18} className="mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload size={18} className="mr-2" />
+                Upload
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Roles Panel Component
 interface RolesPanelProps {
   printingPersons: User[];
   plantPersons: User[];
@@ -782,6 +1470,7 @@ const RolesPanel: React.FC<RolesPanelProps> = ({
         <span>Add Person</span>
       </button>
     </div>
+
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
       {/* Printing Persons */}
       <div className="border rounded-lg p-4">
@@ -822,551 +1511,79 @@ const RolesPanel: React.FC<RolesPanelProps> = ({
   </div>
 );
 
-// Component: Person Card
-interface PersonCardProps {
-  person: User;
-  color: "blue" | "green";
-}
-
-const PersonCard: React.FC<PersonCardProps> = ({ person, color }) => (
-  <div className="bg-gray-50 p-3 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors">
-    <div className="flex justify-between items-start">
-      <div>
-        <h4 className="font-medium text-gray-900">{person.Name || "N/A"}</h4>
-        <p className="text-sm text-gray-600">{person.Email}</p>
-        <p className="text-sm text-gray-600">{person.Phone || "N/A"}</p>
-        {person.Designation && (
-          <p className="text-xs text-gray-500 mt-1">{person.Designation}</p>
-        )}
-      </div>
-      <span
-        className={`${
-          color === "blue"
-            ? "bg-blue-100 text-blue-800"
-            : "bg-green-100 text-green-800"
-        } text-xs px-2 py-1 rounded capitalize`}
-      >
-        {person.Role}
-      </span>
-    </div>
-  </div>
-);
-
-// Modal: Order Edit
-interface OrderEditModalProps {
+// ✅ Label Details Modal
+interface LabelDetailsModalProps {
   order: AllOrderModel;
   onClose: () => void;
-  onUpdateStatus: (orderId: string, status: string, reason?: string) => void;
-}
-
-const OrderEditModal: React.FC<OrderEditModalProps> = ({
-  order,
-  onClose,
-  onUpdateStatus,
-}) => {
-  const [selectedStatus, setSelectedStatus] = useState(order.status);
-  const [reason, setReason] = useState("");
-  const [updating, setUpdating] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (selectedStatus === ORDER_STATUS.DECLINED && !reason.trim()) {
-      toast.error("Reason is required for declined status");
-      return;
-    }
-
-    setUpdating(true);
-    try {
-      await onUpdateStatus(
-        order.order_id,
-        selectedStatus,
-        reason.trim() || undefined
-      );
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const statusOptions = [
-    ORDER_STATUS.PLACED,
-    ORDER_STATUS.PRINTING,
-    ORDER_STATUS.DECLINED,
-    ORDER_STATUS.READY_FOR_PLANT,
-    ORDER_STATUS.PLANT_PROCESSING,
-    ORDER_STATUS.DISPATCHED,
-    ORDER_STATUS.COMPLETED,
-  ] as const;
-
-  return (
-    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Update Order Status
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 cursor-pointer"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="font-semibold mb-3 text-gray-900">Order Details</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-700 font-medium">Order ID:</span>
-                <span className="ml-2 text-gray-900">
-                  {order.order_id.slice(0, 13)}...
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-700 font-medium">Company:</span>
-                <span className="ml-2 text-gray-900">{order.company_name}</span>
-              </div>
-              <div>
-                <span className="text-gray-700 font-medium">Quantity:</span>
-                <span className="ml-2 text-gray-900">{order.qty} pcs</span>
-              </div>
-              <div>
-                <span className="text-gray-700 font-medium">
-                  Current Status:
-                </span>
-                <span
-                  className={`ml-2 px-2 py-1 text-xs rounded-full ${adminService.getStatusColorClass(
-                    order.status
-                  )}`}
-                >
-                  {adminService.formatOrderStatus(order.status)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              New Status
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) =>
-                setSelectedStatus(e.target.value as typeof selectedStatus)
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-              required
-            >
-              {statusOptions.map((status) => (
-                <option key={status} value={status}>
-                  {adminService.formatOrderStatus(status)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedStatus === ORDER_STATUS.DECLINED && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Decline Reason
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                placeholder="Enter reason for declining..."
-                required
-              />
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={updating}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={updating}
-              className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-            >
-              {updating ? (
-                <>
-                  <Loader2 size={18} className="mr-2 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <Save size={18} className="mr-2" />
-                  Update Status
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Modal: Payment Edit
-interface PaymentEditModalProps {
-  order: AllOrderModel;
-  onClose: () => void;
-  onUpdatePayment: (
+  onSave: (
     orderId: string,
-    status: "payment_verified" | "payment_rejected",
-    reason?: string
+    noOfSheets: number,
+    cuttingType: string,
+    labelsPerSheet: number,
+    description: string
   ) => void;
 }
 
-const PaymentEditModal: React.FC<PaymentEditModalProps> = ({
+const LabelDetailsModal: React.FC<LabelDetailsModalProps> = ({
   order,
   onClose,
-  onUpdatePayment,
+  onSave,
 }) => {
-  const [selectedStatus, setSelectedStatus] = useState<
-    "payment_verified" | "payment_rejected"
-  >("payment_verified");
-  const [reason, setReason] = useState("");
-  const [updating, setUpdating] = useState(false);
-
-  // Check payment status conditions
-  const isPaymentPending = order.payment_status === "payment_pending";
-  const isPaymentVerified = order.payment_status === "payment_verified";
-  const isPaymentRejected = order.payment_status === "payment_rejected";
-  const isPaymentUploaded = order.payment_status === "payment_uploaded";
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isPaymentPending) {
-      toast.error("Payment screenshot has not been uploaded yet");
-      return;
-    }
-
-    // Block if trying to reject verified payment
-    if (isPaymentVerified && selectedStatus === "payment_rejected") {
-      toast.error("Cannot reject an already verified payment");
-      return;
-    }
-
-    // Block if trying to verify rejected payment
-    if (isPaymentRejected && selectedStatus === "payment_verified") {
-      toast.error("Cannot verify an already rejected payment");
-      return;
-    }
-
-    if (selectedStatus === "payment_rejected" && !reason.trim()) {
-      toast.error("Reason is required for rejecting payment");
-      return;
-    }
-
-    setUpdating(true);
-    try {
-      await onUpdatePayment(
-        order.order_id,
-        selectedStatus,
-        selectedStatus === "payment_rejected" ? reason.trim() : undefined
-      );
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Update Payment Status
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 cursor-pointer"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
-          {/* Warning Banners */}
-          {isPaymentPending && (
-            <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-yellow-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-yellow-800">
-                    ⚠️ Payment screenshot has not been uploaded yet
-                  </p>
-                  <p className="text-xs text-yellow-700 mt-1">
-                    Cannot update payment status until user uploads screenshot.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isPaymentVerified && (
-            <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
-              <p className="text-sm text-green-700">
-                ✓ Payment is already verified. Rejection is disabled to prevent
-                accidental changes.
-              </p>
-            </div>
-          )}
-
-          {isPaymentRejected && (
-            <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
-              <p className="text-sm text-red-700">
-                ✗ Payment was rejected. Verification is disabled to prevent
-                accidental changes.
-              </p>
-            </div>
-          )}
-
-          {isPaymentUploaded && (
-            <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-              <p className="text-sm text-blue-700">
-                ℹ️ Payment screenshot uploaded and awaiting review.
-              </p>
-            </div>
-          )}
-
-          {/* Order Details */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="font-semibold mb-3 text-gray-900">Order Details</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-700 font-medium">Order ID:</span>
-                <span className="ml-2 text-gray-900">
-                  {order.order_id.slice(0, 13)}...
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-700 font-medium">Company:</span>
-                <span className="ml-2 text-gray-900">{order.company_name}</span>
-              </div>
-              <div>
-                <span className="text-gray-700 font-medium">Amount:</span>
-                <span className="ml-2 text-gray-900">{order.qty} pcs</span>
-              </div>
-              <div>
-                <span className="text-gray-700 font-medium">
-                  Current Payment Status:
-                </span>
-                <span
-                  className={`ml-2 px-2 py-1 text-xs rounded-full ${adminService.getPaymentStatusColorClass(
-                    order.payment_status
-                  )}`}
-                >
-                  {adminService.formatPaymentStatus(order.payment_status)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Status Buttons */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              Payment Status
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setSelectedStatus("payment_verified")}
-                disabled={
-                  isPaymentPending || isPaymentVerified || isPaymentRejected
-                }
-                className={`p-4 border-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  selectedStatus === "payment_verified"
-                    ? "border-green-600 bg-green-50 text-green-700"
-                    : "border-gray-300 hover:border-gray-400 text-gray-900"
-                }`}
-              >
-                <div className="flex flex-col items-center">
-                  <span>✓ Verify Payment</span>
-                  {isPaymentVerified && (
-                    <span className="text-xs mt-1 opacity-70">
-                      (Already Verified)
-                    </span>
-                  )}
-                  {isPaymentRejected && (
-                    <span className="text-xs mt-1 opacity-70">
-                      (Cannot Verify Rejected)
-                    </span>
-                  )}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedStatus("payment_rejected")}
-                disabled={
-                  isPaymentPending || isPaymentRejected || isPaymentVerified
-                }
-                className={`p-4 border-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  selectedStatus === "payment_rejected"
-                    ? "border-red-600 bg-red-50 text-red-700"
-                    : "border-gray-300 hover:border-gray-400 text-gray-900"
-                }`}
-              >
-                <div className="flex flex-col items-center">
-                  <span>✗ Reject Payment</span>
-                  {isPaymentRejected && (
-                    <span className="text-xs mt-1 opacity-70">
-                      (Already Rejected)
-                    </span>
-                  )}
-                  {isPaymentVerified && (
-                    <span className="text-xs mt-1 opacity-70">
-                      (Cannot Reject Verified)
-                    </span>
-                  )}
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Rejection Reason */}
-          {selectedStatus === "payment_rejected" && !isPaymentVerified && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Rejection Reason *
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                disabled={isPaymentPending || isPaymentVerified}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="Enter reason for rejecting payment..."
-                required
-              />
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={updating}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={
-                updating ||
-                isPaymentPending ||
-                (isPaymentVerified && selectedStatus === "payment_rejected") ||
-                (isPaymentRejected && selectedStatus === "payment_verified")
-              }
-              className={`flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
-                selectedStatus === "payment_verified"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-red-600 hover:bg-red-700"
-              }`}
-            >
-              {updating ? (
-                <>
-                  <Loader2 size={18} className="mr-2 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <Save size={18} className="mr-2" />
-                  Update Payment
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-interface ScreenshotModalProps {
-  imageUrl: string;
-  onClose: () => void;
-}
-
-const ScreenshotModal: React.FC<ScreenshotModalProps> = ({
-  imageUrl,
-  onClose,
-}) => {
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-2xl w-full shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Payment Screenshot
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 cursor-pointer"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="relative w-full h-[500px] bg-gray-100 rounded-lg overflow-hidden">
-          <Image
-            src={imageUrl}
-            alt="Payment Screenshot"
-            fill
-            className="object-contain"
-            unoptimized
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Modal: Add Person
-interface AddPersonModalProps {
-  onClose: () => void;
-  onSave: (email: string, role: "printing" | "plant") => void;
-}
-
-const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose, onSave }) => {
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"printing" | "plant">("printing");
+  const [noOfSheets, setNoOfSheets] = useState<number>(1);
+  const [cuttingType, setCuttingType] = useState<string>("");
+  const [labelsPerSheet, setLabelsPerSheet] = useState<number>(1);
+  const [description, setDescription] = useState<string>("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    // Fetch existing label details if any
+    const fetchLabelDetails = async () => {
+      try {
+        const details = await adminService.getOrderLabelDetails(order.order_id);
+        if (details) {
+          setNoOfSheets(details.no_of_sheets);
+          setCuttingType(details.cutting_type);
+          setLabelsPerSheet(details.labels_per_sheet);
+          setDescription(details.description || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch label details:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLabelDetails();
+  }, [order.order_id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!adminService.validateEmail(email)) {
-      toast.error("Please enter a valid email address");
+    if (noOfSheets <= 0) {
+      toast.error("Number of sheets must be greater than 0");
+      return;
+    }
+
+    if (!cuttingType.trim()) {
+      toast.error("Cutting type is required");
+      return;
+    }
+
+    if (labelsPerSheet <= 0) {
+      toast.error("Labels per sheet must be greater than 0");
       return;
     }
 
     setSaving(true);
     try {
-      await onSave(email, role);
+      await onSave(
+        order.order_id,
+        noOfSheets,
+        cuttingType,
+        labelsPerSheet,
+        description
+      );
     } finally {
       setSaving(false);
     }
@@ -1374,10 +1591,11 @@ const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-2xl">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-900">
-            Add Printing/Plant Person
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <ClipboardList size={24} className="text-orange-600" />
+            Label Details
           </h3>
           <button
             onClick={onClose}
@@ -1387,63 +1605,145 @@ const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose, onSave }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-              placeholder="Enter email address"
-              required
-            />
+        {/* Order Info */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <h4 className="font-semibold text-gray-900 mb-2">
+            Order Information
+          </h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-gray-600">Order ID:</span>
+              <span className="ml-2 font-medium text-gray-900">
+                {order.order_id.slice(0, 13)}...
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Company:</span>
+              <span className="ml-2 font-medium text-gray-900">
+                {order.company_name}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Quantity:</span>
+              <span className="ml-2 font-medium text-gray-900">
+                {order.qty} pcs
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Status:</span>
+              <span
+                className={`ml-2 px-2 py-1 text-xs rounded-full ${adminService.getStatusColorClass(
+                  order.status
+                )}`}
+              >
+                {adminService.formatOrderStatus(order.status)}
+              </span>
+            </div>
           </div>
+        </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              Role
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as "printing" | "plant")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-            >
-              <option value="printing">Printing</option>
-              <option value="plant">Plant</option>
-            </select>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              {/* Number of Sheets */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Number of Sheets <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={noOfSheets}
+                  onChange={(e) => setNoOfSheets(parseInt(e.target.value) || 1)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                  required
+                />
+              </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-            >
-              {saving ? (
-                <>
-                  <Loader2 size={18} className="mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <UserPlus size={18} className="mr-2" />
-                  Create User
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+              {/* Cutting Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Cutting Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={cuttingType}
+                  onChange={(e) => setCuttingType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                  required
+                >
+                  <option value="">Select cutting type</option>
+                  <option value="Die Cut">Die Cut</option>
+                  <option value="Kiss Cut">Kiss Cut</option>
+                  <option value="Straight Cut">Straight Cut</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+
+              {/* Labels Per Sheet */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Labels Per Sheet <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={labelsPerSheet}
+                  onChange={(e) =>
+                    setLabelsPerSheet(parseInt(e.target.value) || 1)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Description / Additional Notes
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                  placeholder="Enter any additional notes or specifications..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={18} className="mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} className="mr-2" />
+                    Save Label Details
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

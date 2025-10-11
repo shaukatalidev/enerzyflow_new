@@ -143,15 +143,6 @@ const OrderDetailsCard = memo(({ order }: { order: AllOrderModel }) => (
         </span>
       </div>
 
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-600">Payment Status</span>
-        <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-          printService.getPaymentStatusColorClass(order.payment_status)
-        }`}>
-          {printService.formatPaymentStatus(order.payment_status)}
-        </span>
-      </div>
-
       <div className="flex justify-between items-center pt-2 border-t border-gray-200">
         <span className="text-sm text-gray-600">Company</span>
         <span className="text-sm font-medium text-gray-900">{order.company_name}</span>

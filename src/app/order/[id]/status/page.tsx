@@ -214,6 +214,42 @@ const InvoiceSection = memo(({
 
 InvoiceSection.displayName = "InvoiceSection";
 
+// ✅ Add this new memoized component after InvoiceSection
+
+// ✅ Memoized PI Section
+const PISection = memo(({ 
+  piUrl, 
+  onDownload 
+}: { 
+  piUrl?: string; 
+  onDownload: () => void;
+}) => (
+  <div className="mb-4 sm:mb-6">
+    {piUrl ? (
+      <button
+        onClick={onDownload}
+        className="w-full bg-white border-2 border-purple-500 text-purple-600 hover:bg-purple-50 font-medium py-3 px-4 sm:px-6 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Download Proforma Invoice (PI)
+      </button>
+    ) : (
+      <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 text-center">
+        <svg className="w-12 h-12 mx-auto text-purple-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p className="text-sm text-purple-600 font-medium mb-1">No Proforma Invoice available yet</p>
+        <p className="text-xs text-purple-500">PI will be generated after order confirmation</p>
+      </div>
+    )}
+  </div>
+));
+
+PISection.displayName = "PISection";
+
+
 // ✅ Memoized Timeline Step
 const TimelineStep = memo(({ 
   step, 
@@ -379,7 +415,7 @@ export default function OrderStatusPage() {
     return formatDateTime(historyItem.changed_at);
   }, [orderHistory]);
 
-  // ✅ Memoized download handler
+  // ✅ Memoized download handler for Invoice
   const handleDownloadInvoice = useCallback(() => {
     if (!order) return;
 
@@ -387,6 +423,17 @@ export default function OrderStatusPage() {
       window.open(order.invoice_url, '_blank', 'noopener,noreferrer');
     } else {
       alert('No invoice available yet. Invoice will be generated after order confirmation.');
+    }
+  }, [order]);
+
+  // ✅ NEW: Memoized download handler for PI
+  const handleDownloadPI = useCallback(() => {
+    if (!order) return;
+
+    if (order.pi_url) {
+      window.open(order.pi_url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('No Proforma Invoice available yet. PI will be generated after order confirmation.');
     }
   }, [order]);
 
@@ -442,7 +489,12 @@ export default function OrderStatusPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <ProductCard order={order} />
         <OrderDetailsCard order={order} />
-        <InvoiceSection invoiceUrl={order.invoice_url} onDownload={handleDownloadInvoice} />
+        
+        {/* ✅ Documents Section - Side by Side on Desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 sm:mb-6">
+          <InvoiceSection invoiceUrl={order.invoice_url} onDownload={handleDownloadInvoice} />
+          <PISection piUrl={order.pi_url} onDownload={handleDownloadPI} />
+        </div>
 
         {/* Success Banner */}
         {order.payment_status === 'payment_verified' && (

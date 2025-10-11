@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { printService } from "@/app/services/printService";
-import type { AllOrderModel } from "@/app/services/adminService";
+import type { AllOrderModel, OrderLabelDetails } from "@/app/services/adminService"
 import {
   ArrowLeft,
   CheckCircle,
@@ -12,6 +12,7 @@ import {
   Loader2,
   Calendar,
   Clock,
+  ClipboardList,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -29,7 +30,7 @@ const getProductName = (order: AllOrderModel) => {
   const variant = order.variant.charAt(0).toUpperCase() + order.variant.slice(1);
   const capColor = order.cap_color
     .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
   return `${variant} Bottle ${capColor} Cap Label`;
 };
@@ -216,12 +217,71 @@ const LabelDisplay = memo(({ order }: { order: AllOrderModel }) => (
 
 LabelDisplay.displayName = "LabelDisplay";
 
+// ✅ Updated Label Details Section Component
+const LabelDetailsSection = memo(({ labelDetails }: { labelDetails: OrderLabelDetails }) => {
+  return (
+    <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
+      <div className="p-4 sm:p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <ClipboardList className="w-5 h-5 text-gray-700" />
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+            Label Details
+          </h2>
+        </div>
+
+        <div className="space-y-3 sm:space-y-4">
+          {/* Number of Sheets */}
+          {labelDetails.no_of_sheets > 0 && (
+            <div className="pb-3 sm:pb-4 border-b border-gray-100">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Number of Sheets</p>
+              <p className="text-sm sm:text-base text-gray-900">{labelDetails.no_of_sheets}</p>
+            </div>
+          )}
+
+          {/* Cutting Type */}
+          {labelDetails.cutting_type && (
+            <div className="pb-3 sm:pb-4 border-b border-gray-100">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Cutting Type</p>
+              <p className="text-sm sm:text-base text-gray-900 capitalize">
+                {labelDetails.cutting_type.replace(/_/g, " ")}
+              </p>
+            </div>
+          )}
+
+          {/* Labels Per Sheet */}
+          {labelDetails.labels_per_sheet > 0 && (
+            <div className="pb-3 sm:pb-4 border-b border-gray-100">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Labels Per Sheet</p>
+              <p className="text-sm sm:text-base text-gray-900">{labelDetails.labels_per_sheet}</p>
+            </div>
+          )}
+
+          {/* Description / Additional Notes */}
+          {labelDetails.description && (
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                Description / Additional Notes
+              </p>
+              <p className="text-sm sm:text-base text-gray-900 whitespace-pre-wrap">
+                {labelDetails.description}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+LabelDetailsSection.displayName = "LabelDetailsSection";
+
 export default function PrintingOrderDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<AllOrderModel | null>(null);
+  const [labelDetails, setLabelDetails] = useState<OrderLabelDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
@@ -237,14 +297,28 @@ export default function PrintingOrderDetailsPage() {
 
       try {
         setLoading(true);
+        
+        // Fetch order details
         const response = await printService.getAllOrders(100, 0);
         const foundOrder = response.orders.find((o) => o.order_id === orderId);
 
-        if (foundOrder) {
-          setOrder(foundOrder);
-        } else {
+        if (!foundOrder) {
           toast.error("Order not found");
           router.push("/dashboard");
+          return;
+        }
+
+        setOrder(foundOrder);
+        
+        // ✅ Fetch label details separately using the dedicated endpoint
+        try {
+          const labelDetailsData = await printService.getOrderLabelDetails(orderId);
+          if (labelDetailsData) {
+            setLabelDetails(labelDetailsData);
+          }
+        } catch (error) {
+          // Label details might not exist yet, don't show error
+          console.log("Label details not available");
         }
       } catch (error) {
         console.error("Error fetching order:", error);
@@ -352,28 +426,21 @@ export default function PrintingOrderDetailsPage() {
           >
             {printService.getStatusLabel(order.status)}
           </span>
-          <span
-            className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${printService.getPaymentStatusColorClass(
-              order.payment_status
-            )}`}
-          >
-            {printService.formatPaymentStatus(order.payment_status)}
-          </span>
         </div>
 
         {/* Order Details Card */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-4 sm:mb-6">
           <div className="p-4 sm:p-6">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-              Order Details
+              Order Information
             </h2>
 
             <div className="space-y-3 sm:space-y-4">
-              {/* Work Order */}
+              {/* Order ID */}
               <div className="flex justify-between items-center pb-3 sm:pb-4 border-b border-gray-100">
-                <span className="text-xs sm:text-sm text-gray-600">Work Order</span>
+                <span className="text-xs sm:text-sm text-gray-600">Order ID</span>
                 <span className="text-xs sm:text-sm font-medium text-blue-600 font-mono">
-                  {order.order_id.slice(0, 8).toUpperCase()}
+                  {order.order_id.slice(0, 12).toUpperCase()}...
                 </span>
               </div>
 
@@ -383,7 +450,6 @@ export default function PrintingOrderDetailsPage() {
                 <p className="text-sm sm:text-base font-medium text-gray-900">
                   {order.company_name}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">by {order.user_name}</p>
               </div>
 
               {/* Expected Delivery */}
@@ -432,6 +498,9 @@ export default function PrintingOrderDetailsPage() {
             </div>
           </div>
         </div>
+
+        {/* ✅ Label Details Section - Only show if details exist */}
+        {labelDetails && <LabelDetailsSection labelDetails={labelDetails} />}
 
         {/* Action Buttons */}
         {canTakeAction && (

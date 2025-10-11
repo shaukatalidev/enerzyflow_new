@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
   Tag,
+  Package,
 } from "lucide-react";
 import { orderService, CreateOrderRequest } from "../services/orderService";
 import { useAuth } from "../context/AuthContext";
@@ -40,22 +41,74 @@ const CAP_COLOR_OPTIONS = [
   },
 ] as const;
 
-const BOTTLE_VARIANT_OPTIONS = [
-  { value: "conical", label: "Conical Bottle" },
-  { value: "round", label: "Round Bottle" },
-  { value: "square", label: "Square Bottle" },
-] as const;
-
+// ✅ Volume-based categories
 const VOLUME_OPTIONS = [
   { value: 200, label: "200 ml" },
   { value: 250, label: "250 ml" },
   { value: 500, label: "500 ml" },
   { value: 1000, label: "1 Litre" },
-  { value: 2000, label: "2 Litre" },
 ] as const;
 
+// ✅ Category/Variant options
+const CATEGORY_OPTIONS = {
+  1000: [
+    { value: "classic", label: "Classic", rate: 11, moq: 100, x: 15 },
+    { value: "elite", label: "Elite", rate: 14.25, moq: 50, x: 15 },
+    { value: "exclusive", label: "Exclusive", rate: 15.45, moq: 50, x: 15 },
+    { value: "ultra", label: "Ultra", rate: 16.25, moq: 50, x: 15 },
+    { value: "conical", label: "Conical Premier", rate: 16.95, moq: 50, x: 12 },
+  ],
+  500: [
+    { value: "classic", label: "Classic", rate: 7.2, moq: 50, x: 24 },
+    { value: "elite", label: "Elite", rate: 8.45, moq: 50, x: 24 },
+    { value: "premier", label: "Premier", rate: 9.75, moq: 50, x: 24 },
+  ],
+  200: [
+    {
+      value: "classic_case1",
+      label: "Classic 200ML - Case 1",
+      rate: 3.9,
+      moq: 50,
+      x: 24,
+    },
+    {
+      value: "classic_case2",
+      label: "Classic 200ML - Case 2",
+      rate: 4.8,
+      moq: 50,
+      x: 24,
+    },
+  ],
+  250: [
+    {
+      value: "celebrate_case1",
+      label: "Celebrate 250ML - Case 1",
+      rate: 5.2,
+      moq: 50,
+      x: 18,
+    },
+    {
+      value: "celebrate_case2",
+      label: "Celebrate 250ML - Case 2",
+      rate: 6.1,
+      moq: 50,
+      x: 18,
+    },
+  ],
+} as const;
+
+// ✅ Get categories for selected volume
+const getCategoriesForVolume = (volume: number) => {
+  return CATEGORY_OPTIONS[volume as keyof typeof CATEGORY_OPTIONS] || [];
+};
+
+// ✅ Get category details
+const getCategoryDetails = (volume: number, category: string) => {
+  const categories = getCategoriesForVolume(volume);
+  return categories.find((c) => c.value === category) || categories[0];
+};
+
 // ✅ Memoized Components
-// ✅ Fix the CustomDropdown to handle both string and number values
 const CustomDropdown = memo(
   ({
     label,
@@ -107,8 +160,6 @@ const CustomDropdown = memo(
 
 CustomDropdown.displayName = "CustomDropdown";
 
-CustomDropdown.displayName = "CustomDropdown";
-
 const NumberInput = memo(
   ({
     label,
@@ -116,12 +167,16 @@ const NumberInput = memo(
     onChange,
     min = 1,
     disabled = false,
+    helperText,
+    error,
   }: {
     label: string;
     value: number;
     onChange: (value: number) => void;
     min?: number;
     disabled?: boolean;
+    helperText?: string;
+    error?: string;
   }) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -130,13 +185,35 @@ const NumberInput = memo(
       <input
         type="number"
         value={value}
-        onChange={(e) => onChange(parseInt(e.target.value) || min)}
-        min={min}
+        onChange={(e) => {
+          const inputValue = parseInt(e.target.value);
+          // Allow any input, including empty or below minimum
+          if (isNaN(inputValue) || e.target.value === "") {
+            onChange(0);
+          } else {
+            onChange(inputValue);
+          }
+        }}
+        min={1} // Remove the min restriction for better UX
         disabled={disabled}
-        className={`w-full px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#4A90E2] ${
-          disabled ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        className={`w-full px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 ${
+          error
+            ? "ring-2 ring-red-500 focus:ring-red-500"
+            : "focus:ring-[#4A90E2]"
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       />
+      {helperText && (
+        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+          <Package className="w-3 h-3" />
+          {helperText}
+        </p>
+      )}
+      {error && (
+        <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          {error}
+        </p>
+      )}
     </div>
   )
 );
@@ -156,14 +233,15 @@ ColorSwatch.displayName = "ColorSwatch";
 const LabelPreview = memo(
   ({
     selectedLabel,
-    bottleVariant,
+    category,
+    volume,
   }: {
     selectedLabel?: Label;
-    bottleVariant: string;
+    category: string;
+    volume: number;
   }) => {
-    const variantLabel = BOTTLE_VARIANT_OPTIONS.find(
-      (v) => v.value === bottleVariant
-    )?.label;
+    const categoryDetails = getCategoryDetails(volume, category);
+    const volumeLabel = VOLUME_OPTIONS.find((v) => v.value === volume)?.label;
 
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -179,10 +257,13 @@ const LabelPreview = memo(
                 unoptimized
               />
             </div>
+            <p className="text-lg font-bold text-blue-600 mb-1">
+              {volumeLabel}
+            </p>
             <p className="text-sm font-medium text-gray-900 mb-1">
               {selectedLabel.name || "Unnamed Label"}
             </p>
-            <p className="text-xs text-gray-500">{variantLabel}</p>
+            <p className="text-xs text-gray-500">{categoryDetails?.label}</p>
           </div>
         ) : (
           <div className="text-center py-12">
@@ -190,7 +271,12 @@ const LabelPreview = memo(
             <p className="text-gray-400 font-medium">
               {selectedLabel?.name || "Select a label"}
             </p>
-            <p className="text-sm text-gray-500 mt-2">{variantLabel}</p>
+            <p className="text-sm text-blue-600 font-medium mt-2">
+              {volumeLabel}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              {categoryDetails?.label}
+            </p>
           </div>
         )}
       </div>
@@ -204,26 +290,31 @@ LabelPreview.displayName = "LabelPreview";
 const OrderSummary = memo(
   ({
     selectedLabel,
-    bottleVariant,
+    category,
     quantity,
+    cases,
     capColor,
     volume,
     selectedLabelId,
+    bottlesPerCase,
+    rate,
   }: {
     selectedLabel?: Label;
-    bottleVariant: string;
+    category: string;
     quantity: number;
+    cases: number;
     capColor: string;
     volume: number;
     selectedLabelId: string;
+    bottlesPerCase: number;
+    rate: number;
   }) => {
-    const variantLabel = BOTTLE_VARIANT_OPTIONS.find(
-      (v) => v.value === bottleVariant
-    )?.label;
+    const categoryDetails = getCategoryDetails(volume, category);
     const capColorLabel = CAP_COLOR_OPTIONS.find(
       (c) => c.name === capColor
     )?.displayName;
     const volumeLabel = VOLUME_OPTIONS.find((v) => v.value === volume)?.label;
+    const totalPrice = (quantity * rate).toFixed(2);
 
     return (
       <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
@@ -238,20 +329,44 @@ const OrderSummary = memo(
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Variant:</span>
-            <span className="font-medium text-gray-900">{variantLabel}</span>
+            <span className="text-gray-600">Volume:</span>
+            <span className="font-medium text-blue-600">{volumeLabel}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Quantity:</span>
-            <span className="font-medium text-gray-900">{quantity} pcs</span>
+            <span className="text-gray-600">Category:</span>
+            <span className="font-medium text-gray-900">
+              {categoryDetails?.label}
+            </span>
+          </div>
+          <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+            <span className="text-gray-600">Cases:</span>
+            <span className="font-bold text-lg text-blue-600">
+              {cases} cases
+            </span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-500">Bottles per case (X):</span>
+            <span className="font-medium text-gray-700">{bottlesPerCase}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Total Quantity:</span>
+            <span className="font-medium text-gray-900">
+              {quantity} bottles
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Rate per bottle:</span>
+            <span className="font-medium text-gray-900">₹{rate}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Cap Color:</span>
             <span className="font-medium text-gray-900">{capColorLabel}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Volume:</span>
-            <span className="font-medium text-gray-900">{volumeLabel}</span>
+          <div className="flex justify-between pt-2 border-t border-blue-200">
+            <span className="text-gray-600 font-semibold">
+              Estimated Total:
+            </span>
+            <span className="font-bold text-gray-900">₹{totalPrice}</span>
           </div>
           {selectedLabelId && (
             <div className="flex justify-between pt-2 border-t border-blue-200">
@@ -329,13 +444,40 @@ export default function CreateOrderPage() {
   const labelSelectedRef = useRef(false);
 
   const [selectedLabelId, setSelectedLabelId] = useState<string>("");
-  const [bottleVariant, setBottleVariant] = useState("conical");
+  const [category, setCategory] = useState("classic");
   const [capColor, setCapColor] = useState("red");
-  const [volume, setVolume] = useState(500);
-  const [quantity, setQuantity] = useState(5);
+  const [volume, setVolume] = useState(1000);
+  const [cases, setCases] = useState<number>(() => {
+    const defaultCategory = getCategoriesForVolume(1000)[0];
+    return defaultCategory?.moq || 50;
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+
+  // ✅ Get available categories for current volume
+  const availableCategories = useMemo(() => {
+    return getCategoriesForVolume(volume);
+  }, [volume]);
+
+  // ✅ Get current category details
+  const categoryDetails = useMemo(() => {
+    return getCategoryDetails(volume, category);
+  }, [volume, category]);
+
+  // ✅ Calculate derived values
+  const bottlesPerCase = categoryDetails?.x || 15;
+  const minimumCases = categoryDetails?.moq || 50;
+  const rate = categoryDetails?.rate || 0;
+
+  const quantity = useMemo(() => {
+    return cases * bottlesPerCase;
+  }, [cases, bottlesPerCase]);
+
+  const meetsMOQ = useMemo(() => {
+    return cases >= minimumCases;
+  }, [cases, minimumCases]);
 
   // ✅ Memoized user labels
   const userLabels: Label[] = useMemo(() => {
@@ -346,6 +488,23 @@ export default function CreateOrderPage() {
   const selectedLabel = useMemo(() => {
     return userLabels.find((l) => l.label_id === selectedLabelId);
   }, [userLabels, selectedLabelId]);
+
+  useEffect(() => {
+    const categories = getCategoriesForVolume(volume);
+    if (categories.length > 0) {
+      setCategory(categories[0].value);
+      // Always set cases to the MOQ of the new category
+      setCases(categories[0].moq);
+    }
+  }, [volume]);
+
+  useEffect(() => {
+    const currentCategory = getCategoryDetails(volume, category);
+    if (currentCategory) {
+      // Always set cases to the MOQ when category changes
+      setCases(currentCategory.moq);
+    }
+  }, [category, volume]);
 
   useEffect(() => {
     const shouldLoadProfile =
@@ -400,8 +559,17 @@ export default function CreateOrderPage() {
       return;
     }
 
-    if (quantity <= 0) {
-      setError("Quantity must be greater than 0");
+    if (!meetsMOQ) {
+      setError(
+        `Minimum order quantity is ${minimumCases} cases (${
+          minimumCases * bottlesPerCase
+        } bottles)`
+      );
+      return;
+    }
+
+    if (cases <= 0) {
+      setError("Number of cases must be greater than 0");
       return;
     }
 
@@ -410,7 +578,7 @@ export default function CreateOrderPage() {
     try {
       const orderData: CreateOrderRequest = {
         label_id: selectedLabelId,
-        variant: bottleVariant,
+        variant: category,
         qty: quantity,
         cap_color: capColor,
         volume: volume,
@@ -429,7 +597,18 @@ export default function CreateOrderPage() {
       console.error("❌ Failed to create order:", err);
       setLoading(false);
     }
-  }, [selectedLabelId, quantity, bottleVariant, capColor, volume, router]);
+  }, [
+    selectedLabelId,
+    meetsMOQ,
+    minimumCases,
+    bottlesPerCase,
+    cases,
+    category,
+    quantity,
+    capColor,
+    volume,
+    router,
+  ]);
 
   const handleBack = useCallback(() => {
     router.push("/dashboard");
@@ -552,7 +731,8 @@ export default function CreateOrderPage() {
           <div className="space-y-6">
             <LabelPreview
               selectedLabel={selectedLabel}
-              bottleVariant={bottleVariant}
+              category={category}
+              volume={volume}
             />
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
@@ -592,20 +772,35 @@ export default function CreateOrderPage() {
               </div>
 
               <CustomDropdown
-                label="Bottle Variant"
-                value={bottleVariant}
-                options={BOTTLE_VARIANT_OPTIONS}
-                onSelect={setBottleVariant}
+                label="Volume"
+                value={volume.toString()}
+                options={VOLUME_OPTIONS}
+                onSelect={(v) => setVolume(parseInt(v))}
+                disabled={loading}
+                hasEditIcon={true}
+              />
+
+              <CustomDropdown
+                label="Category"
+                value={category}
+                options={availableCategories}
+                onSelect={setCategory}
                 disabled={loading}
                 hasEditIcon={true}
               />
 
               <NumberInput
-                label="Quantity (pieces)"
-                value={quantity}
-                onChange={setQuantity}
+                label="Number of Cases"
+                value={cases}
+                onChange={setCases}
                 min={1}
                 disabled={loading}
+                helperText={`Quantity = ${bottlesPerCase} × Cases = ${quantity} bottles`}
+                error={
+                  cases > 0 && cases < minimumCases
+                    ? `Minimum ${minimumCases} cases required`
+                    : undefined
+                }
               />
             </div>
           </div>
@@ -618,32 +813,26 @@ export default function CreateOrderPage() {
               loading={loading}
             />
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-              <CustomDropdown
-                label="Volume"
-                value={volume.toString()}
-                options={VOLUME_OPTIONS}
-                onSelect={(v) => setVolume(parseInt(v))}
-                disabled={loading}
-                hasEditIcon={true}
-              />
-            </div>
-
             <OrderSummary
               selectedLabel={selectedLabel}
-              bottleVariant={bottleVariant}
+              category={category}
               quantity={quantity}
+              cases={cases}
               capColor={capColor}
               volume={volume}
               selectedLabelId={selectedLabelId}
+              bottlesPerCase={bottlesPerCase}
+              rate={rate}
             />
 
             <div className="pt-4">
               <button
                 onClick={handleGenerateOrder}
-                disabled={loading || !selectedLabelId || !!createdOrderId}
+                disabled={
+                  loading || !selectedLabelId || !!createdOrderId || !meetsMOQ
+                }
                 className={`w-full py-4 text-lg font-semibold text-white rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${
-                  loading || !selectedLabelId || createdOrderId
+                  loading || !selectedLabelId || createdOrderId || !meetsMOQ
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[#4A90E2] hover:bg-[#357ABD] hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer"
                 }`}
@@ -658,6 +847,12 @@ export default function CreateOrderPage() {
               {!selectedLabelId && userLabels.length > 0 && (
                 <p className="text-xs text-red-500 mt-2 text-center">
                   Please select a label to create an order.
+                </p>
+              )}
+              {!meetsMOQ && selectedLabelId && (
+                <p className="text-xs text-red-500 mt-2 text-center">
+                  Order does not meet minimum quantity requirement (
+                  {minimumCases} cases)
                 </p>
               )}
             </div>
