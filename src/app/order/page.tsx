@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 import {
   ArrowLeft,
   ChevronDown,
@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { orderService, CreateOrderRequest } from "../services/orderService";
 import { useAuth } from "../context/AuthContext";
+import { logoBottles } from "../../../public/images/logo_bottles";
+
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Label {
   label_id?: string;
@@ -52,16 +55,80 @@ const VOLUME_OPTIONS = [
 // ✅ Category/Variant options
 const CATEGORY_OPTIONS = {
   1000: [
-    { value: "classic", label: "Classic", rate: 11, moq: 100, x: 15 },
-    { value: "elite", label: "Elite", rate: 14.25, moq: 50, x: 15 },
-    { value: "exclusive", label: "Exclusive", rate: 15.45, moq: 50, x: 15 },
-    { value: "ultra", label: "Ultra", rate: 16.25, moq: 50, x: 15 },
-    { value: "conical", label: "Conical Premier", rate: 16.95, moq: 50, x: 12 },
+    {
+      value: "classic",
+      label: "Classic",
+      rate: 11,
+      moq: 100,
+      x: 15,
+      icon: logoBottles.classic_1000,
+      ads_logo: logoBottles.classic_1000_ads,
+    },
+    {
+      value: "elite",
+      label: "Elite",
+      rate: 14.25,
+      moq: 50,
+      x: 15,
+      icon: logoBottles.elite_1000,
+      ads_logo: logoBottles.elite_1000_ads,
+    },
+    {
+      value: "exclusive",
+      label: "Exclusive",
+      rate: 15.45,
+      moq: 50,
+      x: 15,
+      icon: logoBottles.exclusive_1000,
+      ads_logo: logoBottles.exclusive_1000_ads,
+    },
+    {
+      value: "ultra",
+      label: "Ultra",
+      rate: 16.25,
+      moq: 50,
+      x: 15,
+      icon: logoBottles.ultra_1000,
+      ads_logo: logoBottles.ultra_1000_ads,
+    },
+    {
+      value: "conical",
+      label: "Conical Premier",
+      rate: 16.95,
+      moq: 50,
+      x: 12,
+      icon: logoBottles.conical_1000,
+      ads_logo: logoBottles.conical_1000_ads,
+    },
   ],
   500: [
-    { value: "classic", label: "Classic", rate: 7.2, moq: 50, x: 24 },
-    { value: "elite", label: "Elite", rate: 8.45, moq: 50, x: 24 },
-    { value: "premier", label: "Premier", rate: 9.75, moq: 50, x: 24 },
+    {
+      value: "classic",
+      label: "Classic",
+      rate: 7.2,
+      moq: 50,
+      x: 24,
+      icon: logoBottles.classic_500,
+      ads_logo: logoBottles.classic_500_ads,
+    },
+    {
+      value: "elite",
+      label: "Elite",
+      rate: 8.45,
+      moq: 50,
+      x: 24,
+      icon: logoBottles.elite_500,
+      ads_logo: logoBottles.elite_500_ads,
+    },
+    {
+      value: "premier",
+      label: "Premier",
+      rate: 9.75,
+      moq: 50,
+      x: 24,
+      icon: logoBottles.elite_500,
+      ads_logo: logoBottles.elite_500_ads,
+    },
   ],
   200: [
     {
@@ -70,6 +137,8 @@ const CATEGORY_OPTIONS = {
       rate: 3.9,
       moq: 50,
       x: 24,
+      icon: logoBottles.classic_200,
+      ads_logo: logoBottles.classic_200_ads,
     },
     {
       value: "classic_case2",
@@ -77,6 +146,8 @@ const CATEGORY_OPTIONS = {
       rate: 4.8,
       moq: 50,
       x: 24,
+      icon: logoBottles.classic_200,
+      ads_logo: logoBottles.classic_200_ads,
     },
   ],
   250: [
@@ -86,6 +157,8 @@ const CATEGORY_OPTIONS = {
       rate: 5.2,
       moq: 50,
       x: 18,
+      icon: logoBottles.celeb_250,
+      ads_logo: logoBottles.celeb_250,
     },
     {
       value: "celebrate_case2",
@@ -93,6 +166,8 @@ const CATEGORY_OPTIONS = {
       rate: 6.1,
       moq: 50,
       x: 18,
+      icon: logoBottles.celeb_250,
+      ads_logo: logoBottles.celeb_250,
     },
   ],
 } as const;
@@ -165,7 +240,7 @@ const NumberInput = memo(
     label,
     value,
     onChange,
-    min = 1,
+
     disabled = false,
     helperText,
     error,
@@ -229,6 +304,73 @@ const ColorSwatch = memo(({ color }: { color: string }) => (
 
 ColorSwatch.displayName = "ColorSwatch";
 
+const LabelSlider = ({
+  image1,
+  image2,
+  alt1,
+  alt2,
+}: {
+  image1: StaticImageData;
+  image2: StaticImageData;
+  alt1?: string;
+  alt2?: string;
+}) => {
+  const [showFirst, setShowFirst] = useState(true);
+
+  useEffect(() => {
+    // reset to first image whenever URLs change
+    setShowFirst(true);
+
+    const timer = setTimeout(() => {
+      setShowFirst(false);
+    }, 1000); // 1 second
+
+    return () => clearTimeout(timer);
+  }, [image1, image2]);
+
+  return (
+    <div className="w-full aspect-[4/3] mx-auto mb-4 relative overflow-hidden">
+      <AnimatePresence mode="wait">
+        {showFirst ? (
+          <motion.div
+            key="first"
+            initial={{ x: 0, opacity: 1 }}
+            exit={{ x: -50, opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={image1}
+              alt={alt1 || "Label 1"}
+              fill
+              className="object-contain"
+              sizes="128px"
+              unoptimized
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="second"
+            initial={{ x: 50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={image2}
+              alt={alt2 || "Label 2"}
+              fill
+              className="object-contain"
+              sizes="128px"
+              unoptimized
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // ✅ Memoized Label Preview
 const LabelPreview = memo(
   ({
@@ -244,41 +386,18 @@ const LabelPreview = memo(
     const volumeLabel = VOLUME_OPTIONS.find((v) => v.value === volume)?.label;
 
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        {selectedLabel?.label_url ? (
-          <div className="text-center">
-            <div className="w-32 h-32 mx-auto mb-4 relative">
-              <Image
-                src={selectedLabel.label_url}
-                alt={selectedLabel.name || "Label"}
-                fill
-                className="object-contain"
-                sizes="128px"
-                unoptimized
-              />
-            </div>
-            <p className="text-lg font-bold text-blue-600 mb-1">
-              {volumeLabel}
-            </p>
-            <p className="text-sm font-medium text-gray-900 mb-1">
-              {selectedLabel.name || "Unnamed Label"}
-            </p>
-            <p className="text-xs text-gray-500">{categoryDetails?.label}</p>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <Tag className="w-16 h-16 text-gray-300 mb-3 mx-auto" />
-            <p className="text-gray-400 font-medium">
-              {selectedLabel?.name || "Select a label"}
-            </p>
-            <p className="text-sm text-blue-600 font-medium mt-2">
-              {volumeLabel}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {categoryDetails?.label}
-            </p>
-          </div>
-        )}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+        <div className="text-center">
+          <LabelSlider
+            image1={categoryDetails?.icon}
+            image2={categoryDetails?.ads_logo}
+          />
+          <p className="text-lg font-bold text-blue-600 mb-1">{volumeLabel}</p>
+          <p className="text-sm font-medium text-gray-900 mb-1">
+            {selectedLabel?.name || "Unnamed Label"}
+          </p>
+          <p className="text-xs text-gray-500">{categoryDetails?.label}</p>
+        </div>
       </div>
     );
   }

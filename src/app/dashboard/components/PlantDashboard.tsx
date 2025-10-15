@@ -6,7 +6,6 @@ import { useAuth } from "@/app/context/AuthContext";
 import { plantService } from "@/app/services/plantService";
 import type { AllOrderModel } from "@/app/services/adminService";
 import {
-  Calendar,
   Clock,
   CheckCircle,
   Loader2,
@@ -54,7 +53,7 @@ const OrderCard = memo<OrderCardProps>(
       const hasDeadline = !plantService.isZeroDate(order.deadline);
       const deadlineDateTime = hasDeadline
         ? plantService.formatDeadlineDateTime(order.deadline)
-        : '';
+        : "";
 
       return {
         hasDeadline,
@@ -105,7 +104,10 @@ const OrderCard = memo<OrderCardProps>(
             {/* Deadline - just date and time */}
             {deadlineInfo.hasDeadline && (
               <p className="text-xs sm:text-sm text-gray-600">
-                Deadline: <span className="text-red-600 font-medium">{deadlineInfo.deadlineDateTime}</span>
+                Deadline:{" "}
+                <span className="text-red-600 font-medium">
+                  {deadlineInfo.deadlineDateTime}
+                </span>
               </p>
             )}
 
@@ -200,7 +202,6 @@ const OrderCard = memo<OrderCardProps>(
 );
 
 OrderCard.displayName = "OrderCard";
-
 
 // ✅ Reusable OrderSection component
 interface OrderSectionProps {

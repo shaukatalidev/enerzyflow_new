@@ -207,7 +207,6 @@ export interface SaveLabelDetailsResponse {
   message: string;
 }
 
-export interface GetLabelDetailsResponse extends OrderLabelDetails {}
 
 // ✅ OPTIMIZATION: Move constant maps outside class
 const STATUS_DISPLAY_MAP: Record<string, string> = {
@@ -555,13 +554,13 @@ class AdminService {
     }
   }
 
-  async getOrderLabelDetails(orderId: string): Promise<GetLabelDetailsResponse | null> {
+  async getOrderLabelDetails(orderId: string): Promise<OrderLabelDetails | null> {
     try {
       if (!orderId) {
         throw new Error('Order ID is required');
       }
 
-      const response = await axiosInstance.get<GetLabelDetailsResponse>(
+      const response = await axiosInstance.get<OrderLabelDetails>(
         `/orders/${orderId}/label`
       );
       return response.data;
@@ -650,21 +649,21 @@ class AdminService {
     if (!deadlineString || this.isZeroDate(deadlineString)) {
       return 'No deadline set';
     }
-    
+
     const deadline = new Date(deadlineString);
-    
+
     const dateStr = deadline.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
     });
-    
+
     const timeStr = deadline.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
-    
+
     return `${dateStr}, ${timeStr}`;
   }
 
@@ -673,16 +672,16 @@ class AdminService {
     if (!deadlineString || this.isZeroDate(deadlineString)) {
       return { text: '', color: '' };
     }
-    
+
     const deadline = new Date(deadlineString);
     const now = new Date();
     const diffTime = deadline.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / MS_PER_DAY);
-    
+
     if (diffDays < 0) {
-      return { 
-        text: `Overdue by ${Math.abs(diffDays)} days`, 
-        color: 'text-red-600' 
+      return {
+        text: `Overdue by ${Math.abs(diffDays)} days`,
+        color: 'text-red-600'
       };
     } else if (diffDays === 0) {
       return { text: 'Due today', color: 'text-orange-600' };
@@ -746,21 +745,21 @@ class AdminService {
     if (!dateString || this.isZeroDate(dateString)) {
       return 'Not set';
     }
-    
+
     const date = new Date(dateString);
-    
+
     const dateStr = date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
     });
-    
+
     const timeStr = date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
-    
+
     return `${dateStr}, ${timeStr}`;
   }
 
@@ -791,21 +790,21 @@ class AdminService {
     if (!deadlineString || this.isZeroDate(deadlineString)) {
       return '';
     }
-    
+
     const deadline = new Date(deadlineString);
-    
+
     const dateStr = deadline.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
     });
-    
+
     const timeStr = deadline.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
-    
+
     return `${dateStr}, ${timeStr}`;
   }
 

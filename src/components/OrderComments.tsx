@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, Send, Loader2, User, Info } from 'lucide-react';
-import { adminService, OrderComment } from '@/app/services/adminService';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { MessageSquare, Send, Loader2, User, Info } from "lucide-react";
+import { adminService, OrderComment } from "@/app/services/adminService";
+import toast from "react-hot-toast";
 
 interface OrderCommentsProps {
   orderId: string;
@@ -12,14 +13,14 @@ interface OrderCommentsProps {
   readOnly?: boolean;
 }
 
-const OrderComments: React.FC<OrderCommentsProps> = ({ 
-  orderId, 
+const OrderComments: React.FC<OrderCommentsProps> = ({
+  orderId,
   userRole,
-  onClose,
+
   readOnly = false,
 }) => {
   const [comments, setComments] = useState<OrderComment[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -31,33 +32,33 @@ const OrderComments: React.FC<OrderCommentsProps> = ({
       try {
         setLoading(true);
         const response = await adminService.getOrderComments(orderId);
-        
+
         if (isMounted) {
           setComments(response.comments || []);
         }
       } catch (error) {
-        console.error('Failed to fetch comments:', error);
-        
+        console.error("Failed to fetch comments:", error);
+
         // ✅ Better error handling with status code check
-        if (error && typeof error === 'object' && 'response' in error) {
+        if (error && typeof error === "object" && "response" in error) {
           const response = (error as any).response;
-          
+
           if (response?.status === 403) {
             if (isMounted) {
-              toast.error('You do not have permission to view comments');
+              toast.error("You do not have permission to view comments");
             }
           } else if (response?.status === 404) {
             if (isMounted) {
               // Order not found or no comments - not an error
-              console.log('No comments found for this order');
+              console.log("No comments found for this order");
             }
           } else {
             if (isMounted) {
-              toast.error('Failed to load comments');
+              toast.error("Failed to load comments");
             }
           }
         } else if (isMounted) {
-          toast.error('Failed to load comments');
+          toast.error("Failed to load comments");
         }
       } finally {
         if (isMounted) {
@@ -72,45 +73,46 @@ const OrderComments: React.FC<OrderCommentsProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [orderId]); 
+  }, [orderId]);
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newComment.trim()) {
-      toast.error('Comment cannot be empty');
+      toast.error("Comment cannot be empty");
       return;
     }
 
     try {
       setSubmitting(true);
       await adminService.addOrderComment(orderId, newComment.trim());
-      toast.success('Comment added successfully');
-      setNewComment('');
-      
+      toast.success("Comment added successfully");
+      setNewComment("");
+
       // ✅ Refetch comments after adding
       const response = await adminService.getOrderComments(orderId);
       setComments(response.comments || []);
     } catch (error) {
-      console.error('Failed to add comment:', error);
-      
+      console.error("Failed to add comment:", error);
+
       // ✅ Better error messages
-      if (error && typeof error === 'object' && 'response' in error) {
+      if (error && typeof error === "object" && "response" in error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response = (error as any).response;
-        
+
         if (response?.status === 403) {
-          toast.error('You do not have permission to add comments');
+          toast.error("You do not have permission to add comments");
         } else if (response?.data?.error) {
           toast.error(response.data.error);
         } else if (response?.data?.message) {
           toast.error(response.data.message);
         } else {
-          toast.error('Failed to add comment');
+          toast.error("Failed to add comment");
         }
       } else if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error('Failed to add comment');
+        toast.error("Failed to add comment");
       }
     } finally {
       setSubmitting(false);
@@ -132,7 +134,7 @@ const OrderComments: React.FC<OrderCommentsProps> = ({
             )}
           </div>
           <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-            {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+            {comments.length} {comments.length === 1 ? "comment" : "comments"}
           </span>
         </div>
         <p className="text-xs text-blue-100 mt-1">
@@ -207,9 +209,9 @@ const OrderComments: React.FC<OrderCommentsProps> = ({
                 View-Only Mode
               </p>
               <p className="text-xs text-blue-700 mt-1">
-                {userRole === 'admin' 
-                  ? 'You are viewing comments from printing and plant teams. Admin users cannot add comments.'
-                  : 'This order is completed. Comments are view-only.'}
+                {userRole === "admin"
+                  ? "You are viewing comments from printing and plant teams. Admin users cannot add comments."
+                  : "This order is completed. Comments are view-only."}
               </p>
             </div>
           </div>
