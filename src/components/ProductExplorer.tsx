@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
-import { products, categories, Product } from '@/data/products';
-import { useRouter } from 'next/navigation'; 
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { products, categories, Product } from "@/data/products";
+import { useRouter } from "next/navigation";
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -29,13 +29,24 @@ const ImageModal: React.FC<ImageModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center animate-fadeIn">
       <div className="relative w-full h-full flex items-center justify-center p-4">
-        <button onClick={onClose} className="absolute top-4 right-4 text-white hover:text-gray-300 z-20">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white hover:text-gray-300 z-20"
+        >
           <X size={32} />
         </button>
-        <button onClick={onPrev} className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 z-20" disabled={images.length <= 1}>
+        <button
+          onClick={onPrev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 z-20"
+          disabled={images.length <= 1}
+        >
           <ChevronLeft size={48} />
         </button>
-        <button onClick={onNext} className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 z-20" disabled={images.length <= 1}>
+        <button
+          onClick={onNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 z-20"
+          disabled={images.length <= 1}
+        >
           <ChevronRight size={48} />
         </button>
         <div className="relative w-full max-w-4xl h-full max-h-[90vh]">
@@ -62,8 +73,8 @@ const ImageModal: React.FC<ImageModalProps> = ({
 
 // --- Main ProductExplorer component ---
 const ProductExplorer: React.FC = () => {
-  const router = useRouter(); 
-  const [activeCategory, setActiveCategory] = useState<string>('');
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState<string>("");
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalImageIndex, setModalImageIndex] = useState(0);
@@ -74,8 +85,8 @@ const ProductExplorer: React.FC = () => {
   }, []);
 
   // Filter products - exclude "All Bottles" from individual category buttons
-  const categoryButtons = categories.filter(cat => cat !== "All Bottles");
-  
+  const categoryButtons = categories.filter((cat) => cat !== "All Bottles");
+
   const filteredProducts = activeCategory
     ? products.filter((product) => product.category === activeCategory)
     : products;
@@ -129,10 +140,10 @@ const ProductExplorer: React.FC = () => {
     return (
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl font-bold text-gray-800 mb-8">
-              Explore our Bottles
-            </h2>
-            <div className="text-gray-500">Loading...</div>
+          <h2 className="text-4xl font-bold text-gray-800 mb-8">
+            Explore our Bottles
+          </h2>
+          <div className="text-gray-500">Loading...</div>
         </div>
       </section>
     );
@@ -148,15 +159,15 @@ const ProductExplorer: React.FC = () => {
           </h2>
           <div className="flex flex-wrap justify-center gap-8 mb-12">
             <button
-              onClick={() => handleCategoryChange('')}
+              onClick={() => handleCategoryChange("")}
               className={`px-2 py-2 font-medium transition-colors relative ${
-                activeCategory === ''
-                  ? 'text-gray-900'
-                  : 'text-gray-600 hover:text-gray-800'
+                activeCategory === ""
+                  ? "text-gray-900"
+                  : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              All Bottles
-              {activeCategory === '' && (
+              All Products
+              {activeCategory === "" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
               )}
             </button>
@@ -166,8 +177,8 @@ const ProductExplorer: React.FC = () => {
                 onClick={() => handleCategoryChange(category)}
                 className={`px-2 py-2 font-medium transition-colors relative ${
                   activeCategory === category
-                    ? 'text-gray-900'
-                    : 'text-gray-600 hover:text-gray-800'
+                    ? "text-gray-900"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 {category}
@@ -200,34 +211,40 @@ const ProductExplorer: React.FC = () => {
           {/* Products Grid */}
           <div className="overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
-              {getCurrentSlideProducts().map((product: Product, index: number) => (
-                <div key={product.id} className="group text-center">
-                  {/* Image container */}
-                  <div
-                    className="relative w-full max-w-xs bg-gray-50 rounded-lg cursor-pointer mx-auto overflow-hidden"
-                    style={{ aspectRatio: '3/4' }}
-                    onClick={() => openModal(index)}
-                  >
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      sizes="(max-width: 768px) 80vw, 300px"
-                    />
-                    {/* Zoom icon overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <ZoomIn
-                        size={32}
-                        className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded-full p-1"
+              {getCurrentSlideProducts().map(
+                (product: Product, index: number) => (
+                  <div key={product.id} className="group text-center">
+                    {/* Image container */}
+                    <div
+                      className="relative w-full max-w-xs bg-gray-50 rounded-lg cursor-pointer mx-auto overflow-hidden"
+                      style={{ aspectRatio: "3/4" }}
+                      onClick={() => openModal(index)}
+                    >
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 768px) 80vw, 300px"
                       />
+                      {/* Zoom icon overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <ZoomIn
+                          size={32}
+                          className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded-full p-1"
+                        />
+                      </div>
                     </div>
+                    {/* Product Info */}
+                    <h3 className="text-lg font-semibold text-gray-800 mt-4">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mt-1">
+                      {product.details}
+                    </p>
                   </div>
-                  {/* Product Info */}
-                  <h3 className="text-lg font-semibold text-gray-800 mt-4">{product.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{product.details}</p>
-                </div>
-              ))}
+                )
+              )}
               {/* Invisible placeholders to maintain grid layout */}
               {getCurrentSlideProducts().length < itemsPerSlide &&
                 Array.from({
@@ -246,7 +263,7 @@ const ProductExplorer: React.FC = () => {
                   key={index}
                   onClick={() => setCurrentSlide(index)}
                   className={`w-3 h-3 rounded-full transition-colors ${
-                    index === currentSlide ? 'bg-gray-800' : 'bg-gray-300'
+                    index === currentSlide ? "bg-gray-800" : "bg-gray-300"
                   }`}
                 />
               ))}
@@ -256,12 +273,12 @@ const ProductExplorer: React.FC = () => {
 
         {/* "Explore All Bottles" Button */}
         <div className="text-center mt-16">
-            <button 
-              onClick={() => router.push('/products')} 
-              className="px-8 py-3 bg-white border border-gray-400 text-gray-800 font-medium rounded-full hover:bg-gray-50 transition-colors duration-300"
-            >
-                Explore All Bottles
-            </button>
+          <button
+            onClick={() => router.push("/products")}
+            className="px-8 py-3 bg-white border border-gray-400 text-gray-800 font-medium rounded-full hover:bg-gray-50 transition-colors duration-300"
+          >
+            Explore All Bottles
+          </button>
         </div>
       </div>
 
