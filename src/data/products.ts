@@ -18,35 +18,35 @@ export const products: Product[] = [
     name: "Classic 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.classic_1000,
-    details: "Rate: ₹11 | MOQ: 100"
+    details: "Timeless classic design"
   },
   {
     id: 2,
     name: "Elite 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.elite_1000,
-    details: "Rate: ₹14.25 | MOQ: 50"
+    details: "Premium sleek look"
   },
   {
     id: 3,
     name: "Exclusive 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.exclusive_1000,
-    details: "Rate: ₹15.45 | MOQ: 50"
+    details: "Refined high-end style"
   },
   {
     id: 4,
     name: "Ultra 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.ultra_1000,
-    details: "Rate: ₹16.25 | MOQ: 50"
+    details: "Bold durable build"
   },
   {
     id: 5,
     name: "Conical Premier 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.conical_1000,
-    details: "Rate: ₹16.95 | MOQ: 50"
+    details: "Modern conical shape"
   },
 
   // -------------------------
@@ -57,21 +57,21 @@ export const products: Product[] = [
     name: "Classic 500ML",
     category: "500 ml Collection",
     image: logoBottles.classic_500,
-    details: "Rate: ₹7.2 | MOQ: 50"
+    details: "Simple everyday bottle"
   },
   {
     id: 7,
     name: "Elite 500ML",
     category: "500 ml Collection",
     image: logoBottles.elite_500,
-    details: "Rate: ₹8.45 | MOQ: 50"
+    details: "Compact premium feel"
   },
   {
     id: 8,
     name: "Premier 500ML",
     category: "500 ml Collection",
-    image: logoBottles.elite_500, // you reused same icon
-    details: "Rate: ₹9.75 | MOQ: 50"
+    image: logoBottles.elite_500,
+    details: "Elegant compact profile"
   },
 
   // -------------------------
@@ -82,14 +82,14 @@ export const products: Product[] = [
     name: "Classic 200ML - Case 1",
     category: "200 ml Collection",
     image: logoBottles.classic_200,
-    details: "Rate: ₹3.9 | MOQ: 50"
+    details: "Portable mini size"
   },
   {
     id: 10,
     name: "Classic 200ML - Case 2",
     category: "200 ml Collection",
     image: logoBottles.classic_200,
-    details: "Rate: ₹4.8 | MOQ: 50"
+    details: "Handy travel bottle"
   },
 
   // -------------------------
@@ -100,16 +100,17 @@ export const products: Product[] = [
     name: "Celebrate 250ML - Case 1",
     category: "250 ml Collection",
     image: logoBottles.celeb_250,
-    details: "Rate: ₹5.2 | MOQ: 50"
+    details: "Trendy vibrant style"
   },
   {
     id: 12,
     name: "Celebrate 250ML - Case 2",
     category: "250 ml Collection",
     image: logoBottles.celeb_250,
-    details: "Rate: ₹6.1 | MOQ: 50"
+    details: "Festive modern design"
   }
 ];
+
 
 export const CATEGORY_OPTIONS = {
   1000: [
