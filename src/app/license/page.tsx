@@ -3,39 +3,31 @@ import React from "react";
 const licenseData = [
   {
     srNo: "01",
-    unitName: "EnerzyFlow Beverages Pvt. Ltd.",
-    fssai: "11223344556677",
-    bis: "CM/L-1234567890",
-    bisStandard: "(IS 14543:2016)",
-    address:
-      "Plot No. 21, Industrial Area, MIDC, Pune, Maharashtra – 411038, India",
+    unitName: "MANGALVANI COMMODITIES PVT. LTD.",
+    fssai: "12822999000357",
+    bis: "N/A",
+    bisStandard: "N/A",
+    address: "Srirampur, P.O. Hanral, P.S. Dadpur Dist. Hooghly 712149",
+    code: "MG",
   },
   {
     srNo: "02",
-    unitName: "EnerzyFlow Beverages Pvt. Ltd.",
-    fssai: "11223344556677",
-    bis: "CM/L-1234567890",
-    bisStandard: "(IS 14543:2016)",
+    unitName: "CANNABIS BEVERAGES LLP",
+    fssai: "12818019004753",
+    bis: "CML- 5100139886",
+    bisStandard: "IS 15490:2004",
     address:
-      "Plot No. 21, Industrial Area, MIDC, Pune, Maharashtra – 411038, India",
+      "6, BUROSHIBTOLA MAIN ROAD, WARD NO-117, KOLKATA:-700038, West Bengal",
+    code: "CB",
   },
   {
     srNo: "03",
-    unitName: "EnerzyFlow Beverages Pvt. Ltd.",
-    fssai: "11223344556677",
-    bis: "CM/L-1234567890",
-    bisStandard: "(IS 14543:2016)",
-    address:
-      "Plot No. 21, Industrial Area, MIDC, Pune, Maharashtra – 411038, India",
-  },
-  {
-    srNo: "04",
-    unitName: "EnerzyFlow Beverages Pvt. Ltd.",
-    fssai: "11223344556677",
-    bis: "CM/L-1234567890",
-    bisStandard: "(IS 14543:2016)",
-    address:
-      "Plot No. 21, Industrial Area, MIDC, Pune, Maharashtra – 411038, India",
+    unitName: "ADN Distillaries Pvt. Ltd.",
+    fssai: "12821999000288",
+    bis: "CML-5100196898",
+    bisStandard: "IS 14543",
+    address: "Dhabani, Kharagpur, Paschim Medinipur, West Bengal, 721145",
+    code: "",
   },
 ];
 
@@ -81,15 +73,22 @@ const LicensesPage = () => {
 
               <tbody className="divide-y divide-gray-200">
                 {licenseData.map((item) => (
-                  <tr key={item.srNo} className="text-gray-700 hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={item.srNo}
+                    className="text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
                     <td className="p-4 font-bold text-gray-800 border-r">
                       {item.srNo}
                     </td>
                     <td className="p-4 border-r">{item.unitName}</td>
-                    <td className="p-4 border-r font-mono text-sm">{item.fssai}</td>
+                    <td className="p-4 border-r font-mono text-sm">
+                      {item.fssai}
+                    </td>
                     <td className="p-4 border-r">
                       <div>{item.bis}</div>
-                      <div className="text-sm text-gray-600">{item.bisStandard}</div>
+                      <div className="text-sm text-gray-600">
+                        {item.bisStandard}
+                      </div>
                     </td>
                     <td className="p-4">{item.address}</td>
                   </tr>
