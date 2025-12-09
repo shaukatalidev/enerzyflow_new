@@ -7,7 +7,7 @@ const licenseData = [
     fssai: "12822999000357",
     bis: "N/A",
     bisStandard: "N/A",
-    address: "Srirampur, P.O. Hanral, P.S. Dadpur Dist. Hooghly 712149",
+    address: "Vill.: Srirampur, P.O. Hanral, P.S. Dadpur Dist. Hooghly 712149",
     code: "MG",
   },
   {
@@ -27,7 +27,7 @@ const licenseData = [
     bis: "CML-5100196898",
     bisStandard: "IS 14543",
     address: "Dhabani, Kharagpur, Paschim Medinipur, West Bengal, 721145",
-    code: "",
+    code: "AD",
   },
 ];
 
@@ -56,6 +56,9 @@ const LicensesPage = () => {
                   <th className="p-4 text-left font-semibold text-black border-r min-w-[80px]">
                     Sr No.
                   </th>
+                  <th className="p-4 text-left font-semibold text-black border-r min-w-[80px]">
+                    Code
+                  </th>
                   <th className="p-4 text-left font-semibold text-black border-r min-w-[200px]">
                     Manufacturing unit name
                   </th>
@@ -80,6 +83,7 @@ const LicensesPage = () => {
                     <td className="p-4 font-bold text-gray-800 border-r">
                       {item.srNo}
                     </td>
+                    <td className="p-4 border-r">{item.code}</td>
                     <td className="p-4 border-r">{item.unitName}</td>
                     <td className="p-4 border-r font-mono text-sm">
                       {item.fssai}
