@@ -7,7 +7,12 @@ export interface Product {
   category: string;
   image: StaticImageData;
   details: string;
+  gallery?: StaticImageData[];   // ⭐ Added for auto-swiper
 }
+
+// --------------------------------------------------
+// PRODUCTS
+// --------------------------------------------------
 
 export const products: Product[] = [
   // -------------------------
@@ -18,35 +23,42 @@ export const products: Product[] = [
     name: "Classic 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.classic_1000,
-    details: "Timeless classic design"
+    details: "Timeless classic design",
   },
+
+  // ⭐ THIS IS MIDDLE BOTTLE → AUTO SWIPE ENABLED
   {
     id: 2,
     name: "Elite 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.elite_1000,
-    details: "Premium sleek look"
+    gallery: [
+      logoBottles.elite_1000,        // image 1
+      logoBottles.elite_1000_ads,    // image 2
+    ],
+    details: "Premium sleek look",
   },
+
   {
     id: 3,
     name: "Exclusive 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.exclusive_1000,
-    details: "Refined high-end style"
+    details: "Refined high-end style",
   },
   {
     id: 4,
     name: "Ultra 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.ultra_1000,
-    details: "Bold durable build"
+    details: "Bold durable build",
   },
   {
     id: 5,
     name: "Conical Premier 1000ML",
     category: "1 Litre Collection",
     image: logoBottles.conical_1000,
-    details: "Modern conical shape"
+    details: "Modern conical shape",
   },
 
   // -------------------------
@@ -57,21 +69,21 @@ export const products: Product[] = [
     name: "Classic 500ML",
     category: "500 ml Collection",
     image: logoBottles.classic_500,
-    details: "Simple everyday bottle"
+    details: "Simple everyday bottle",
   },
   {
     id: 7,
     name: "Elite 500ML",
     category: "500 ml Collection",
     image: logoBottles.elite_500,
-    details: "Compact premium feel"
+    details: "Compact premium feel",
   },
   {
     id: 8,
     name: "Premier 500ML",
     category: "500 ml Collection",
     image: logoBottles.elite_500,
-    details: "Elegant compact profile"
+    details: "Elegant compact profile",
   },
 
   // -------------------------
@@ -79,38 +91,29 @@ export const products: Product[] = [
   // -------------------------
   {
     id: 9,
-    name: "Classic 200ML - Case 1",
+    name: "Classic 200ML ",
     category: "200 ml Collection",
     image: logoBottles.classic_200,
-    details: "Portable mini size"
+    details: "Portable mini size",
   },
-  {
-    id: 10,
-    name: "Classic 200ML - Case 2",
-    category: "200 ml Collection",
-    image: logoBottles.classic_200,
-    details: "Handy travel bottle"
-  },
+ 
 
   // -------------------------
   // 250 ML
   // -------------------------
   {
     id: 11,
-    name: "Celebrate 250ML - Case 1",
+    name: "Celebrate 250ML ",
     category: "250 ml Collection",
     image: logoBottles.celeb_250,
-    details: "Trendy vibrant style"
+    details: "Trendy vibrant style",
   },
-  {
-    id: 12,
-    name: "Celebrate 250ML - Case 2",
-    category: "250 ml Collection",
-    image: logoBottles.celeb_250,
-    details: "Festive modern design"
-  }
+ 
 ];
 
+// --------------------------------------------------
+// CATEGORY OPTIONS
+// --------------------------------------------------
 
 export const CATEGORY_OPTIONS = {
   1000: [
@@ -160,6 +163,7 @@ export const CATEGORY_OPTIONS = {
       ads_logo: logoBottles.conical_1000_ads,
     },
   ],
+
   500: [
     {
       value: "classic",
@@ -189,51 +193,41 @@ export const CATEGORY_OPTIONS = {
       ads_logo: logoBottles.elite_500_ads,
     },
   ],
+
   200: [
     {
-      value: "classic_case1",
-      label: "Classic 200ML - Case 1",
+      value: "classic",
+      label: "Classic 200ML ",
       rate: 3.9,
       moq: 50,
       x: 24,
       icon: logoBottles.classic_200,
       ads_logo: logoBottles.classic_200_ads,
     },
-    {
-      value: "classic_case2",
-      label: "Classic 200ML - Case 2",
-      rate: 4.8,
-      moq: 50,
-      x: 24,
-      icon: logoBottles.classic_200,
-      ads_logo: logoBottles.classic_200_ads,
-    },
+    
   ],
+
   250: [
     {
-      value: "celebrate_case1",
-      label: "Celebrate 250ML - Case 1",
+      value: "celebrate",
+      label: "Celebrate 250ML ",
       rate: 5.2,
       moq: 50,
       x: 18,
       icon: logoBottles.celeb_250,
       ads_logo: logoBottles.celeb_250,
     },
-    {
-      value: "celebrate_case2",
-      label: "Celebrate 250ML - Case 2",
-      rate: 6.1,
-      moq: 50,
-      x: 18,
-      icon: logoBottles.celeb_250,
-      ads_logo: logoBottles.celeb_250,
-    },
+    
   ],
 } as const;
-export const categories = [
 
+// --------------------------------------------------
+// CATEGORY LIST
+// --------------------------------------------------
+
+export const categories = [
   "1 Litre Collection",
   "500 ml Collection",
   "200 ml Collection",
-  "250 ml Collection"
+  "250 ml Collection",
 ];

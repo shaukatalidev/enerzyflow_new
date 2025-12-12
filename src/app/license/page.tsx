@@ -8,7 +8,7 @@ const licenseData = [
     bis: "N/A",
     bisStandard: "N/A",
     address: "Vill.: Srirampur, P.O. Hanral, P.S. Dadpur Dist. Hooghly 712149",
-    code: "MG",
+    code: "RK",
   },
   {
     srNo: "02",
