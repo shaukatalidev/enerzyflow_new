@@ -27,7 +27,7 @@ const Hero = () => {
           className="
             w-full
             h-full
-            object-cover     /* Makes video responsive */
+            object-cover     
             md:object-contain
           "
           autoPlay

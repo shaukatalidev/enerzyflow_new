@@ -7,7 +7,8 @@ export interface Product {
   category: string;
   image: StaticImageData;
   details: string;
-  gallery?: StaticImageData[];   // ⭐ Added for auto-swiper
+
+  gallery?: StaticImageData[]; 
 }
 
 // --------------------------------------------------
@@ -19,12 +20,18 @@ export const products: Product[] = [
   // 1000 ML
   // -------------------------
   {
-    id: 1,
-    name: "Classic 1000ML",
-    category: "1 Litre Collection",
-    image: logoBottles.classic_1000,
-    details: "Timeless classic design",
-  },
+  id: 1,
+  name: "Classic 1000ML",
+  category: "1 Litre Collection",
+  image: logoBottles.classic_1000,
+ 
+  gallery: [
+    logoBottles.classic_1000,
+    logoBottles.classic_1000_ads,
+     
+  ],
+  details: "Timeless classic design",
+},
 
   // ⭐ THIS IS MIDDLE BOTTLE → AUTO SWIPE ENABLED
   {
@@ -33,8 +40,8 @@ export const products: Product[] = [
     category: "1 Litre Collection",
     image: logoBottles.elite_1000,
     gallery: [
-      logoBottles.elite_1000,        // image 1
-      logoBottles.elite_1000_ads,    // image 2
+      logoBottles.elite_1000,        
+      logoBottles.elite_1000_ads,    
     ],
     details: "Premium sleek look",
   },
@@ -79,12 +86,13 @@ export const products: Product[] = [
     details: "Compact premium feel",
   },
   {
-    id: 8,
-    name: "Premier 500ML",
-    category: "500 ml Collection",
-    image: logoBottles.elite_500,
-    details: "Elegant compact profile",
-  },
+  id: 8,
+  name: "Premier 500ML",
+  category: "500 ml Collection",
+  image: logoBottles.elite_500,
+  details: "Elegant compact profile",
+},
+
 
   // -------------------------
   // 200 ML

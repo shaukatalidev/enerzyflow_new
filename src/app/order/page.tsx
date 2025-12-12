@@ -140,15 +140,7 @@ const CATEGORY_OPTIONS = {
       icon: logoBottles.classic_200,
       ads_logo: logoBottles.classic_200_ads,
     },
-    {
-      value: "classic_case2",
-      label: "Classic 200ML - Case 2",
-      rate: 4.8,
-      moq: 50,
-      x: 24,
-      icon: logoBottles.classic_200,
-      ads_logo: logoBottles.classic_200_ads,
-    },
+   
   ],
   250: [
     {
@@ -160,15 +152,7 @@ const CATEGORY_OPTIONS = {
       icon: logoBottles.celeb_250,
       ads_logo: logoBottles.celeb_250,
     },
-    {
-      value: "celebrate_case2",
-      label: "Celebrate 250ML - Case 2",
-      rate: 6.1,
-      moq: 50,
-      x: 18,
-      icon: logoBottles.celeb_250,
-      ads_logo: logoBottles.celeb_250,
-    },
+   
   ],
 } as const;
 

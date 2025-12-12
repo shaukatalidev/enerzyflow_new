@@ -1,19 +1,24 @@
 'use client';
 
-const Solution = () => {
+import React from "react";
+
+export default function Solution() {
   return (
-    <section className="w-full h-[80vh] flex items-center justify-center bg-gray-900 px-4">
-      <div className="text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-white">
-          Solutions
-        </h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 sm:p-10">
+      <h1 className="text-3xl sm:text-5xl font-bold mb-6 sm:mb-8 text-center">
+        Coming Soon
+      </h1>
 
-        <p className="mt-4 text-xl md:text-2xl text-gray-300">
-          Coming Soon...
-        </p>
-      </div>
-    </section>
+      <video
+        src="/images/hero/vd1.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="w-full sm:max-w-5xl h-auto rounded-lg shadow-xl object-cover"
+      >
+        Your browser does not support the video tag.
+      </video>
+    </div>
   );
-};
-
-export default Solution;
+}
