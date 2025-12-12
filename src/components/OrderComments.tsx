@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -41,7 +40,14 @@ const OrderComments: React.FC<OrderCommentsProps> = ({
 
         // ✅ Better error handling with status code check
         if (error && typeof error === "object" && "response" in error) {
-          const response = (error as any).response;
+          const response = (
+            error as {
+              response?: {
+                status?: number;
+                data?: { error?: string; message?: string };
+              };
+            }
+          ).response;
 
           if (response?.status === 403) {
             if (isMounted) {
@@ -97,8 +103,14 @@ const OrderComments: React.FC<OrderCommentsProps> = ({
 
       // ✅ Better error messages
       if (error && typeof error === "object" && "response" in error) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const response = (error as any).response;
+        const response = (
+          error as {
+            response?: {
+              status?: number;
+              data?: { error?: string; message?: string };
+            };
+          }
+        ).response;
 
         if (response?.status === 403) {
           toast.error("You do not have permission to add comments");
