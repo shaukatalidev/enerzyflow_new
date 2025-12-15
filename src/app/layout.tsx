@@ -2,15 +2,52 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "./context/AuthContext";
 import "./globals.css";
+
 import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "EnerzyFlow - Bottles With a Voice",
+
+export const metadata = {
+  title: {
+    default: "EnerzyFlow – Bottles With a Voice",
+    template: "%s | EnerzyFlow",
+  },
   description:
-    "See how brands are leaving their mark with EnerzyFlow beverage solutions",
+    "EnerzyFlow creates smart, customizable bottles that communicate your brand’s message effectively.",
+
+  openGraph: {
+    title: "EnerzyFlow – Bottles With a Voice",
+    description:
+      "Smart bottles that communicate your brand’s message effectively.",
+    url: "https://enerzyflow.com",
+    siteName: "EnerzyFlow",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "EnerzyFlow Smart Bottles",
+      },
+    ],
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "EnerzyFlow – Bottles With a Voice",
+    description:
+      "Smart bottles that communicate your brand’s message effectively.",
+    images: ["/og-image.jpg"],
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
+
+
 
 export default function RootLayout({
   children,

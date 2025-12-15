@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050505;
+  --foreground: #050505;
 }
 
 @theme inline {
@@ -12,11 +12,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  background: #ffffff;
-  color: #171717;
-  font-family: Arial, Helvetica, sans-serif;
-}
+  body { background-color: #050505; color: #fff; overflow-x: hidden; cursor: none; }
 
 @keyframes fadeIn {
   from {
@@ -54,4 +50,35 @@ body {
   .file-upload-box {
     @apply w-full p-4 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:bg-blue-50 hover:border-[#4A90E2] transition-colors duration-200;
   }
+}
+
+/* Hide default cursor ONLY when custom cursor is active */
+.cursor-none {
+  cursor: none;
+}
+
+/* CUSTOM CURSOR */
+.cursor-dot,
+.cursor-outline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.cursor-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #00f0ff;
+  box-shadow: 0 0 10px #00f0ff;
+}
+
+.cursor-outline {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  transition: width 0.2s, height 0.2s, background-color 0.2s;
 }

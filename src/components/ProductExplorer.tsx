@@ -1,5 +1,4 @@
 "use client";
-import "./product.css";
 import { useState, useEffect } from "react";
 import Image, { StaticImageData } from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
@@ -13,7 +12,6 @@ import { useRouter } from "next/navigation";
 /* -------------------- Helpers -------------------- */
 type ImgType = string | StaticImageData;
 type Product = RawProduct & {
-  // widen types locally — raw product may already conform
   image: ImgType;
   gallery?: Array<ImgType | { image: ImgType }>;
 };
@@ -47,7 +45,7 @@ function productToImageArray(p: Product): ImgType[] {
       if (img) arr.push(img);
     });
   }
-  // dedupe identical consecutive images (optional)
+
   return arr.filter((v, i, a) => !(i > 0 && a[i - 1] === v));
 }
 
@@ -75,7 +73,6 @@ const AutoSwiper: React.FC<{ images: ImgType[]; intervalMs?: number }> = ({
         alt={`slide-${idx}`}
         fill
         className="object-cover transition-opacity duration-400"
-        // sizes optional
       />
     </div>
   );
@@ -99,6 +96,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
   onPrev,
 }) => {
   if (!isOpen) return null;
+
   const img = images[currentIndex];
   const src = normalizeImg(img.image);
   return (
@@ -137,6 +135,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
             <h3 className="text-xl font-semibold">{img.name}</h3>
             <p className="text-gray-300 text-sm">{img.details}</p>
           </div>
+
           <div className="absolute bottom-4 right-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded">
             {currentIndex + 1} / {images.length}
           </div>
@@ -176,17 +175,8 @@ const ProductExplorer: React.FC = () => {
     return filteredProducts.slice(start, start + itemsPerSlide);
   }
 
-  function nextSlide() {
-    if (totalSlides <= 1) return;
-    setCurrentSlide((s) => (s + 1) % totalSlides);
-  }
-  function prevSlide() {
-    if (totalSlides <= 1) return;
-    setCurrentSlide((s) => (s - 1 + totalSlides) % totalSlides);
-  }
-
-  function openModal(productIndexInSlide: number) {
-    const actualIndex = currentSlide * itemsPerSlide + productIndexInSlide;
+  function openModal(productIndex: number) {
+    const actualIndex = currentSlide * itemsPerSlide + productIndex;
     setModalImageIndex(actualIndex);
     setIsModalOpen(true);
   }
@@ -221,7 +211,8 @@ const ProductExplorer: React.FC = () => {
   return (
     <section className="py-16 bg-white">
       <div className="container mx-auto px-4">
-        {/* Title & Filters */}
+
+        {/* Title & Categories */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-800 mb-8">
             Explore our Bottles
@@ -251,20 +242,22 @@ const ProductExplorer: React.FC = () => {
           </div>
         </div>
 
-        {/* Slider controls */}
+        {/* Slider */}
         <div className="relative max-w-6xl mx-auto">
+
+          {/* Slide Controls */}
           {totalSlides > 1 && (
             <>
               <button
                 title="Previous image"
-                onClick={prevSlide}
+                onClick={prevModalImage}
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white p-3 rounded-full shadow"
               >
                 <ChevronLeft size={28} />
               </button>
               <button
                 title="Next image"
-                onClick={nextSlide}
+                onClick={nextModalImage}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-3 rounded-full shadow"
               >
                 <ChevronRight size={28} />
@@ -274,18 +267,20 @@ const ProductExplorer: React.FC = () => {
 
           <div className="overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
+
               {getCurrentSlideProducts().map((product, index) => {
-                // compute images array for this product
                 const imgs = productToImageArray(product);
                 const isMiddle1L =
                   product.category === "1 Litre Collection" && index === 1;
 
                 return (
                   <div key={product.id} className="group text-center">
+
                     <div
                       className="relative aspect-[3/4] w-full max-w-xs bg-gray-50 rounded-lg cursor-pointer mx-auto overflow-hidden"
                       onClick={() => openModal(index)}
                     >
+                      {/* 👇 HoverImage replace here */}
                       {isMiddle1L && imgs.length > 1 ? (
                         <AutoSwiper images={imgs} />
                       ) : (
@@ -314,6 +309,7 @@ const ProductExplorer: React.FC = () => {
                   </div>
                 );
               })}
+
             </div>
           </div>
 
@@ -334,7 +330,7 @@ const ProductExplorer: React.FC = () => {
           )}
         </div>
 
-        {/* Explore button */}
+        {/* Explore Button */}
         <div className="text-center mt-16">
           <button
             onClick={() => router.push("/products")}
@@ -345,15 +341,15 @@ const ProductExplorer: React.FC = () => {
         </div>
       </div>
 
-      {/* modal */}
+      {/* Modal */}
       {isModalOpen && (
         <ImageModal
           isOpen={isModalOpen}
           images={filteredProducts}
           currentIndex={modalImageIndex}
-          onClose={closeModal}
-          onNext={nextModalImage}
-          onPrev={prevModalImage}
+          onClose={() => setIsModalOpen(false)}
+          onNext={() => setModalImageIndex((i) => (i + 1) % filteredProducts.length)}
+          onPrev={() => setModalImageIndex((i) => (i - 1 + filteredProducts.length) % filteredProducts.length)}
         />
       )}
     </section>

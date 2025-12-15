@@ -14,6 +14,7 @@ import classic_500 from "./500 ml classic 1.png"
 import classic_500_ads from "./500ml classic ads.png"
 import elite_500 from "./elite 500ml 1.png"
 import elite_500_ads from "./elite 500ml 1 ads.png"
+import exclusive_500 from "./exclusive 500ml 1.png"
 
 
 import celeb_250 from "./celeb 250ml ads.png"
@@ -40,6 +41,7 @@ export const logoBottles = {
   classic_500_ads,
   elite_500,
   elite_500_ads,
+  exclusive_500,
 
   celeb_250,
   classic_200,
