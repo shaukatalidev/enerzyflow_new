@@ -89,7 +89,7 @@ export const products: Product[] = [
   id: 8,
   name: "Premier 500ML",
   category: "500 ml Collection",
-  image: logoBottles.elite_500,
+  image: logoBottles. exclusive_500,
   details: "Elegant compact profile",
 },
 

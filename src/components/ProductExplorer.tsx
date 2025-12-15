@@ -1,6 +1,4 @@
 "use client";
-
-import HoverImage from "./HoverImage";
 import { useState, useEffect } from "react";
 import Image, { StaticImageData } from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
@@ -252,14 +250,14 @@ const ProductExplorer: React.FC = () => {
             <>
               <button
                 title="Previous image"
-                onClick={prevSlide}
+                onClick={prevModalImage}
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white p-3 rounded-full shadow"
               >
                 <ChevronLeft size={28} />
               </button>
               <button
                 title="Next image"
-                onClick={nextSlide}
+                onClick={nextModalImage}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-3 rounded-full shadow"
               >
                 <ChevronRight size={28} />

@@ -10,45 +10,40 @@ const Hero = () => {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.play().catch((err) =>
-        console.log("Video autoplay failed:", err)
-      );
+      videoRef.current.play().catch(() => {});
     }
   }, []);
 
   return (
-    <section className="relative w-full h-[70vh] sm:h-[75vh] md:h-[85vh] lg:h-[90vh] overflow-hidden bg-gray-900">
+    <section className="relative w-full h-[70vh] sm:h-[75vh] md:h-[85vh] lg:h-[90vh] overflow-hidden bg-black">
 
       {/* VIDEO BG */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <video
-          ref={videoRef}
-          src="/images/hero/vd2.mp4"
-          className="
-            w-full
-            h-full
-            object-cover     
-            md:object-contain
-          "
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-        />
-      </div>
+      <video
+        ref={videoRef}
+        src="/images/hero/vd2.mp4"
+        className="
+          absolute inset-0
+          w-full h-full
+          object-cover
+        "
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+      />
 
       {/* DARK OVERLAY */}
       <div className="absolute inset-0 bg-black/40 z-10" />
 
       {/* CONTENT */}
-      <div className="relative z-20 h-full flex flex-col items-center justify-end px-4 pb-8">
+      <div className="relative z-20 h-full flex items-end justify-center px-4 pb-8">
         <button
           onClick={() => router.push("/products")}
           className="
             bg-cyan-500 text-white px-8 py-3 rounded-full text-lg font-semibold
-            hover:bg-cyan-600 cursor-pointer shadow-lg 
-            hover:shadow-xl transform hover:scale-105 transition-all
+            hover:bg-cyan-600 shadow-lg hover:shadow-xl
+            transform hover:scale-105 transition-all
           "
         >
           Shop Now
