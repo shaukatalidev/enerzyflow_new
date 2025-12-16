@@ -33,14 +33,14 @@ const licenseData = [
 
 const Licenses = () => {
   return (
-    <section className="bg-white min-h-screen">
+    <section className="bg-black min-h-screen">
       <div className="container mx-auto px-4 py-8 sm:py-16 sm:px-6 lg:px-8">
         {/* Page Title */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl mt-10 sm:text-4xl md:text-5xl font-bold text-gray-800">
+          <h1 className="text-3xl text-white mt-10 sm:text-4xl md:text-5xl font-bold text-gray-800">
             Trusted. Verified. Certified.
           </h1>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 px-4">
+          <p className="mt-3 sm:mt-4 text-white text-base sm:text-lg text-gray-600 px-4">
             Certified by{" "}
             <span className="text-cyan-600 font-semibold">FSSAI, BIS</span> &{" "}
             trusted authorities.
