@@ -6,16 +6,18 @@ import About from '@/components/About';
 import Video from '@/components/Vedio';
 import MiddleHero from '@/components/MiddleHero';
 import CustomCursor from '@/components/CustomCursor';
+
+
 export default function Home() {
   return (
-    <main className="background-color: #050505; color: #fff; overflow-x: hidden; cursor: none;">
+    <main className="bg-dark text-white overflow-x-hidden cursor-none min-h-screen">
       <CustomCursor />
       <Hero />
       <MiddleHero />
       <ProductExplorer />
-      <BrandLogos/>
-      <Video/>
-      <About/>
+      <BrandLogos />
+      <Video />
+      <About />
       <Testimonials />
     </main>
   );

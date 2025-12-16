@@ -2,24 +2,31 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "./context/AuthContext";
 import "./globals.css";
-
 import { Toaster } from "react-hot-toast";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
 
+/* =======================
+   GLOBAL SEO METADATA
+   ======================= */
+export const metadata: Metadata = {
+  metadataBase: new URL("https://enerzyflow.com"), // ✅ REQUIRED
 
-export const metadata = {
   title: {
     default: "EnerzyFlow – Bottles With a Voice",
     template: "%s | EnerzyFlow",
   },
+
   description:
     "EnerzyFlow creates smart, customizable bottles that communicate your brand’s message effectively.",
 
   openGraph: {
     title: "EnerzyFlow – Bottles With a Voice",
     description:
-      "Smart bottles that communicate your brand’s message effectively.",
+      "Smart, customizable bottles that communicate your brand’s message effectively.",
     url: "https://enerzyflow.com",
     siteName: "EnerzyFlow",
     images: [
@@ -30,6 +37,7 @@ export const metadata = {
         alt: "EnerzyFlow Smart Bottles",
       },
     ],
+    locale: "en_US",
     type: "website",
   },
 
@@ -37,7 +45,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "EnerzyFlow – Bottles With a Voice",
     description:
-      "Smart bottles that communicate your brand’s message effectively.",
+      "Smart, customizable bottles that communicate your brand’s message effectively.",
     images: ["/og-image.jpg"],
   },
 
@@ -45,62 +53,61 @@ export const metadata = {
     index: true,
     follow: true,
   },
+
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
-
-
+/* =======================
+   ROOT LAYOUT
+   ======================= */
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <Toaster 
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.className} bg-dark text-white overflow-x-hidden cursor-none min-h-screen`}
+      >
+        {/* 🔔 Global Toast Notifications */}
+        <Toaster
           position="top-center"
-          reverseOrder={false}
           gutter={8}
           toastOptions={{
             duration: 3000,
             style: {
-              background: '#363636',
-              color: '#fff',
-              fontSize: '14px',
-              maxWidth: '500px',
+              background: "#0F0F0F",
+              color: "#ffffff",
+              border: "1px solid rgba(0,240,255,0.3)",
+              boxShadow: "0 0 20px rgba(0,240,255,0.25)",
             },
             success: {
-              duration: 3000,
               style: {
-                background: '#10b981',
-                color: '#fff',
-              },
-              iconTheme: {
-                primary: '#fff',
-                secondary: '#10b981',
+                background: "#00F0FF",
+                color: "#000000",
               },
             },
             error: {
-              duration: 5000,
               style: {
-                background: '#ef4444',
-                color: '#fff',
-                maxWidth: '600px',
-              },
-              iconTheme: {
-                primary: '#fff',
-                secondary: '#ef4444',
+                background: "#ef4444",
+                color: "#ffffff",
               },
             },
             loading: {
-              duration: Infinity,
               style: {
-                background: '#3b82f6',
-                color: '#fff',
+                background: "#0F0F0F",
+                color: "#00F0FF",
               },
             },
           }}
         />
+
+        {/* 🔐 Authentication Context */}
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

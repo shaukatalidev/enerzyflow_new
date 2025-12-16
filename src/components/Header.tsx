@@ -91,7 +91,7 @@ const Header = () => {
           {/* DESKTOP NAV */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
             {[
-              { label: "About Us", href: "/about" },
+              { label: "About Us", href: "/About" },
               { label: "Our Bottles", href: "/products" },
               { label: "Partner", href: "/partner" },
               { label: "Invest", href: "/invest" },

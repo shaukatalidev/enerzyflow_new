@@ -1,4 +1,5 @@
 'use client';
+import Link from "next/link";
 
 const MiddleHero = () => {
   return (
@@ -33,13 +34,19 @@ const MiddleHero = () => {
               <span className="relative z-10 group-hover:text-brand transition-colors">See Designs</span>
               <div className="absolute inset-0 bg-black transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
             </button>
+             
+            <Link
+  href="/vedio"
+  className="px-8 py-4 border border-white/20 rounded-full font-bold
+             hover:bg-white/5 transition flex items-center gap-3 group"
+>
+  <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center
+                   group-hover:bg-brand group-hover:text-black transition-colors">
+    <i className="fa-solid fa-play text-xs"></i>
+  </span>
+  How It Works
+</Link>
 
-            <button className="px-8 py-4 border border-white/20 rounded-full font-bold hover:bg-white/5 transition flex items-center gap-3 group">
-              <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-brand group-hover:text-black transition-colors">
-                <i className="fa-solid fa-play text-xs"></i>
-              </span>
-              How It Works
-            </button>
           </div>
         </div>
 

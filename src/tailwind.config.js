@@ -1,33 +1,18 @@
 /** @type {import('tailwindcss').Config} */
-const config = {
+module.exports = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
     extend: {
       colors: {
-        brand: "#00f0ff",
+        brand: "#00F0FF",
         dark: "#050505",
-        surface: "#111111",
-        // Optional: define opacity shades
-        "brand-5": "rgba(0,240,255,0.05)",
-        "brand-30": "rgba(0,240,255,0.3)",
-        "brand-50": "rgba(0,240,255,0.5)",
-      },
-      // Custom text shadows
-      textShadow: {
-        glow: "0 0 10px rgba(0,240,255,0.4)",
+        surface: "#0F0F0F",
+        glass: "rgba(255, 255, 255, 0.05)",
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/postcss"), 
-    function ({ addUtilities, theme }) {
-      const newUtilities = {
-        ".text-shadow-glow": {
-          textShadow: theme("textShadow.glow"),
-        },
-      };
-      addUtilities(newUtilities, ["responsive", "hover"]);
-    },
-  ],
+  plugins: [],
 };
-
-export default config;
