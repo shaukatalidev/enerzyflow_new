@@ -1,14 +1,13 @@
 'use client';
 
-import Solution from "@/components/Solution";
+import BrandLogos from "@/components/BrandLogos";
 import CustomCursor from "@/components/CustomCursor";
 
-export default function SolutionsPage() {
+export default function BrandLogsPage() {
   return (
     <>
       <CustomCursor />
-      <Solution />
+      <BrandLogos />
     </>
-    
   );
 }

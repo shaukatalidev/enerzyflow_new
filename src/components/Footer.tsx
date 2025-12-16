@@ -11,246 +11,115 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-white border-t border-gray-100">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        {/* Logo and Description */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-8">
-          <div className="flex-shrink-0">
+    <footer className="relative bg-black text-white overflow-hidden">
+      {/* ================= CTA SECTION ================= */}
+      <section className="relative py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-brand/5 skew-y-3 transform origin-bottom-right" />
+
+        <div className="container mx-auto px-6 relative z-10 text-center">
+          <div className="flex justify-center mb-8">
             <Image
-              src="/images/enerzyflow.png"
-              alt="Flow Logo"
-              width={140}
-              height={40}
+              src="/images/logo_bottles/logo.png"
+              alt="Enerzyflow Logo"
+              width={160}
+              height={48}
+              priority
             />
           </div>
-          <p className="text-gray-600 text-sm md:text-base max-w-md">
-            Transforming bottles into branding powerhouses. We help businesses
-            elevate their brand through premium custom water bottles with
-            innovative design and QR code integration.
+
+          <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold mb-6 tracking-tighter">
+            Ready to <span className="text-brand text-glow">Flow?</span>
+          </h2>
+
+          <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-xl mx-auto">
+            Transforming bottles into branding powerhouses. Turn your water bottles
+            into your most profitable brand asset with premium design and smart QR
+            integration.
           </p>
+<Link href="/solutions">
+  <button className="bg-brand text-white text-lg md:text-xl font-bold px-10 md:px-12 py-4 md:py-5 rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(0,240,255,0.5)]">
+    Partner With Us
+  </button>
+</Link>
         </div>
+      </section>
 
-        {/* Divider */}
-        <div className="border-b border-gray-200 my-6 md:my-8"></div>
-
-        {/* Link Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
-          {/* Product Links */}
+      {/* ================= FOOTER CONTENT ================= */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
+          {/* Product */}
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm mb-3">
-              Product
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Case studies
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Reviews
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Updates
-                </Link>
-              </li>
+            <h3 className="font-semibold text-sm mb-4">Product</h3>
+            <ul className="space-y-3 text-gray-400 text-sm">
+              <li><Link href="#">Features</Link></li>
+              <li><Link href="#">Pricing</Link></li>
+              <li><Link href="#">Case studies</Link></li>
+              <li><Link href="#">Reviews</Link></li>
+              <li><Link href="#">Updates</Link></li>
             </ul>
           </div>
 
-          {/* Company Links */}
+          {/* Company */}
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm mb-3">
-              Company
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Contact us
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Culture
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Blog
-                </Link>
-              </li>
+            <h3 className="font-semibold text-sm mb-4">Company</h3>
+            <ul className="space-y-3 text-gray-400 text-sm">
+              <li><Link href="#">About</Link></li>
+              <li><Link href="#">Contact us</Link></li>
+              <li><Link href="#">Careers</Link></li>
+              <li><Link href="#">Culture</Link></li>
+              <li><Link href="#">Blog</Link></li>
             </ul>
           </div>
 
-          {/* Support Links */}
+          {/* Support */}
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm mb-3">
-              Support
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Getting started
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Help center
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Server status
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Report a bug
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Chat support
-                </Link>
-              </li>
+            <h3 className="font-semibold text-sm mb-4">Support</h3>
+            <ul className="space-y-3 text-gray-400 text-sm">
+              <li><Link href="#">Getting started</Link></li>
+              <li><Link href="#">Help center</Link></li>
+              <li><Link href="#">Server status</Link></li>
+              <li><Link href="#">Report a bug</Link></li>
+              <li><Link href="#">Chat support</Link></li>
             </ul>
           </div>
 
-          {/* Downloads Links */}
+          {/* Downloads */}
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm mb-3">
-              Downloads
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  iOS
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Android
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Mac
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Windows
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-cyan-600 text-sm"
-                >
-                  Chrome
-                </Link>
-              </li>
+            <h3 className="font-semibold text-sm mb-4">Downloads</h3>
+            <ul className="space-y-3 text-gray-400 text-sm">
+              <li><Link href="#">iOS</Link></li>
+              <li><Link href="#">Android</Link></li>
+              <li><Link href="#">Mac</Link></li>
+              <li><Link href="#">Windows</Link></li>
+              <li><Link href="#">Chrome</Link></li>
             </ul>
           </div>
 
-          {/* Subscription Form */}
+          {/* Newsletter */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="font-semibold text-gray-900 text-sm mb-3">
+            <h3 className="font-semibold text-sm mb-4">
               Subscribe to our newsletter
             </h3>
-            <p className="text-gray-600 text-xs mb-3 leading-relaxed">
-              Stay updated with the latest trends in custom branding, exclusive
-              offers, and innovative solutions for your business.
+            <p className="text-gray-400 text-xs mb-4">
+              Stay updated with the latest trends in custom branding and
+              innovative solutions.
             </p>
-            <form onSubmit={handleSubscribe} className="mt-4 space-y-3">
+            <form onSubmit={handleSubscribe} className="space-y-3">
               <input
                 type="email"
                 name="email"
                 placeholder="Enter your email"
                 required
-                className="w-full px-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder:text-gray-400 text-gray-900"
+                className="w-full px-4 py-3 rounded-full bg-white/10 text-white placeholder-gray-400 
+                border border-white/20
+                focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <button
                 type="submit"
-                className="bg-cyan-500 text-white px-6 py-3 rounded-full hover:bg-cyan-600 cursor-pointer transition-colors"
+                className="w-40 bg-brand text-white px-6 py-3 
+                rounded-full font-semibold 
+                border border-white/20
+                hover:opacity-90 transition"
               >
                 Subscribe
               </button>
@@ -259,56 +128,22 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-6 pt-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-gray-500 text-xs text-center sm:text-left">
-            Copyright © 2024 Enerzyflow | All Rights Reserved
-          </p>
-          <div className="flex items-center gap-4">
-            <Link
-              href="https://www.facebook.com/share/19obQzdUev/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cursor-pointer"
-            >
-              <Image
-                src="/images/brands/f.png"
-                alt="Facebook"
-                width={20}
-                height={20}
-                className="hover:opacity-75 transition-opacity"
-              />
+        <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-gray-400 text-xs">
+          <p>© 2024 Enerzyflow | All Rights Reserved</p>
+
+          <div className="flex gap-4">
+            <Link href="https://www.facebook.com/share/19obQzdUev/" target="_blank">
+              <Image src="/images/brands/f.png" alt="Facebook" width={20} height={20} />
             </Link>
-            <Link
-              href="https://www.linkedin.com/company/106605789/admin/page-posts/published/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cursor-pointer"
-            >
-              <Image
-                src="/images/brands/linkedin.png"
-                alt="LinkedIn"
-                width={20}
-                height={20}
-                className="hover:opacity-75 transition-opacity"
-              />
+            <Link href="https://www.linkedin.com/company/106605789/admin/page-posts/published/" target="_blank">
+              <Image src="/images/brands/linkedin.png" alt="LinkedIn" width={20} height={20} />
             </Link>
-            <Link
-              href="https://www.instagram.com/enerzyflow?igsh=MTRiZzkwMGs1dHNvNQ=="
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cursor-pointer"
-            >
-              <Image
-                src="/images/brands/insta.png"
-                alt="Instagram"
-                width={20}
-                height={20}
-                className="hover:opacity-75 transition-opacity"
-              />
+            <Link href="https://www.instagram.com/enerzyflow" target="_blank">
+              <Image src="/images/brands/insta.png" alt="Instagram" width={20} height={20} />
             </Link>
           </div>
         </div>
-      </div>
+      </section>
     </footer>
   );
 };
