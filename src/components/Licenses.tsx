@@ -74,30 +74,25 @@ const Licenses = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray-200">
-                {licenseData.map((item) => (
-                  <tr
-                    key={item.srNo}
-                    className="text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="p-4 font-bold text-gray-800 border-r">
-                      {item.srNo}
-                    </td>
-                    <td className="p-4 border-r">{item.code}</td>
-                    <td className="p-4 border-r">{item.unitName}</td>
-                    <td className="p-4 border-r font-mono text-sm">
-                      {item.fssai}
-                    </td>
-                    <td className="p-4 border-r">
-                      <div>{item.bis}</div>
-                      <div className="text-sm text-gray-600">
-                        {item.bisStandard}
-                      </div>
-                    </td>
-                    <td className="p-4">{item.address}</td>
-                  </tr>
-                ))}
-              </tbody>
+             <tbody className="divide-y divide-gray-200">
+  {licenseData.map((item) => (
+    <tr
+      key={item.srNo}
+      className="text-white hover:bg-white hover:text-black transition-colors"
+    >
+      <td className="p-4 font-bold border-r">{item.srNo}</td>
+      <td className="p-4 border-r">{item.code}</td>
+      <td className="p-4 border-r">{item.unitName}</td>
+      <td className="p-4 border-r font-mono text-sm">{item.fssai}</td>
+      <td className="p-4 border-r">
+        <div>{item.bis}</div>
+        <div className="text-sm text-white-600">{item.bisStandard}</div>
+      </td>
+      <td className="p-4">{item.address}</td>
+    </tr>
+  ))}
+</tbody>
+
             </table>
           </div>
         </div>

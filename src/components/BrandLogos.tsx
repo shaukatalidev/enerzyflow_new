@@ -5,71 +5,51 @@ const BrandLogos: React.FC = () => {
   return (
     <section
       id="partners"
-      className="py-14  mt-10 md:py-20 border-t border-white/5"
+      className="py-14 mt-10 md:py-20 border-t border-white/5 overflow-hidden"
     >
       <div className="container mx-auto px-4 sm:px-6 text-center">
         {/* Heading */}
-        <p className="
-          text-xl sm:text-2xl md:text-3xl
-          text-white
-          uppercase
-          tracking-[0.25em]
-          mb-10 md:mb-12
-          font-bold
-        ">
+        <p className="text-xl sm:text-2xl md:text-3xl text-white uppercase tracking-[0.25em] mb-12 font-bold">
           Our Trusted Partners
         </p>
 
-        {/* Logos */}
-        <div
-          className="
-            grid grid-cols-2
-            sm:grid-cols-3
-            md:grid-cols-4
-            lg:grid-cols-5
-            gap-8 sm:gap-12 md:gap-16
-            items-center
-            opacity-60 grayscale
-            hover:grayscale-0 hover:opacity-100
-            transition-all duration-500
-          "
-        >
-          {brands.map((brand: Brand) => (
-            <div
-              key={brand.id}
-              className="
-                flex flex-col items-center gap-3
-                text-gray-300 hover:text-brand
-                transition-colors duration-300
-              "
-            >
-              {/* Logo */}
-              <div className="
-                relative
-                w-28 h-16
-                sm:w-32 sm:h-18
-                md:w-36 md:h-20
-                lg:w-40 lg:h-20
-              ">
-                <Image
-                  src={brand.logo}
-                  alt={brand.name}
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 20vw"
-                />
-              </div>
+        {/* AUTO SWIPE CONTAINER */}
+        <div className="relative w-full overflow-hidden">
+          <div className="flex w-max animate-autoSwipe">
+            {[...brands, ...brands].map((brand: Brand, index) => {
+              const isLarge = brand.id === 3 || brand.id === 4;
 
-              {/* Brand Name */}
-              <span className="
-                text-sm sm:text-base md:text-lg
-                font-serif font-bold
-                text-center
-              ">
-                {brand.name}
-              </span>
-            </div>
-          ))}
+              return (
+                <div
+                  key={`${brand.id}-${index}`}
+                  className="flex flex-col items-center mx-12"
+                >
+                  {/* Logo */}
+                  <div
+                    className={`relative transition-all duration-300
+                      ${
+                        isLarge
+                          ? "w-56 h-32 sm:w-64 sm:h-36 md:w-72 md:h-40"
+                          : "w-56 h-32 sm:w-40 sm:h-24 md:w-44 md:h-28"
+                      }
+                    `}
+                  >
+                    <Image
+                      src={brand.logo}
+                      alt={brand.name}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+
+                  {/* Brand Name */}
+                  <span className="text-sm md:text-base text-white font-serif font-bold mt-3">
+                    {brand.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

@@ -11,12 +11,16 @@ const Footer = () => {
   };
 
   return (
-    <footer className="relative bg-black text-white overflow-hidden">
+    <footer className="relative text-white overflow-hidden bg-black">
       {/* ================= CTA SECTION ================= */}
       <section className="relative py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-brand/5 skew-y-3 transform origin-bottom-right" />
+      
+        <div className="absolute inset-0 bg-brand/20 skew-y-3 transform origin-bottom-right"></div>
 
-        <div className="container mx-auto px-6 relative z-10 text-center">
+
+
+
+        <div className="relative z-10 container mx-auto px-6 text-center">
           <div className="flex justify-center mb-8">
             <Image
               src="/images/logo_bottles/logo.png"
@@ -28,7 +32,7 @@ const Footer = () => {
           </div>
 
           <h2 className="text-4xl md:text-6xl lg:text-8xl font-bold mb-6 tracking-tighter">
-            Ready to <span className="text-brand text-glow">Flow?</span>
+            Ready to <span className="text-brand text-cyan-400 text-glow">Flow?</span>
           </h2>
 
           <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-xl mx-auto">
@@ -37,7 +41,7 @@ const Footer = () => {
             integration.
           </p>
 <Link href="/solutions">
-  <button className="bg-brand text-white text-lg md:text-xl font-bold px-10 md:px-12 py-4 md:py-5 rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(0,240,255,0.5)]">
+  <button className="bg-cyan-500 text-black text-lg md:text-xl font-bold px-10 md:px-12 py-4 md:py-5 rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(0,240,255,0.5)]">
     Partner With Us
   </button>
 </Link>
@@ -116,7 +120,7 @@ const Footer = () => {
               />
               <button
                 type="submit"
-                className="w-40 bg-brand text-white px-6 py-3 
+                className="w-40 bg-cyan-500 text-black px-6 py-3 
                 rounded-full font-semibold 
                 border border-white/20
                 hover:opacity-90 transition"
@@ -129,7 +133,7 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-gray-400 text-xs">
-          <p>© 2024 Enerzyflow | All Rights Reserved</p>
+          <p>© 2025-26 Enerzyflow | All Rights Reserved</p>
 
           <div className="flex gap-4">
             <Link href="https://www.facebook.com/share/19obQzdUev/" target="_blank">

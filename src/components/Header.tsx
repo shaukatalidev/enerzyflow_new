@@ -45,11 +45,17 @@ const Header = () => {
     await logout();
   };
 
+  /* ================= LOADING ================= */
   if (isLoading) {
     return (
-      <header className="fixed top-0 w-full z-50 px-4">
+      <header className="fixed top-4 w-full z-50 px-4">
         <div className="max-w-7xl mx-auto h-16 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-between px-6">
-          <Image src="/images/enerzyflow.png" alt="EnerzyFlow" width={130} height={40} />
+          <Image
+            src="/images/logo_bottles/logo.png"
+            alt="EnerzyFlow"
+            width={120}
+            height={40}
+          />
           <div className="h-8 w-8 bg-gray-700 rounded-full animate-pulse" />
         </div>
       </header>
@@ -58,15 +64,17 @@ const Header = () => {
 
   return (
     <>
-      {/* HEADER */}
+      {/* ================= HEADER ================= */}
       <header className="fixed top-4 w-full z-50 px-4">
         <div
           className="max-w-7xl mx-auto flex items-center justify-between
                      bg-black/60 backdrop-blur-md
                      border border-white/10
-                     rounded-full px-6 py-3"
+                     rounded-full px-6 py-3
+                     shadow-[0_0_30px_rgba(0,240,255,0.12)]"
         >
-          {/* LOGO */}
+          {/* ================= LOGO ================= */}
+         {/* LOGO */}
           <Link href="/" className="flex items-center gap-3">
   <div  className="w-13 h-13 rounded-full 
                flex items-center justify-center
@@ -87,9 +95,8 @@ const Header = () => {
   </span>
 </Link>
 
-
-          {/* DESKTOP NAV */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+          {/* ================= DESKTOP NAV ================= */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
             {[
               { label: "About Us", href: "/about" },
               { label: "Our Bottles", href: "/products" },
@@ -101,17 +108,20 @@ const Header = () => {
               <Link
                 key={item.label}
                 href={item.href}
-                className="relative hover:text-white transition
-                           after:absolute after:-bottom-1 after:left-0
-                           after:h-[1px] after:w-0 after:bg-cyan-400
-                           hover:after:w-full after:transition-all"
+                className="relative group hover:text-white transition-colors"
               >
                 {item.label}
+                <span
+                  className="absolute -bottom-1 left-0 h-[1px] w-0 bg-cyan-400
+                             transition-all duration-300
+                             shadow-[0_0_10px_rgba(0,240,255,0.9)]
+                             group-hover:w-full"
+                />
               </Link>
             ))}
           </nav>
 
-          {/* RIGHT */}
+          {/* ================= RIGHT ================= */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated && user ? (
               <>
@@ -125,7 +135,10 @@ const Header = () => {
                 <div className="relative">
                   <button
                     onClick={() => setShowProfileDropdown((v) => !v)}
-                    className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-semibold flex items-center justify-center"
+                    className="h-10 w-10 rounded-full
+                               bg-gradient-to-br from-cyan-500 to-blue-600
+                               text-white font-semibold flex items-center justify-center
+                               shadow-[0_0_15px_rgba(0,240,255,0.8)]"
                   >
                     {getUserInitials()}
                   </button>
@@ -158,14 +171,16 @@ const Header = () => {
               </>
             ) : (
               <Link href="/login">
-                <button className="bg-cyan-500 text-black px-6 py-2 rounded-full hover:bg-cyan-400 font-medium">
+                <button className="bg-cyan-500 text-black px-6 py-2 rounded-full
+                                   font-medium hover:bg-cyan-400
+                                   shadow-[0_0_25px_rgba(0,240,255,0.6)]">
                   Sign In
                 </button>
               </Link>
             )}
           </div>
 
-          {/* MOBILE BUTTON */}
+          {/* ================= MOBILE BUTTON ================= */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="md:hidden p-2 rounded-md hover:bg-white/10 text-white"
@@ -175,13 +190,14 @@ const Header = () => {
         </div>
       </header>
 
-      {/* MOBILE MENU */}
+      {/* ================= MOBILE MENU ================= */}
       {isMobileMenuOpen && (
         <>
           <div
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setIsMobileMenuOpen(false)}
           />
+
           <div className="fixed inset-y-0 left-0 w-full bg-black z-50 p-6 text-white">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold">Menu</h2>
@@ -190,25 +206,24 @@ const Header = () => {
               </button>
             </div>
 
-           <nav className="flex flex-col md:flex-row gap-4 md:gap-8">
-        {[
-          { label: "About Us", href: "/about" },
-          { label: "Our Bottles", href: "/products" },
-         { label: "Partner", href: "/partner" },
-         { label: "Invest", href: "/invest" },
-        { label: "Solution", href: "/solutions" },
-        { label: "Licenses", href: "/licenses" },
-        ].map((item) => (
-       <Link
-        key={item.label}
-          href={item.href}
-           className="text-gray-300 hover:text-cyan-400 transition"
-           >
-          {item.label}
-           </Link>
-               ))}
+            <nav className="flex flex-col gap-4">
+              {[
+                { label: "About Us", href: "/about" },
+                { label: "Our Bottles", href: "/products" },
+                { label: "Partner", href: "/partner" },
+                { label: "Invest", href: "/invest" },
+                { label: "Solution", href: "/solutions" },
+                { label: "Licenses", href: "/licenses" },
+              ].map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-gray-300 hover:text-cyan-400 transition"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </nav>
-
 
             <div className="mt-6 border-t border-white/10 pt-6">
               {isAuthenticated ? (
@@ -220,7 +235,7 @@ const Header = () => {
                 </button>
               ) : (
                 <Link href="/login">
-                  <button className="w-full bg-cyan-500 text-black py-2 rounded-full">
+                  <button className="w-full bg-cyan-500 text-black py-2 rounded-full shadow-[0_0_25px_rgba(0,240,255,0.6)]">
                     Sign In
                   </button>
                 </Link>

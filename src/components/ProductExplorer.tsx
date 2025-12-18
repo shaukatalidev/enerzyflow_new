@@ -168,7 +168,7 @@ const ProductExplorer = () => {
             Crafted for Your <span className="text-cyan-400">Every Venue</span>
           </h2>
           <p className="text-gray-400">
-            Choose the vessel that matches your vibe.
+            Choose Bottles that matches your vibe.
           </p>
 
           {/* Categories */}

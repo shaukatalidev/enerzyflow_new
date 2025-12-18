@@ -20,18 +20,24 @@ export const brands: Brand[] = [
   },
   {
     id: 3,
-    name: "Kulture",
-    logo: "/images/brands/kuture.png",
+    name: "Cherry Restaurant",
+    logo: "/images/brands/cherry restaurant.jpeg",
     description: "Cultural beverage experience"
   },
   {
     id: 4,
+    name: "Resort Paradise",
+    logo: "/images/brands/Resort paradise.png",
+    description: "Cultural beverage experience"
+  },
+  {
+    id: 5,
     name: "Beanshot",
     logo: "/images/brands/beanshot.png",
     description: "Energy drink specialists"
   },
   {
-    id: 5,
+    id: 6,
     name: "Bookhara Restaurant",
     logo: "/images/brands/bookhara.png",
     description: "Restaurant beverage collection"
