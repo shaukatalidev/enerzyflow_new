@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Image, { StaticImageData } from "next/image";
-import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
-import {
-  products as allProducts,
-  categories,
-  Product as RawProduct,
-} from "@/data/products";
+import { products as allProducts, Product as RawProduct } from "@/data/products";
 import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /* -------------------- Types -------------------- */
 type ImgType = string | StaticImageData;
@@ -19,9 +15,7 @@ type Product = RawProduct & {
 };
 
 /* -------------------- Helpers -------------------- */
-function normalizeImg(
-  item: ImgType | { image: ImgType } | undefined
-): ImgType | null {
+function normalizeImg(item: ImgType | { image: ImgType } | undefined): ImgType | null {
   if (!item) return null;
   if (typeof item === "string") return item;
   if (typeof item === "object" && "src" in item) return item as StaticImageData;
@@ -43,21 +37,12 @@ function productToImageArray(product: Product): ImgType[] {
 }
 
 /* -------------------- Auto Swiper -------------------- */
-const AutoSwiper = ({
-  images,
-  interval = 2000,
-}: {
-  images: ImgType[];
-  interval?: number;
-}) => {
+const AutoSwiper = ({ images, interval = 2000 }: { images: ImgType[]; interval?: number }) => {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (images.length <= 1) return;
-    const id = setInterval(
-      () => setIndex((i) => (i + 1) % images.length),
-      interval
-    );
+    const id = setInterval(() => setIndex((i) => (i + 1) % images.length), interval);
     return () => clearInterval(id);
   }, [images, interval]);
 
@@ -66,138 +51,40 @@ const AutoSwiper = ({
       src={images[index]}
       alt="auto slide"
       fill
-      className="object-cover transition-opacity duration-300"
+      className="object-cover transition-transform duration-700 group-hover:scale-110"
     />
-  );
-};
-
-/* -------------------- Modal -------------------- */
-const ImageModal = ({
-  isOpen,
-  products,
-  index,
-  onClose,
-  onNext,
-  onPrev,
-}: {
-  isOpen: boolean;
-  products: Product[];
-  index: number;
-  onClose: () => void;
-  onNext: () => void;
-  onPrev: () => void;
-}) => {
-  if (!isOpen) return null;
-
-  const img = normalizeImg(products[index].image);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
-      <button onClick={onClose} className="absolute top-6 right-6 text-white">
-        <X size={32} />
-      </button>
-
-      <button onClick={onPrev} className="absolute left-6 text-white">
-        <ChevronLeft size={48} />
-      </button>
-
-      <button onClick={onNext} className="absolute right-6 text-white">
-        <ChevronRight size={48} />
-      </button>
-
-      <div className="relative w-full max-w-4xl h-[80vh]">
-        {img && (
-          <Image
-            src={img}
-            alt="preview"
-            fill
-            className="object-contain"
-          />
-        )}
-      </div>
-    </div>
   );
 };
 
 /* -------------------- Main Component -------------------- */
 const ProductExplorer = () => {
   const router = useRouter();
-
-  const [activeCategory, setActiveCategory] = useState("");
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalIndex, setModalIndex] = useState(0);
-
   const products = allProducts as Product[];
 
-  const filteredProducts = activeCategory
-    ? products.filter((p) => p.category === activeCategory)
-    : products;
-
+  /* Slider State */
   const itemsPerSlide = 3;
-  const totalSlides = Math.max(
-    1,
-    Math.ceil(filteredProducts.length / itemsPerSlide)
-  );
+  const totalSlides = Math.max(1, Math.ceil(products.length / itemsPerSlide));
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  const slideProducts = filteredProducts.slice(
+  const nextSlide = () => setCurrentSlide((s) => (s + 1) % totalSlides);
+  const prevSlide = () => setCurrentSlide((s) => (s - 1 + totalSlides) % totalSlides);
+
+  const slideProducts = products.slice(
     currentSlide * itemsPerSlide,
     currentSlide * itemsPerSlide + itemsPerSlide
   );
 
   const middleIndex = Math.floor(slideProducts.length / 2);
 
-  const nextSlide = () =>
-    setCurrentSlide((s) => (s + 1) % totalSlides);
-
-  const prevSlide = () =>
-    setCurrentSlide((s) => (s - 1 + totalSlides) % totalSlides);
-
-  const openModal = (i: number) => {
-    setModalIndex(currentSlide * itemsPerSlide + i);
-    setModalOpen(true);
-  };
-
   return (
-    <section className="py-24 bg-black text-white">
-      <div className="container mx-auto px-4">
-
+    <section id="hardware" className="py-24 md:py-32 relative bg-black text-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Crafted for Your <span className="text-cyan-400">Every Venue</span>
+        <div className="text-center mb-16 md:mb-20">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            Crafted for your <span className="text-cyan-400 text-glow">Every Venue</span>
           </h2>
-          <p className="text-gray-400">
-            Choose Bottles that matches your vibe.
-          </p>
-
-          {/* Categories */}
-          <div className="flex justify-center gap-8 mt-10">
-            <button
-              onClick={() => {
-                setActiveCategory("");
-                setCurrentSlide(0);
-              }}
-              className={`text-sm ${activeCategory === "" ? "text-cyan-400" : "text-gray-400 hover:text-white"}`}
-            >
-              All Products
-            </button>
-
-            {categories
-              .filter((c) => c !== "All Bottles")
-              .map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    setActiveCategory(c);
-                    setCurrentSlide(0);
-                  }}
-                  className={`text-sm ${activeCategory === c ? "text-cyan-400" : "text-gray-400 hover:text-white"}`}
-                >
-                  {c}
-                </button>
-              ))}
-          </div>
+          <p className="text-gray-400 text-sm sm:text-base">Choose bottles that matches your vibe.</p>
         </div>
 
         {/* Slider */}
@@ -206,33 +93,36 @@ const ProductExplorer = () => {
             <>
               <button
                 onClick={prevSlide}
-                className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-3 rounded-full z-10"
+                className="absolute left-1 sm:left-0 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
               >
-                <ChevronLeft />
+                <ChevronLeft size={20} className="sm:w-5 sm:h-5" />
               </button>
               <button
                 onClick={nextSlide}
-                className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-3 rounded-full z-10"
+                className="absolute right-1 sm:right-0 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
               >
-                <ChevronRight />
+                <ChevronRight size={20} className="sm:w-5 sm:h-5" />
               </button>
             </>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-6">
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 px-2 sm:px-6">
             {slideProducts.map((product, index) => {
               const imgs = productToImageArray(product);
-
-              // Only enable auto swiper for middle item
-              const enableAuto = index === middleIndex && imgs.length > 1;
+              const isMiddle = index === middleIndex;
 
               return (
-                <div key={product.id} className="text-center group">
-                  <div
-                    onClick={() => openModal(index)}
-                    className="relative aspect-[4/5] bg-neutral-900 rounded-xl overflow-hidden cursor-pointer"
-                  >
-                    {enableAuto ? (
+                <div
+                  key={product.id}
+                  className={`glass-panel p-4 sm:p-6 rounded-2xl group transition-colors ${
+                    isMiddle
+                      ? "border-cyan-400/30 shadow-[0_0_20px_rgba(0,240,255,0.1)] transform md:-translate-y-4"
+                      : "hover:border-cyan-400"
+                  }`}
+                >
+                  <div className="h-48 sm:h-56 md:h-64 mb-4 sm:mb-6 bg-gradient-to-b from-gray-800 to-black rounded-xl overflow-hidden relative">
+                    {isMiddle && imgs.length > 1 ? (
                       <AutoSwiper images={imgs} />
                     ) : (
                       imgs[0] && (
@@ -240,16 +130,26 @@ const ProductExplorer = () => {
                           src={imgs[0]}
                           alt={product.name}
                           fill
-                          className="object-cover group-hover:scale-105 transition"
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                       )
                     )}
-
-                    <ZoomIn className="absolute inset-0 m-auto text-white opacity-0 group-hover:opacity-100" />
                   </div>
 
-                  <h3 className="mt-4 font-semibold">{product.name}</h3>
-                  <p className="text-gray-400 text-sm">{product.details}</p>
+                  <h3 className={`text-xl sm:text-2xl font-bold mb-2 ${isMiddle ? "text-white" : ""}`}>
+                    {product.name}
+                  </h3>
+                  <p className="text-gray-400 text-xs sm:text-sm mb-4">{product.details}</p>
+
+                  {isMiddle ? (
+                    <span className="bg-cyan-400 text-black px-3 py-1 rounded-full text-xs font-bold">
+                      Best Seller
+                    </span>
+                  ) : (
+                    <span className="text-cyan-400 font-bold text-sm">
+                      {index === 0 ? "Most Popular" : "For Luxury"}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -257,12 +157,14 @@ const ProductExplorer = () => {
 
           {/* Dots */}
           {totalSlides > 1 && (
-            <div className="flex justify-center mt-10 gap-2">
+            <div className="flex justify-center mt-8 md:mt-10 gap-2">
               {Array.from({ length: totalSlides }).map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i)}
-                  className={`w-2.5 h-2.5 rounded-full ${i === currentSlide ? "bg-cyan-400" : "bg-gray-600"}`}
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    i === currentSlide ? "bg-cyan-400" : "bg-gray-600"
+                  }`}
                 />
               ))}
             </div>
@@ -270,33 +172,17 @@ const ProductExplorer = () => {
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-20">
+        <div className="text-center mt-16 md:mt-20">
           <button
             onClick={() => router.push("/products")}
-            className="border border-gray-600 px-8 py-3 rounded-full hover:border-cyan-400 transition"
+            className="border border-gray-600 px-6 sm:px-8 py-2 sm:py-3 rounded-full hover:border-cyan-400 transition text-sm sm:text-base"
           >
             Explore All Bottles
           </button>
         </div>
       </div>
-
-      {/* Modal */}
-      <ImageModal
-        isOpen={modalOpen}
-        products={filteredProducts}
-        index={modalIndex}
-        onClose={() => setModalOpen(false)}
-        onNext={() =>
-          setModalIndex((i) => (i + 1) % filteredProducts.length)
-        }
-        onPrev={() =>
-          setModalIndex(
-            (i) => (i - 1 + filteredProducts.length) % filteredProducts.length
-          )
-        }
-      />
     </section>
   );
 };
 
-export default ProductExplorer;  
+export default ProductExplorer;

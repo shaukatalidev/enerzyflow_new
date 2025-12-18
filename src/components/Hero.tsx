@@ -20,7 +20,7 @@ const Hero = () => {
       {/* VIDEO BG */}
       <video
         ref={videoRef}
-        src="/images/hero/vd2.mp4"
+        src="/images/hero/kolkata.mp4"
         className="
           absolute inset-0
           w-full h-full
