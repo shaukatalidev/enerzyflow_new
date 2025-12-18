@@ -77,27 +77,32 @@ const MiddleHero = () => {
               src="/images/hero/image2.png"
               alt="EnerzyFlow Smart Bottle Interface"
               fill
-              className="object-cover opacity-60 mix-blend-overlay"
+              className="object-cover opacity-100 mix-blend-overlay"
               style={{ filter: "hue-rotate(180deg)" }}
               priority
             />
-            <div className="absolute bottom-10 left-0 right-0 text-center">
-              <div className="w-16 h-16 bg-white mx-auto rounded-lg p-1 mb-2">
-                <Image
-                  src="/images/hero/image1.png"
-                  alt="QR Code"
-                  width={64}
-                  height={64}
-                />
-              </div>
-              <p className="text-[10px] text-brand uppercase tracking-widest transition-colors duration-300 ease-out group-hover:text-white">
+           <div className="absolute bottom-10 inset-x-0 text-center">
+  <div className="w-16 h-16 bg-white mx-auto rounded-md overflow-hidden shadow-md">
+    <Image
+      src="/images/hero/image1.png"
+      alt="QR Code"
+      width={64}
+      height={64}
+      className="object-contain"
+      quality={100}
+      unoptimized
+    />
+  </div>
+
+
+              <p className="text-[10px] text-brand uppercase  text-cyan-400 tracking-widest transition-colors duration-300 ease-out group-hover:text-white">
                 Scan to Order
               </p>
             </div>
           </div>
 
           {/* Secondary Hero Card */}
-          <div className="absolute right-0 bottom-20 w-64 h-[450px] bg-surface rounded-[30px] border border-brand-50 shadow-[0_0_50px_rgba(0,240,255,0.25)] transform translate-x-12 translate-y-12 rotate-[-5deg] hero-card z-20 overflow-hidden">
+          <div className="absolute right-0 bottom-20 w-64 h-[450px] transform translate-x-12 translate-y-12 rotate-[-5deg] hero-card z-20 overflow-hidden">
             <Image
               src="/images/hero/image1.png"
               alt="EnerzyFlow Live Display"
@@ -106,7 +111,7 @@ const MiddleHero = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent pointer-events-none">
               <div className="absolute bottom-6 left-6">
-                <div className="bg-brand text-black text-xs font-bold px-3 py-1 rounded-full inline-block mb-2 shadow-[0_0_10px_rgba(0,240,255,0.5)] animate-pulse">
+                <div className="bg-brand text-cyan-400 text-xs font-bold px-3 py-1 rounded-full inline-block mb-2 shadow-[0_0_10px_rgba(0,240,255,0.5)] animate-pulse">
                   LIVE NOW
                 </div>
               </div>
