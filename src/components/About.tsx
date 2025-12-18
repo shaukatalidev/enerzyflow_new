@@ -17,19 +17,22 @@ const About = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             {/* MODIFICATION: "About us" heading moved here */}
-            <h2 className="text-4xl font-bold text-blue-500 mb-10 text-center">
+            <h2 className="text-4xl font-bold text-cyan-400 mb-10 text-center">
               About us
             </h2>
             
             <p className="text-lg text-gray-300 leading-relaxed mb-6">
-              At <span className="font-semibold text-white">Enerzyflow</span>, we believe water doesn&apos;t have to be boring. We
-              put it in bold cans, backed by a simple promise: sustainability and killer design. Our
-              mission: hydrate the world, kill plastic waste, and look good
-              doing it.
+              At <span className="font-semibold text-1xl text-cyan-400">Enerzyflow</span>, we believe water  shouldn&apos;t just hydrate you-it should connect you
+              
             </p>
-            <p className="text-lg text-gray-300 leading-relaxed">
-              Every can you drink saves a plastic bottle from polluting our
-              planet. Join the revolution — quench your thirst and murder your thirst.
+            <p className="text-lg text-gray-300 leading-relaxed mb-6">
+             We started with a simple promise: killer design in existing water Bottles. But we didn’t stop at the bottle. We realized the dining table was disconnected, so we gave our bottles a brain.
+            </p>
+            <p className="text-lg text-gray-300 leading-relaxed mb-6">
+              Today, EnerzyFlow is the world's first Hospitality Operating System disguised as premium hydration. We blend sustainable hardware with an AI-driven digital ecosystem. Every bottle is a gateway—connecting the guest to the kitchen, automating inventory, and serving live, dynamic offers in real-time.
+            </p>
+            <p className=" text-lg text-gray-300 leading-relaxed ">
+              Our mission has evolved: Hydrate the world, eliminate plastic, and digitize the physical table.
             </p>
           </motion.div>
 
@@ -43,7 +46,7 @@ const About = () => {
           >
             <div className="rounded-2xl overflow-hidden">
               <Image
-                src="/images/hero/about.jpg"
+                src="/images/hero/about1.png"
                 alt="Enerzyflow team and products"
                 width={600}
                 height={400}

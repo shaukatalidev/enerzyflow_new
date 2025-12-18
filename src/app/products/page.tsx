@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import CustomCursor from '@/components/CustomCursor';
 import { products, categories } from '@/data/products'; 
 
 const ProductPage: React.FC = () => {
@@ -13,13 +14,16 @@ const ProductPage: React.FC = () => {
     : products.filter((product) => product.category === selectedCategory);
 
   return (
-    <div className="bg-white min-h-screen">
+    <>
+      <CustomCursor />
+   
+    <div className="bg-black mt-15  text-white min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row gap-12">
           
           {/* Left Sidebar: Categories */}
           <aside className="w-full md:w-1/4 lg:w-1/5">
-            <nav className="flex flex-col space-y-4">
+            <nav className="  flex flex-col space-y-4">
               {categories.map((category) => (
                 <button
                   key={category}
@@ -27,7 +31,7 @@ const ProductPage: React.FC = () => {
                   className={`text-left text-lg hover:text-cyan-600 transition-colors duration-200 ${
                     selectedCategory === category
                       ? 'text-cyan-600 font-bold'
-                      : 'text-gray-700'
+                      : 'text-white-700'
                   }`}
                 >
                   {category}
@@ -43,7 +47,10 @@ const ProductPage: React.FC = () => {
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="group cursor-pointer">
                     {/* Product Image */}
-                    <div className="aspect-square w-full bg-gray-100 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
+                    <div className="aspect-square w-full bg-gray-100 rounded-lg overflow-hidden
+                     transition-all duration-200
+                      group-hover:opacity-80
+                      ">
                       <Image
                         src={product.image}
                         alt={product.name}
@@ -57,10 +64,10 @@ const ProductPage: React.FC = () => {
                     
                     {/* Product Info - Simplified like Figma */}
                     <div className="mt-4">
-                      <h3 className="text-lg font-semibold text-gray-800">
+                      <h3 className="text-lg font-semibold text-white-800 hover:text-cyan-600 transition-colors duration-200">
                         {product.name}
                       </h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-white-500 hover:text-cyan-600 transition-colors duration-200">
                         {product.details}
                       </p>
                     </div>
@@ -77,6 +84,7 @@ const ProductPage: React.FC = () => {
         </div>
       </div>
     </div>
+     </>
   );
 };
 

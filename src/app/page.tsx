@@ -15,9 +15,10 @@ export default function Home() {
       <Hero />
       <MiddleHero />
       <ProductExplorer />
-      <BrandLogos />
+      
       <Video />
       <About />
+      <BrandLogos />
       <Testimonials />
     </main>
   );

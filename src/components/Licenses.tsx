@@ -33,14 +33,14 @@ const licenseData = [
 
 const Licenses = () => {
   return (
-    <section className="bg-white min-h-screen">
+    <section className="bg-black min-h-screen">
       <div className="container mx-auto px-4 py-8 sm:py-16 sm:px-6 lg:px-8">
         {/* Page Title */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl mt-10 sm:text-4xl md:text-5xl font-bold text-gray-800">
+          <h1 className="text-3xl text-white mt-10 sm:text-4xl md:text-5xl font-bold text-gray-800">
             Trusted. Verified. Certified.
           </h1>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 px-4">
+          <p className="mt-3 sm:mt-4 text-white text-base sm:text-lg text-gray-600 px-4">
             Certified by{" "}
             <span className="text-cyan-600 font-semibold">FSSAI, BIS</span> &{" "}
             trusted authorities.
@@ -74,30 +74,25 @@ const Licenses = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray-200">
-                {licenseData.map((item) => (
-                  <tr
-                    key={item.srNo}
-                    className="text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="p-4 font-bold text-gray-800 border-r">
-                      {item.srNo}
-                    </td>
-                    <td className="p-4 border-r">{item.code}</td>
-                    <td className="p-4 border-r">{item.unitName}</td>
-                    <td className="p-4 border-r font-mono text-sm">
-                      {item.fssai}
-                    </td>
-                    <td className="p-4 border-r">
-                      <div>{item.bis}</div>
-                      <div className="text-sm text-gray-600">
-                        {item.bisStandard}
-                      </div>
-                    </td>
-                    <td className="p-4">{item.address}</td>
-                  </tr>
-                ))}
-              </tbody>
+             <tbody className="divide-y divide-gray-200">
+  {licenseData.map((item) => (
+    <tr
+      key={item.srNo}
+      className="text-white hover:bg-white hover:text-black transition-colors"
+    >
+      <td className="p-4 font-bold border-r">{item.srNo}</td>
+      <td className="p-4 border-r">{item.code}</td>
+      <td className="p-4 border-r">{item.unitName}</td>
+      <td className="p-4 border-r font-mono text-sm">{item.fssai}</td>
+      <td className="p-4 border-r">
+        <div>{item.bis}</div>
+        <div className="text-sm text-white-600">{item.bisStandard}</div>
+      </td>
+      <td className="p-4">{item.address}</td>
+    </tr>
+  ))}
+</tbody>
+
             </table>
           </div>
         </div>

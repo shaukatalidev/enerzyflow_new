@@ -18,11 +18,7 @@ const MiddleHero = () => {
         <div className="order-2 md:order-1 hero-text">
 
           {/* Badge */}
-          <div className="inline-block border border-brand-30 rounded-full px-4 py-1 mb-6 bg-brand-5 backdrop-blur-sm">
-            <span className="text-cyan-400 font-medium">
-              IIT Kharagpur Alumnus Startup
-            </span>
-          </div>
+          
 
           {/* Hero Heading */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-[1.1]">
@@ -44,7 +40,7 @@ const MiddleHero = () => {
   <button className="group relative px-8 py-4 bg-white text-black rounded-full font-bold overflow-hidden">
     <span className="relative z-10 
     
-    transition-colors duration-300 ease-out group-hover:text-blue-900">
+    transition-colors duration-300 ease-out group-hover:text-cyan-500 ">
       See Designs
     </span>
     <div className="absolute inset-0 bg-black transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
@@ -53,10 +49,18 @@ const MiddleHero = () => {
 
             {/* How It Works Button */}
             <Link href="/video">
-            <button className="px-8 py-4 border border-white/20 rounded-full font-bold flex items-center gap-3 group transition hover:bg-white/5">
-              <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition-colors duration-300 ease-out group-hover:bg-brand group-hover:text-black">
-                <i className="fa-solid fa-play text-xs"></i>
-              </span>
+            <button className="px-8 py-4 border border-white/20 rounded-full font-bold flex items-center gap-3 group transition hover:text-cyan-400">
+               <span
+      className="
+        ml-0.5
+        w-0 h-0
+        border-t-[6px] border-b-[6px] border-l-[10px]
+        border-t-transparent
+        border-b-transparent
+        border-l-white
+        group-hover:border-l-cyan-400
+      "
+    ></span>
               How It Works
             </button>
             </Link>

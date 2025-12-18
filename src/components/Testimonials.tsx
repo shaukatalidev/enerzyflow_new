@@ -26,13 +26,13 @@ const testimonials = [
 
 const Testimonials = () => {
   return (
-    <section className="bg-gray-50 py-20">
+    <section className="bg-white-50 py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800">
+        <div className="text-center ">
+          <h2 className="text-3xl text-white font-bold text-gray-800">
             Bottles With a Voice
           </h2>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-white-600">
             See how brands are leaving their mark with EnerzyFlow
           </p>
         </div>
@@ -41,7 +41,7 @@ const Testimonials = () => {
             // MODIFICATION: Added transition and hover:scale classes
             <div
               key={index}
-              className="bg-white p-8 rounded-lg shadow-md transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer"
+              className="bg-black p-8 rounded-lg shadow-md transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer"
             >
               <div className="flex">
                 {Array.from({ length: testimonial.rating }).map((_, i) => (
@@ -53,14 +53,14 @@ const Testimonials = () => {
                 ))}
               </div>
               {/* ✅ FIX: Escaped quotes */}
-              <p className="mt-4 text-gray-600">
+              <p className="mt-4 text-white-600">
                 &quot;{testimonial.quote}&quot;
               </p>
               <div className="mt-6">
-                <p className="font-semibold text-gray-800">
+                <p className="font-semibold text-white-800">
                   {testimonial.name}
                 </p>
-                <p className="text-sm text-gray-500">{testimonial.company}</p>
+                <p className="text-sm text-white-500">{testimonial.company}</p>
               </div>
             </div>
           ))}
