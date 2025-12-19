@@ -77,22 +77,23 @@ const MiddleHero = () => {
               src="/images/hero/image2.png"
               alt="EnerzyFlow Smart Bottle Interface"
               fill
-              className="object-cover opacity-100 mix-blend-overlay"
+              className="object-cover opacity-100 "
               style={{ filter: "hue-rotate(180deg)" }}
               priority
             />
            <div className="absolute bottom-10 inset-x-0 text-center">
-  <div className="w-16 h-16 bg-white mx-auto rounded-md overflow-hidden shadow-md">
+          <Link href="/qr">
+  <div className="w-16 h-full bg-white mx-auto rounded-md overflow-hidden shadow-md cursor-pointer">
     <Image
-      src="/images/hero/image1.png"
+      src="/images/logo_bottles/QR.png"
       alt="QR Code"
       width={64}
       height={64}
       className="object-contain"
-      quality={100}
-      unoptimized
     />
   </div>
+</Link>
+
 
 
               <p className="text-[10px] text-brand uppercase  text-cyan-400 tracking-widest transition-colors duration-300 ease-out group-hover:text-white">
