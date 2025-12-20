@@ -47,8 +47,8 @@ const Vedio = () => {
     {/* ---------- LEFT : BRAND TEXT (30%) ---------- */}
     <div className="flex items-center justify-center px-10 py-16 text-center md:text-left">
       <h2 className="text-4xl sm:text-4xl lg:text-4xl font-extrabold tracking-tight">
-        <span className="text-white ">ENERZY FLOW</span>
-        <span className="text-brand text-center text-glow block">AI POS</span>
+        <span className="text-white g-6 ">ENERZY FLOW</span>
+        <span className="text-brand text-center text-glow block  g-6 text-3xl"> AI  POS</span>
       </h2>
     </div>
 
@@ -70,37 +70,57 @@ const Vedio = () => {
 
 
       {/* ================= FEATURE CARDS ================= */}
-      <div className="container mx-auto px-6 grid md:grid-cols-3 gap-6">
+      <div className="container mx-auto px-6 grid gap-6 place-items-center sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+        
         {/* CARD 1 */}
-        <div className="glass-panel p-8 rounded-2xl hover:border-brand/50 transition duration-500 group">
-          <div className="w-14 h-14 bg-brand/10 rounded-xl flex items-center justify-center text-brand text-2xl mb-6 group-hover:scale-110 transition shadow-[0_0_15px_rgba(0,240,255,0.15)]">
-            ✨
+         <div className="glass-panel w-full max-w-sm p-8 rounded-2xl hover:border-brand/50 transition duration-500 group">
+          <div className="w-14 h-14 bg-brand/24 rounded-xl flex items-center justify-center text-brand text-2xl mb-15 group-hover:scale-110 transition shadow-[0_0_15px_rgba(0,240,255,0.15)]">
+            📱
           </div>
-          <h3 className="text-2xl font-bold mb-3 group-hover:text-brand transition-colors">
-            AI Offer Engine
+          <h3 className="text-2xl font-bold mb-5 text-brand text-glow">
+            Frictionless Ordering
           </h3>
           <p className="text-gray-400">
-           -The Brain: Automatically designs and launches "Flash Sale" banners on the bottle's QR menu to clear excess stocks or show festivals wishings  and daily offer depending upon requirement.
+            Scan to order, pay, or book instantly. Reduces waiter dependency by
+            40%.
           </p>
         </div>
 
         {/* CARD 2 */}
-        <div className="glass-panel p-8 rounded-2xl border-brand/50 shadow-[0_0_30px_rgba(0,240,255,0.15)] transform md:-translate-y-4 relative">
-          <div className="absolute top-0 left-0 w-full h-1 bg-brand shadow-[0_0_15px_#00F0FF]"></div>
-          <div className="w-14 h-14 bg-brand rounded-xl flex items-center justify-center text-black text-2xl mb-6 animate-pulse">
-            📱
-          </div>
-          <h3 className="text-2xl font-bold mb-3 text-brand text-glow">
-            Frictionless Ordering
+         <div className="glass-panel w-full max-w-sm p-8 rounded-2xl border-brand/50 shadow-[0_0_30px_rgba(0,240,255,0.15)] relative lg:-translate-y-4">
+          <div className="absolute top-0 left-0 w-full h-1 bg-brand shadow-[0_0_15px_#00F0FF]" />
+          < div className="w-14 h-14 bg-brand rounded-xl flex items-center justify-center text-black text-2xl mb-6 animate-pulse">
+
+          
+            ✨
+            </div>
+          
+          <h3 className="text-2xl font-bold mb-3 group-hover:text-brand transition-colors">
+            AI Offer Engine
           </h3>
           <p className="text-gray-400">
-            Scan to order. Scan to pay. Scan to book. We reduce waiter dependency
-            by 40%.
+            The Brain: Automatically designs and launches "Flash Sale" banners on the bottle's QR menu to clear excess stocks or show festivals wishings  and daily offer depending upon requirement .
+
           </p>
         </div>
 
         {/* CARD 3 */}
-        <div className="glass-panel p-8 rounded-2xl hover:border-brand/50 transition duration-500 group">
+         <div className="glass-panel w-full max-w-sm p-8 rounded-2xl border-brand/50 shadow-[0_0_30px_rgba(0,240,255,0.15)] relative lg:-translate-y-4">
+          <div className="absolute top-0 left-0 w-full h-1 bg-brand shadow-[0_0_15px_#00F0FF]" />
+          < div className="w-15 h-30 bg-brand rounded-xl flex items-center justify-center text-black text-2xl mb-6 animate-pulse">
+            🤖
+            </div>
+          
+          <h3 className="text-2xl font-bold mb-3 group-hover:text-brand transition-colors">
+          Auto Inventory AI
+          </h3>
+          <p className="text-gray-400">
+            Real-time tracking.Every digital order automatically deducts stock.updates approximated inventory in store using ordered data .
+          </p>
+        </div>
+
+        {/* CARD 4 */}
+        <div className="glass-panel w-full max-w-sm p-8 rounded-2xl hover:border-brand/50 transition duration-500 group">
           <div className="w-14 h-14 bg-brand/10 rounded-xl flex items-center justify-center text-brand text-2xl mb-6 group-hover:scale-110 transition shadow-[0_0_15px_rgba(0,240,255,0.15)]">
             🧲
           </div>
@@ -108,10 +128,11 @@ const Vedio = () => {
             Retention Loop
           </h3>
           <p className="text-gray-400">
-           -Offer is pushed to current diners via Bottle QR Web and past diners via SMS and Coupon codes. 
-Retargets the customer with offer  after they leave with a "Come Back Soon" offer generated by the Engine.
+            Offer is pushed to current diners via Bottle QR Web and past diners via SMS and Coupon codes. 
+             Retargets the customer with offer  after they leave with a "Come Back Soon" offer generated by the Engine.
           </p>
         </div>
+        
       </div>
     </section>
   );

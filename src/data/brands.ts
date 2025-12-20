@@ -27,7 +27,7 @@ export const brands: Brand[] = [
   {
     id: 4,
     name: "Resort Paradise",
-    logo: "/images/brands/Resort paradise.png",
+    logo: "/images/brands/resort-paradise.png",
     description: "Cultural beverage experience"
   },
   {
