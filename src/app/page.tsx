@@ -7,11 +7,13 @@ import Video from '@/components/Vedio';
 import MiddleHero from '@/components/MiddleHero';
 import CustomCursor from '@/components/CustomCursor';
 
+import Loader from '@/components/Loader';
 
 export default function Home() {
   return (
     <main className="bg-dark text-white overflow-x-hidden cursor-none min-h-screen">
       <CustomCursor />
+      <Loader />
       <Hero />
       <MiddleHero />
       <ProductExplorer />

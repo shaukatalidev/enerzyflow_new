@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "./context/AuthContext";
+import Loader from "@/components/Loader";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 
@@ -108,7 +109,9 @@ export default function RootLayout({
         />
 
         {/* 🔐 Authentication Context */}
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Loader />
+          {children}</AuthProvider>
       </body>
     </html>
   );

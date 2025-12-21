@@ -1,42 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Enerzyflow- Bottles With a Voice</title>
-  <meta
-    name="description"
-    content="Enerzyflow offers premium, sustainable water bottles with bold design and attitude. Hydrate sustainably and kill plastic waste."
-  />
-  <meta
-    name="keywords"
-    content="Enerzyflow, water bottles, sustainable bottles, premium bottles, eco-friendly hydration"
-  />
+
+  <title>Enerzyflow – Bottles With a Voice</title>
+
+  <meta name="description" content="Enerzyflow offers premium, sustainable water bottles with bold design and attitude. Hydrate sustainably and kill plastic waste." />
+  <meta name="keywords" content="Enerzyflow, water bottles, sustainable bottles, premium bottles, eco-friendly hydration" />
   <meta name="author" content="Enerzyflow" />
   <meta name="robots" content="index, follow" />
 
-   <link rel="canonical" href="https://www.enerzyflow.com/" />
-   <meta property="og:title" content="Enerzyflow | Premium Sustainable Water Bottles" />
-  <meta
-    property="og:description"
-    content="Premium hydration with attitude. Sustainable bottles designed to kill plastic waste."
-  />
+  <link rel="canonical" href="https://www.enerzyflow.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Enerzyflow | Premium Sustainable Water Bottles" />
+  <meta property="og:description" content="Premium hydration with attitude. Sustainable bottles designed to kill plastic waste." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.enerzyflow.com/" />
   <meta property="og:image" content="https://www.enerzyflow.com/og-image.jpg" />
+
+  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Enerzyflow | Premium Sustainable Water Bottles" />
-  <meta
-    name="twitter:description"
-    content="Hydrate sustainably with Enerzyflow. Bold design, premium quality."
-  />
+  <meta name="twitter:description" content="Hydrate sustainably with Enerzyflow. Bold design, premium quality." />
   <meta name="twitter:image" content="https://www.enerzyflow.com/og-image.jpg" />
-   <link rel="icon" href="/favicon.ico" />
 
+  <link rel="icon" href="/favicon.ico" />
   <link rel="stylesheet" href="index.css" />
-    <script type="application/ld+json">
+
+  <!-- Schema -->
+  <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Brand",
@@ -49,6 +43,23 @@
 </head>
 
 <body>
+
+  <!-- ================= LOADER ================= -->
+  <div id="loader-wrapper">
+    <div class="loader-content">
+      <div class="hydro-sphere">
+        <div class="scan-bar"></div>
+        <div class="liquid" id="loader-liquid"></div>
+      </div>
+
+      <div class="loader-text">
+        <span class="magic-text">Magic Happening</span>
+        <span class="brand-text">ENERZYFLOW</span>
+      </div>
+    </div>
+  </div>
+  <!-- =============== END LOADER =============== -->
+
   <!-- Header -->
   <header class="header">
     <div class="logo">Enerzyflow</div>
@@ -59,6 +70,7 @@
       <a href="#contact">Contact</a>
     </nav>
   </header>
+
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-content">
@@ -67,167 +79,89 @@
       <button onclick="openModal()">Shop Now</button>
     </div>
 
-    <!-- Arrows -->
     <button class="arrow left" onclick="prevSlide()">&#10094;</button>
     <button class="arrow right" onclick="nextSlide()">&#10095;</button>
   </section>
 
-  <!-- Section Two: Product Lineup -->
+  <!-- Products -->
   <section id="products" class="products">
     <h2>PRODUCTS</h2>
     <div class="products-container">
-      <!-- Card 1 -->
       <a href="classic.html" class="product-card">
-        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_25393ffe.jpg" alt="Killer Cola">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_25393ffe.jpg" alt="Classic Bottle">
         <h3>Classic</h3>
       </a>
 
-      <!-- Card 2 -->
       <a href="Elite.html" class="product-card">
-        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.11_2a43d2a9.jpg" alt="Severed Lime">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.11_2a43d2a9.jpg" alt="Elite Bottle">
         <h3>Elite</h3>
       </a>
 
-      <!-- Card 3 -->
       <a href="Exclusive.html" class="product-card">
-        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.11_f2bb26ce.jpg" alt="Mountain Water">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.11_f2bb26ce.jpg" alt="Exclusive Bottle">
         <h3>Exclusive</h3>
       </a>
 
-      <!-- Card 4 -->
       <a href="Premier.html" class="product-card">
-        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_261294b6.jpg" alt="Rest in Peach">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_261294b6.jpg" alt="Premium Bottle">
         <h3>Premium</h3>
       </a>
 
-
-      <!-- Card 5 -->
       <a href="Ultra.html" class="product-card">
-        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_261294b6.jpg" alt="Rest in Peach">
+        <img src="Bottles/WhatsApp Image 2025-08-17 at 01.48.09_261294b6.jpg" alt="Ultra Bottle">
         <h3>Ultra</h3>
       </a>
+    </div>
+  </section>
 
- 
+  <!-- About -->
+  <section id="about" class="about">
+    <div class="about-container">
+      <div class="about-text">
+        <h4>About Us</h4>
+        <p><strong>Enerzyflow</strong> believes water doesn’t have to be boring. Bold cans, sustainable mission, killer design.</p>
+        <p>Every bottle saves plastic. Hydrate with attitude.</p>
+      </div>
+      <div class="about-image">
+        <img src="Bottles/IMG_20250803_140025862_HDR.jpg" alt="Enerzyflow Bottle">
+      </div>
+    </div>
+  </section>
 
-      <!-- About Section -->
-      <section id="about" class="about">
-        <div class="about-container">
-          <div class="about-text">
-            <h4>About us</h4>
-            <p>
-              At <strong>Enerzyflow</strong>, we believe water doesn’t have to be boring.
-              We put it in bold cans, backed by sustainability and killer design.
-              Our mission: hydrate the world, kill plastic waste, and look metal doing it.
-            </p>
-            <p>
-              Every can you drink saves a plastic bottle from polluting our planet.
-              Join the revolution — quench your thirst with attitude.
-            </p>
-          </div>
-          <div class="about-image">
-            <img src="Bottles/IMG_20250803_140025862_HDR.jpg" alt="Enerzyflow">
-          </div>
-        </div>
-      </section>
-
-
-      <!-- Get in Touch Section -->
-      <section id="contact" class="contact-section">
-        <div class="contact-container">
-          <div class="contact-left">
-            <h5>CONTACT US</h5>
-            <h2>Have questions?<br>Get in touch!</h2>
-            <p><i class="fas fa-envelope"></i> support@enerzyflow.com</p>
-          </div>
-
-          <div class="contact-right">
-            <form class="contact-form">
-              <div class="form-row">
-                <div class="form-group">
-                  <i class="fas fa-user"></i>
-                  <input type="text" placeholder="Name" required>
-                </div>
-                <div class="form-group">
-                  <i class="fas fa-envelope"></i>
-                  <input type="email" placeholder="Email Address" required>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <i class="fas fa-phone"></i>
-                  <input type="tel" placeholder="Phone">
-                </div>
-                <div class="form-group">
-                  <i class="fas fa-info-circle"></i>
-                  <input type="text" placeholder="Subject">
-                </div>
-              </div>
-
-              <div class="form-group full-width">
-                <i class="fas fa-pencil-alt"></i>
-                <textarea placeholder="How can we help you? Feel free to get in touch!" rows="4"></textarea>
-              </div>
-
-              <div class="form-footer">
-                <button type="submit" class="btn-submit">
-                  <i class="fas fa-paper-plane"></i> GET IN TOUCH
-                </button>
-                <label class="privacy">
-                  <input type="checkbox" required>
-                  I agree to the <a href="#">Privacy Policy</a>.
-                </label>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
-
-
-
-      <!-- Footer -->
-      <footer class="footer">
-        <div class="footer-container">
-
-          <!-- About -->
-          <div class="footer-about">
-            <h6>Enerzyflow</h6>
-            <p>Premium hydration with attitude. Bold taste, sustainable mission.</p>
-          </div>
-
-          <!-- Links -->
-          <div class="footer-links">
-            <h6>Quick Links</h6>
-            <ul>
-              <li><a href="#products">Products</a></li>
-              <li><a href="#about">About</a></li>
-              <li><a href="#merch">Merch</a></li>
-              <li><a href="#contact">Contact</a></li>
-            </ul>
-          </div>
-
-          <!-- Social (Dynamic) -->
-          <div class="footer-social">
-            <h6>Follow Us</h6>
-            <div class="social-icons" id="socialIcons"></div>
-          </div>
-        </div>
-
-        <div class="footer-bottom">
-          <p>&copy; 2025 Enerzyflow. All rights reserved.</p>
-        </div>
-      </footer>
-
-      <!-- Modal -->
-      <div id="modal" class="modal">
-        <div class="modal-content">
-          <span class="close" onclick="closeModal()">&times;</span>
-          <h2>Shop Coming Soon</h2>
-          <p>Stay tuned for the official launch!</p>
-        </div>
+  <!-- Contact -->
+  <section id="contact" class="contact-section">
+    <div class="contact-container">
+      <div class="contact-left">
+        <h5>CONTACT US</h5>
+        <h2>Have questions?<br>Get in touch!</h2>
+        <p>support@enerzyflow.com</p>
       </div>
 
-      <script src="index.js"></script>
-</body>
+      <div class="contact-right">
+        <form class="contact-form">
+          <input type="text" placeholder="Name" required />
+          <input type="email" placeholder="Email" required />
+          <textarea placeholder="How can we help?" rows="4"></textarea>
+          <button type="submit">GET IN TOUCH</button>
+        </form>
+      </div>
+    </div>
+  </section>
 
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2025 Enerzyflow. All rights reserved.</p>
+  </footer>
+
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2>Shop Coming Soon</h2>
+      <p>Stay tuned for the official launch!</p>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
 </html>
