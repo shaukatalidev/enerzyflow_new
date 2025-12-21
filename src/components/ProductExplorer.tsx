@@ -61,7 +61,6 @@ const ProductExplorer = () => {
   const router = useRouter();
   const products = allProducts as Product[];
 
-  /* Slider State */
   const itemsPerSlide = 3;
   const totalSlides = Math.max(1, Math.ceil(products.length / itemsPerSlide));
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -84,27 +83,28 @@ const ProductExplorer = () => {
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             Crafted for your <span className="text-cyan-400 text-glow">Every Venue</span>
           </h2>
-          <p className="text-gray-400 text-sm sm:text-base">Choose bottles that matches your vibe.</p>
+          <p className="text-gray-400 text-sm sm:text-base">Choose bottles that match your vibe.</p>
         </div>
 
         {/* Slider */}
         <div className="relative max-w-6xl mx-auto">
           {totalSlides > 1 && (
-            <>
-              <button
-                onClick={prevSlide}
-                className="absolute left-1 sm:left-0 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
-              >
-                <ChevronLeft size={20} className="sm:w-5 sm:h-5" />
-              </button>
-              <button
-                onClick={nextSlide}
-                className="absolute right-1 sm:right-0 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
-              >
-                <ChevronRight size={20} className="sm:w-5 sm:h-5" />
-              </button>
-            </>
-          )}
+  <>
+    <button
+      onClick={prevSlide}
+      className="absolute left-0 sm:-left-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
+    >
+      <ChevronLeft size={20} className="sm:w-5 sm:h-5" />
+    </button>
+    <button
+      onClick={nextSlide}
+      className="absolute right-0 sm:-right-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
+    >
+      <ChevronRight size={20} className="sm:w-5 sm:h-5" />
+    </button>
+  </>
+)}
+
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 px-2 sm:px-6">
@@ -115,13 +115,17 @@ const ProductExplorer = () => {
               return (
                 <div
                   key={product.id}
-                  className={`glass-panel p-4 sm:p-6 rounded-2xl group transition-colors ${
+                  className={`glass-panel p-4 sm:p-6 rounded-2xl group transition-all duration-500 ${
                     isMiddle
                       ? "border-cyan-400/30 shadow-[0_0_20px_rgba(0,240,255,0.1)] transform md:-translate-y-4"
                       : "hover:border-cyan-400"
                   }`}
                 >
-                  <div className="h-48 sm:h-56 md:h-64 mb-4 sm:mb-6 bg-gradient-to-b from-gray-800 to-black rounded-xl overflow-hidden relative">
+                  <div
+                    className={`transition-all duration-500 ease-out ${
+                      isMiddle ? "h-60 sm:h-72 md:h-80" : "h-48 sm:h-56 md:h-64"
+                    } mb-4 sm:mb-6 bg-gradient-to-b from-gray-800 to-black rounded-xl overflow-hidden relative`}
+                  >
                     {isMiddle && imgs.length > 1 ? (
                       <AutoSwiper images={imgs} />
                     ) : (
@@ -162,9 +166,7 @@ const ProductExplorer = () => {
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i)}
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    i === currentSlide ? "bg-cyan-400" : "bg-gray-600"
-                  }`}
+                  className={`w-2.5 h-2.5 rounded-full ${i === currentSlide ? "bg-cyan-400" : "bg-gray-600"}`}
                 />
               ))}
             </div>
