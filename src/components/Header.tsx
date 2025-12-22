@@ -106,17 +106,18 @@ const Header = () => {
           </nav>
 
           {/* ================= RIGHT (DESKTOP) ================= */}
-          <div className="hidden md:flex items-center gap-4">
-            {/* ✅ HOME ICON (ONLY WHEN NOT HOME PAGE) */}
-            {pathname !== "/" && (
-              <button
-                onClick={() => router.push("/")}
-                className="p-2 rounded-full hover:bg-white/10"
-                aria-label="Home"
-              >
-                <Home className="h-6 w-6 text-cyan-400" />
-              </button>
-            )}
+          {/* ================= RIGHT (DESKTOP) ================= */}
+<div className="hidden md:flex items-center gap-4">
+  {/* ✅ HOME ICON (ONLY WHEN NOT HOME PAGE) */}
+  {pathname !== "/" && (
+    <Link
+      href="/"
+      aria-label="Home"
+      className="p-2 rounded-full hover:bg-white/10 flex items-center justify-center"
+    >
+      <Home className="h-6 w-6 text-cyan-400" />
+    </Link>
+  )}
 
             {isAuthenticated && user ? (
               <>
@@ -196,18 +197,17 @@ const Header = () => {
               </button>
             </div>
 
-            {/* ✅ HOME (ONLY WHEN NOT HOME PAGE) */}
-            {pathname !== "/" && (
-              <button
-                onClick={() => {
-                  router.push("/");
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-2 text-cyan-400 mb-4"
-              >
-                <Home size={18} /> Home
-              </button>
-            )}
+           {/* ✅ HOME (ONLY WHEN NOT HOME PAGE) */}
+{pathname !== "/" && (
+  <Link
+    href="/"
+    className="flex items-center gap-2 text-cyan-400 mb-4"
+    onClick={() => setIsMobileMenuOpen(false)} // close menu
+  >
+    <Home size={18} /> Home
+  </Link>
+)}
+
 
             <nav className="flex flex-col gap-4">
               {[

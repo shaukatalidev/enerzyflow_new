@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 
 const Hero = () => {
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const desktopVideoRef = useRef<HTMLVideoElement | null>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
-    }
+    desktopVideoRef.current?.play().catch(() => {});
+    mobileVideoRef.current?.play().catch(() => {});
   }, []);
 
   return (
@@ -21,9 +20,9 @@ const Hero = () => {
         h-[60vh] sm:h-[70vh] md:h-[85vh] lg:h-screen
       "
     >
-      {/* Background Video */}
+      {/* ✅ Desktop Video */}
       <video
-        ref={videoRef}
+        ref={desktopVideoRef}
         src="/images/hero/kolkata.mp4"
         autoPlay
         loop
@@ -32,8 +31,24 @@ const Hero = () => {
         preload="auto"
         className="
           absolute inset-0
-          w-full h-full
-          object-cover
+          hidden md:block
+          w-full h-full object-cover
+        "
+      />
+
+      {/* ✅ Mobile Video */}
+      <video
+        ref={mobileVideoRef}
+        src="/images/hero/kolkata2.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className="
+          absolute inset-0
+          block md:hidden
+          w-full h-full object-cover
         "
       />
 

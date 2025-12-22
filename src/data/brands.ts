@@ -14,7 +14,7 @@ export const brands: Brand[] = [
   },
   {
     id: 2,
-    name: "Zakaana",
+    name: "Zaikaana",
     logo: "/images/brands/zaikasa.png",
     description: "Natural refreshment solutions"
   },
