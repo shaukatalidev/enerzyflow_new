@@ -14,7 +14,7 @@ export const brands: Brand[] = [
   },
   {
     id: 2,
-    name: "Zakaana",
+    name: "Zaikaana",
     logo: "/images/brands/zaikasa.png",
     description: "Natural refreshment solutions"
   },
@@ -41,5 +41,29 @@ export const brands: Brand[] = [
     name: "Bookhara Restaurant",
     logo: "/images/brands/bookhara.png",
     description: "Restaurant beverage collection"
-  }
+  },
+   {
+    id: 7,
+    name: "The Street Cafe",
+    logo: "/images/brands/logo1.png",
+    description: "Restaurant beverage collection"
+  },
+   {
+    id: 8,
+    name: "GROOVIN KOLKATA",
+    logo: "/images/brands/logo2.png",
+    description: "Restaurant beverage collection"
+  },
+   {
+    id: 9,
+    name: "Club Amre",
+    logo: "/images/brands/logo3.png",
+    description: "Restaurant beverage collection"
+  },
+   {
+    id: 10,
+    name: "Cafe Latte",
+    logo: "/images/brands/logo4.png",
+    description: "Restaurant beverage collection"
+  },
 ];

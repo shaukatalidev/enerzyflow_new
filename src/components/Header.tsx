@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Bell, X, Menu } from "lucide-react";
+import { Bell, X, Menu, Home } from "lucide-react";
 import { useAuth } from "../app/context/AuthContext";
 
 const Header = () => {
@@ -16,10 +16,12 @@ const Header = () => {
 
   const { user, isAuthenticated, logout, isLoading } = useAuth();
 
+  /* ================= CLOSE MOBILE ON ROUTE CHANGE ================= */
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  /* ================= BODY SCROLL LOCK ================= */
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? "hidden" : "unset";
     return () => {
@@ -27,6 +29,7 @@ const Header = () => {
     };
   }, [isMobileMenuOpen]);
 
+  /* ================= USER INITIALS ================= */
   const getUserInitials = () => {
     const name = user?.profile?.name || user?.name;
     return name
@@ -34,8 +37,8 @@ const Header = () => {
           .split(" ")
           .map((n) => n[0])
           .join("")
-          .toUpperCase()
           .slice(0, 2)
+          .toUpperCase()
       : user?.email?.[0]?.toUpperCase() || "U";
   };
 
@@ -50,12 +53,7 @@ const Header = () => {
     return (
       <header className="fixed top-4 w-full z-50 px-4">
         <div className="max-w-7xl mx-auto h-16 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-between px-6">
-          <Image
-            src="/images/logo_bottles/logo.png"
-            alt="EnerzyFlow"
-            width={120}
-            height={40}
-          />
+          <Image src="/images/logo_bottles/logo.png" alt="EnerzyFlow" width={120} height={40} />
           <div className="h-8 w-8 bg-gray-700 rounded-full animate-pulse" />
         </div>
       </header>
@@ -68,32 +66,23 @@ const Header = () => {
       <header className="fixed top-4 w-full z-50 px-4">
         <div
           className="max-w-7xl mx-auto flex items-center justify-between
-                     bg-black/60 backdrop-blur-md
-                     border border-white/10
+                     bg-black/60 backdrop-blur-md border border-white/10
                      rounded-full px-6 py-3
                      shadow-[0_0_30px_rgba(0,240,255,0.12)]"
         >
           {/* ================= LOGO ================= */}
-         {/* LOGO */}
           <Link href="/" className="flex items-center gap-3">
-  <div  className="w-13 h-13 rounded-full 
-               flex items-center justify-center
-               overflow-hidden
-               shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-    <Image
-      src="/images/logo_bottles/logo.png"
-      alt="EnerzyFlow Icon"
-      width={48}
-      height={48}
-      className="object-contain"
-      priority
-    />
-  </div>
-
-  <span className="text-white font-bold text-xl">
-    EnerzyFlow
-  </span>
-</Link>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+              <Image
+                src="/images/logo_bottles/logo.png"
+                alt="EnerzyFlow"
+                width={48}
+                height={48}
+                priority
+              />
+            </div>
+            <span className="text-white font-bold text-xl">EnerzyFlow</span>
+          </Link>
 
           {/* ================= DESKTOP NAV ================= */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
@@ -111,18 +100,25 @@ const Header = () => {
                 className="relative group hover:text-white transition-colors"
               >
                 {item.label}
-                <span
-                  className="absolute -bottom-1 left-0 h-[1px] w-0 bg-cyan-400
-                             transition-all duration-300
-                             shadow-[0_0_10px_rgba(0,240,255,0.9)]
-                             group-hover:w-full"
-                />
+                <span className="absolute -bottom-1 left-0 h-[1px] w-0 bg-cyan-400 transition-all duration-300 group-hover:w-full" />
               </Link>
             ))}
           </nav>
 
-          {/* ================= RIGHT ================= */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* ================= RIGHT (DESKTOP) ================= */}
+          {/* ================= RIGHT (DESKTOP) ================= */}
+<div className="hidden md:flex items-center gap-4">
+  {/* ✅ HOME ICON (ONLY WHEN NOT HOME PAGE) */}
+  {pathname !== "/" && (
+    <Link
+      href="/"
+      aria-label="Home"
+      className="p-2 rounded-full hover:bg-white/10 flex items-center justify-center"
+    >
+      <Home className="h-6 w-6 text-cyan-400" />
+    </Link>
+  )}
+
             {isAuthenticated && user ? (
               <>
                 <button className="relative p-2 rounded-full hover:bg-white/10">
@@ -135,25 +131,22 @@ const Header = () => {
                 <div className="relative">
                   <button
                     onClick={() => setShowProfileDropdown((v) => !v)}
-                    className="h-10 w-10 rounded-full
-                               bg-gradient-to-br from-cyan-500 to-blue-600
-                               text-white font-semibold flex items-center justify-center
-                               shadow-[0_0_15px_rgba(0,240,255,0.8)]"
+                    className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-semibold flex items-center justify-center"
                   >
                     {getUserInitials()}
                   </button>
 
                   {showProfileDropdown && (
-                    <div className="absolute right-0 mt-2 w-52 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 shadow-lg">
+                    <div className="absolute right-0 mt-2 w-52 bg-black/80 backdrop-blur-md rounded-xl border border-white/10">
                       <button
                         onClick={() => router.push("/dashboard")}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-white/10"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-white/10"
                       >
                         Dashboard
                       </button>
                       <Link
                         href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                        className="block px-4 py-2 text-sm hover:bg-white/10"
                         onClick={() => setShowProfileDropdown(false)}
                       >
                         Profile
@@ -171,16 +164,14 @@ const Header = () => {
               </>
             ) : (
               <Link href="/login">
-                <button className="bg-cyan-500 text-black px-6 py-2 rounded-full
-                                   font-medium hover:bg-cyan-400
-                                   shadow-[0_0_25px_rgba(0,240,255,0.6)]">
+                <button className="bg-cyan-500 text-black px-6 py-2 rounded-full font-medium">
                   Sign In
                 </button>
               </Link>
             )}
           </div>
 
-          {/* ================= MOBILE BUTTON ================= */}
+          {/* ================= MOBILE MENU BUTTON ================= */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="md:hidden p-2 rounded-md hover:bg-white/10 text-white"
@@ -206,6 +197,18 @@ const Header = () => {
               </button>
             </div>
 
+           {/* ✅ HOME (ONLY WHEN NOT HOME PAGE) */}
+{pathname !== "/" && (
+  <Link
+    href="/"
+    className="flex items-center gap-2 text-cyan-400 mb-4"
+    onClick={() => setIsMobileMenuOpen(false)} // close menu
+  >
+    <Home size={18} /> Home
+  </Link>
+)}
+
+
             <nav className="flex flex-col gap-4">
               {[
                 { label: "About Us", href: "/about" },
@@ -218,29 +221,12 @@ const Header = () => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="text-gray-300 hover:text-cyan-400 transition"
+                  className="text-gray-300 hover:text-cyan-400"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-
-            <div className="mt-6 border-t border-white/10 pt-6">
-              {isAuthenticated ? (
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-red-400 hover:bg-red-500/10 py-2 rounded"
-                >
-                  Sign Out
-                </button>
-              ) : (
-                <Link href="/login">
-                  <button className="w-full bg-cyan-500 text-black py-2 rounded-full shadow-[0_0_25px_rgba(0,240,255,0.6)]">
-                    Sign In
-                  </button>
-                </Link>
-              )}
-            </div>
           </div>
         </>
       )}
