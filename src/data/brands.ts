@@ -26,8 +26,8 @@ export const brands: Brand[] = [
   },
   {
     id: 4,
-    name: "Resort Paradise",
-    logo: "/images/brands/resort-paradise.png",
+    name: "Gupta Brothers",
+    logo: "/images/brands/gupta.png",
     description: "Cultural beverage experience"
   },
   {

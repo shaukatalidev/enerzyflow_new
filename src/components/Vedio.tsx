@@ -99,7 +99,7 @@ const Vedio = () => {
             AI Offer Engine
           </h3>
           <p className="text-gray-400">
-            The Brain: Automatically designs and launches "Flash Sale" banners on the bottle's QR menu to clear excess stocks or show festivals wishings  and daily offer depending upon requirement .
+            The Brain: Automatically designs and launches "Flash Sale" banners on the bottle's QR menu to clear excess stocks or show festivals wishings  and daily offer depending upon requirement.
 
           </p>
         </div>
@@ -136,6 +136,6 @@ const Vedio = () => {
       </div>
     </section>
   );
-};
+};  
 
-export default Vedio;
+export default Vedio; 
