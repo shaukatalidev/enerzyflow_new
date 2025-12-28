@@ -57,7 +57,7 @@ const Vedio = () => {
       <video
         ref={videoRef}
         src="/images/hero/vd1.mp4"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-centered"
         autoPlay
         loop
         muted
