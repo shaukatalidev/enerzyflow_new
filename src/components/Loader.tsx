@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from "react";
-import { usePathname } from "next/navigation";
 import gsap from "gsap";
 
 export default function Loader() {
-  const pathname = usePathname();
-
   const [progress, setProgress] = useState(0);
   const [isDone, setIsDone] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -16,18 +13,16 @@ export default function Loader() {
   const textRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  /* ---------- VISIBILITY LOGIC ---------- */
+  /* ---------- SHOW ONLY ON FIRST LOAD / RELOAD ---------- */
   useEffect(() => {
+    const navEntries = performance.getEntriesByType("navigation");
+    const isReload =
+      navEntries.length > 0 &&
+      (navEntries[0] as PerformanceNavigationTiming).type === "reload";
+
     const hasShown = sessionStorage.getItem("loader-shown");
 
-    // ✅ Always show loader on HOME reload
-    if (pathname === "/") {
-      setIsVisible(true);
-      return;
-    }
-
-    // ✅ Other pages → show once per session
-    if (!hasShown) {
+    if (!hasShown || isReload) {
       setIsVisible(true);
       sessionStorage.setItem("loader-shown", "true");
     } else {
@@ -37,7 +32,7 @@ export default function Loader() {
         filter: "blur(0px)",
       });
     }
-  }, [pathname]);
+  }, []);
 
   /* ---------- FAKE PROGRESS ---------- */
   useEffect(() => {
@@ -55,7 +50,8 @@ export default function Loader() {
 
       setProgress(value);
 
-      const liquid = sphereRef.current?.querySelector<HTMLDivElement>(".liquid");
+      const liquid =
+        sphereRef.current?.querySelector<HTMLDivElement>(".liquid");
       if (liquid) liquid.style.height = `${value}%`;
     }, 50);
 
@@ -69,7 +65,9 @@ export default function Loader() {
     gsap
       .timeline({
         onComplete: () => {
-          loaderRef.current!.style.display = "none";
+          if (loaderRef.current)
+            loaderRef.current.style.display = "none";
+
           gsap.to(contentRef.current, {
             opacity: 1,
             scale: 1,
@@ -144,3 +142,4 @@ export default function Loader() {
     </>
   );
 }
+  

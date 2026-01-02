@@ -366,7 +366,7 @@ export default function Login() {
 
   return (
     <div className="bg-gray-100 flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md lg:max-w-5xl">
+      <div className="w-full mt-10 max-w-md lg:max-w-5xl">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 lg:grid lg:grid-cols-2 overflow-hidden">
           <div className="hidden lg:block relative h-full min-h-[600px]">
             <Image
