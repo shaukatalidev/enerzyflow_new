@@ -42,7 +42,9 @@ const AutoSwiper = ({ images, interval = 2000 }: { images: ImgType[]; interval?:
 
   useEffect(() => {
     if (images.length <= 1) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % images.length), interval);
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % images.length);
+    }, interval);
     return () => clearInterval(id);
   }, [images, interval]);
 
@@ -76,38 +78,43 @@ const ProductExplorer = () => {
   const middleIndex = Math.floor(slideProducts.length / 2);
 
   return (
-    <section id="hardware" className="py-24 md:py-32 relative bg-black text-white">
+    <section id="hardware" className="bg-black text-white py-28 md:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
         <div className="text-center mb-16 md:mb-20">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Crafted for your <span className="text-cyan-400 text-glow">Every Venue</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+            Crafted for your <span className="text-cyan-400">Every Venue</span>
           </h2>
-          <p className="text-gray-400 text-sm sm:text-base">Choose bottles that match your vibe.</p>
+          <p className="text-gray-400 text-sm sm:text-base">
+            Choose bottles that match your vibe.
+          </p>
         </div>
 
         {/* Slider */}
         <div className="relative max-w-6xl mx-auto">
-          {totalSlides > 1 && (
-  <>
-    <button
-      onClick={prevSlide}
-      className="absolute left-0 sm:-left-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
-    >
-      <ChevronLeft size={20} className="sm:w-5 sm:h-5" />
-    </button>
-    <button
-      onClick={nextSlide}
-      className="absolute right-0 sm:-right-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-2 sm:p-3 rounded-full z-10"
-    >
-      <ChevronRight size={20} className="sm:w-5 sm:h-5" />
-    </button>
-  </>
-)}
 
+          {/* Arrows */}
+          {totalSlides > 1 && (
+            <>
+              <button
+                onClick={prevSlide}
+                className="absolute left-0 sm:-left-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-3 rounded-full z-10"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
+              <button
+                onClick={nextSlide}
+                className="absolute right-0 sm:-right-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-3 rounded-full z-10"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
 
           {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 px-2 sm:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 px-3 sm:px-6">
             {slideProducts.map((product, index) => {
               const imgs = productToImageArray(product);
               const isMiddle = index === middleIndex;
@@ -115,16 +122,19 @@ const ProductExplorer = () => {
               return (
                 <div
                   key={product.id}
-                  className={`glass-panel p-4 sm:p-6 rounded-2xl group transition-all duration-500 ${
+                  className={`glass-panel rounded-2xl p-6 sm:p-6 transition-all duration-500 group ${
                     isMiddle
-                      ? "border-cyan-400/30 shadow-[0_0_20px_rgba(0,240,255,0.1)] transform md:-translate-y-4"
+                      ? "border-cyan-400/30 shadow-[0_0_25px_rgba(0,240,255,0.15)] md:-translate-y-4"
                       : "hover:border-cyan-400"
                   }`}
                 >
+                  {/* Image */}
                   <div
-                    className={`transition-all duration-500 ease-out ${
-                      isMiddle ? "h-60 sm:h-72 md:h-80" : "h-48 sm:h-56 md:h-64"
-                    } mb-4 sm:mb-6 bg-gradient-to-b from-gray-800 to-black rounded-xl overflow-hidden relative`}
+                    className={`relative overflow-hidden rounded-xl mb-5 bg-gradient-to-b from-gray-800 to-black transition-all duration-500 ${
+                      isMiddle
+                        ? "h-72 sm:h-72 md:h-80"
+                        : "h-64 sm:h-56 md:h-64"
+                    }`}
                   >
                     {isMiddle && imgs.length > 1 ? (
                       <AutoSwiper images={imgs} />
@@ -140,17 +150,21 @@ const ProductExplorer = () => {
                     )}
                   </div>
 
-                  <h3 className={`text-xl sm:text-2xl font-bold mb-2 ${isMiddle ? "text-white" : ""}`}>
+                  {/* Content */}
+                  <h3 className="text-2xl sm:text-xl md:text-2xl font-bold mb-3">
                     {product.name}
                   </h3>
-                  <p className="text-gray-400 text-xs sm:text-sm mb-4">{product.details}</p>
+
+                  <p className="text-gray-400 text-sm mb-5">
+                    {product.details}
+                  </p>
 
                   {isMiddle ? (
-                    <span className="bg-cyan-400 text-black px-3 py-1 rounded-full text-xs font-bold">
+                    <span className="inline-block bg-cyan-400 text-black px-4 py-1 rounded-full text-xs font-bold">
                       Best Seller
                     </span>
                   ) : (
-                    <span className="text-cyan-400 font-bold text-sm">
+                    <span className="text-cyan-400 font-semibold text-sm">
                       {index === 0 ? "Most Popular" : "For Luxury"}
                     </span>
                   )}
@@ -161,12 +175,14 @@ const ProductExplorer = () => {
 
           {/* Dots */}
           {totalSlides > 1 && (
-            <div className="flex justify-center mt-8 md:mt-10 gap-2">
+            <div className="flex justify-center gap-2 mt-10">
               {Array.from({ length: totalSlides }).map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i)}
-                  className={`w-2.5 h-2.5 rounded-full ${i === currentSlide ? "bg-cyan-400" : "bg-gray-600"}`}
+                  className={`w-3 h-3 rounded-full ${
+                    i === currentSlide ? "bg-cyan-400" : "bg-gray-600"
+                  }`}
                 />
               ))}
             </div>
@@ -174,14 +190,15 @@ const ProductExplorer = () => {
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-16 md:mt-20">
+        <div className="text-center mt-20">
           <button
             onClick={() => router.push("/products")}
-            className="border border-gray-600 px-6 sm:px-8 py-2 sm:py-3 rounded-full hover:border-cyan-400 transition text-sm sm:text-base"
+            className="border border-gray-600 px-8 py-3 rounded-full hover:border-cyan-400 transition"
           >
             Explore All Bottles
           </button>
         </div>
+
       </div>
     </section>
   );

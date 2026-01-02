@@ -17,7 +17,7 @@ const BrandLogos: React.FC = () => {
         <div className="relative w-full overflow-hidden">
           <div className="flex w-max animate-autoSwipe">
             {[...brands, ...brands].map((brand: Brand, index) => {
-              const isLarge = brand.id === 3 || brand.id === 4;
+              const isLarge = brand.id === 3;
 
               return (
                 <div
