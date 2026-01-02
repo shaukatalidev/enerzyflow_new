@@ -1,27 +1,13 @@
-"use client";
+// app/page.tsx
+import type { Metadata } from "next";
+import HomeClient from "./HomeClient";
 
-import CustomCursor from "@/components/CustomCursor";
-import Loader from "@/components/Loader";
-import Hero from "@/components/Hero";
-import MiddleHero from "@/components/MiddleHero";
-import ProductExplorer from "@/components/ProductExplorer";
-import Video from "@/components/Vedio";
-import About from "@/components/About";
-import BrandLogos from "@/components/BrandLogos";
-import Testimonials from "@/components/Testimonials";
+export const metadata: Metadata = {
+  title: "Enerzyflow – Premium Sustainable Water Bottles",
+  description:
+    "Enerzyflow offers premium sustainable water bottles with bold design. Eco-friendly, reusable bottles built to reduce plastic waste.",
+};
 
 export default function HomePage() {
-  return (
-    <main className="bg-dark text-white overflow-x-hidden cursor-none min-h-screen">
-      <CustomCursor />
-      <Loader />
-      <Hero />
-      <MiddleHero />
-      <ProductExplorer />
-      <Video />
-      <About />
-      <BrandLogos />
-      <Testimonials />
-    </main>
-  );
+  return <HomeClient />;
 }
