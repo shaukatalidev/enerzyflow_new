@@ -7,6 +7,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.enerzyflow.com/"),
   title: "EnerzyFlow | The Hospitality OS | Premium Sustainable Branding",
   description:
     "EnerzyFlow turns premium sustainable water bottles into a powerful hospitality data engine. Capture 100% of guest data and automate upselling with our invisible OS.",
