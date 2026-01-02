@@ -43,37 +43,24 @@ const Vedio = () => {
       backdrop-blur-sm
       grid grid-cols-1 md:grid-cols-[30%_70%]
     "
-  >
-    {/* ---------- LEFT : BRAND TEXT (30%) ---------- */}
-    <div className="flex items-center justify-center px-10 py-16 text-center md:text-left">
-      <h2 className="text-4xl sm:text-4xl lg:text-4xl font-extrabold tracking-tight">
-        <span className="text-white g-6 ">ENERZY FLOW</span>
-        <span className="text-brand text-center text-glow block  g-6 text-3xl"> AI  POS</span>
-      </h2>
-    </div>
-
-    {/* ---------- RIGHT : VIDEO (70%) ---------- */}
-    <div className="h-[210px] sm:h-[250px] md:h-[400px] lg:h-[380px]">
-      <video
-        ref={videoRef}
-        src="/images/hero/vd1.mp4"
-        className="w-full h-full object-centered"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-      />
-    </div>
-  </div>
-</div>
+        >
+          {/* ---------- LEFT : BRAND TEXT (30%) ---------- */}
+          <div className="flex items-center justify-center px-10 py-16 text-center md:text-left">
+            <h2 className="text-4xl sm:text-4xl lg:text-4xl font-extrabold tracking-tight">
+              <span className="text-white g-6 ">ENERZY FLOW</span>
+              <span className="text-brand text-center text-glow block  g-6 text-3xl">
+                {" "}
+                AI POS
+              </span>
+            </h2>
+          </div>
 
           {/* ---------- RIGHT : VIDEO (70%) ---------- */}
-          <div className="h-[210px] sm:h-[250px] md:h-[400px] lg:h-[380px]">
+          <div className="h-52.5 sm:h-62.5 md:h-100 lg:h-95">
             <video
               ref={videoRef}
               src="/images/hero/vd1.mp4"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-centered"
               autoPlay
               loop
               muted
@@ -111,8 +98,9 @@ const Vedio = () => {
             AI Offer Engine
           </h3>
           <p className="text-gray-400">
-            The Brain: Automatically designs and launches "Flash Sale" banners on the bottle's QR menu to clear excess stocks or show festivals wishings  and daily offer depending upon requirement.
-
+            The Brain: Automatically designs and launches &quot;Flash Sale&quot;
+            banners on the bottle&apos;s QR menu to clear excess stocks or show
+            festivals wishings and daily offer depending upon requirement.
           </p>
         </div>
 
@@ -150,6 +138,6 @@ const Vedio = () => {
       </div>
     </section>
   );
-};  
+};
 
-export default Vedio; 
+export default Vedio;
