@@ -5,6 +5,7 @@ import CustomCursor from '@/components/CustomCursor';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://enerzyflow.com"),
   title: "About Us | Enerzy Flow",
   description:
     "Learn more about Enerzy Flow — our mission, vision, and innovative approach to sustainable hydration solutions.",

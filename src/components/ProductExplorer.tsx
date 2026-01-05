@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Image, { StaticImageData } from "next/image";
-import { products as allProducts, Product as RawProduct } from "@/data/products";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { products as allProducts, Product as RawProduct } from "@/data/products";
 
 /* -------------------- Types -------------------- */
 type ImgType = string | StaticImageData;
@@ -15,43 +15,53 @@ type Product = RawProduct & {
 };
 
 /* -------------------- Helpers -------------------- */
-function normalizeImg(item: ImgType | { image: ImgType } | undefined): ImgType | null {
+const normalizeImg = (
+  item?: ImgType | { image: ImgType }
+): ImgType | null => {
   if (!item) return null;
   if (typeof item === "string") return item;
-  if (typeof item === "object" && "src" in item) return item as StaticImageData;
-  if (typeof item === "object" && "image" in item) return item.image;
+  if ("src" in item) return item as StaticImageData;
+  if ("image" in item) return item.image;
   return null;
-}
+};
 
-function productToImageArray(product: Product): ImgType[] {
-  const imgs: ImgType[] = [];
+const productToImageArray = (product: Product): ImgType[] => {
+  const images: ImgType[] = [];
+
   const main = normalizeImg(product.image);
-  if (main) imgs.push(main);
+  if (main) images.push(main);
 
   product.gallery?.forEach((g) => {
-    const img = normalizeImg(g as ImgType | { image: ImgType });
-    if (img) imgs.push(img);
+    const img = normalizeImg(g);
+    if (img) images.push(img);
   });
 
-  return [...new Set(imgs)];
-}
+  return [...new Set(images)];
+};
 
 /* -------------------- Auto Swiper -------------------- */
-const AutoSwiper = ({ images, interval = 2000 }: { images: ImgType[]; interval?: number }) => {
+const AutoSwiper = ({
+  images,
+  interval = 2000,
+}: {
+  images: ImgType[];
+  interval?: number;
+}) => {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (images.length <= 1) return;
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % images.length);
-    }, interval);
-    return () => clearInterval(id);
+    const timer = setInterval(
+      () => setIndex((i) => (i + 1) % images.length),
+      interval
+    );
+    return () => clearInterval(timer);
   }, [images, interval]);
 
   return (
     <Image
       src={images[index]}
-      alt="auto slide"
+      alt="product image"
       fill
       className="object-cover transition-transform duration-700 group-hover:scale-110"
     />
@@ -67,8 +77,11 @@ const ProductExplorer = () => {
   const totalSlides = Math.max(1, Math.ceil(products.length / itemsPerSlide));
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const nextSlide = () => setCurrentSlide((s) => (s + 1) % totalSlides);
-  const prevSlide = () => setCurrentSlide((s) => (s - 1 + totalSlides) % totalSlides);
+  const nextSlide = () =>
+    setCurrentSlide((s) => (s + 1) % totalSlides);
+
+  const prevSlide = () =>
+    setCurrentSlide((s) => (s - 1 + totalSlides) % totalSlides);
 
   const slideProducts = products.slice(
     currentSlide * itemsPerSlide,
@@ -82,80 +95,102 @@ const ProductExplorer = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="text-center mb-16 md:mb-20">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            Crafted for your <span className="text-cyan-400">Every Venue</span>
+        <div className="text-center mb-20">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Crafted for your{" "}
+            <span className="text-cyan-400">Every Venue</span>
           </h2>
-          <p className="text-gray-400 text-sm sm:text-base">
-            Choose bottles that match your vibe.
+          <p className="text-gray-400">
+            Choose bottles that match your brand and scale faster.
           </p>
         </div>
 
         {/* Slider */}
         <div className="relative max-w-6xl mx-auto">
 
-          {/* Arrows */}
+          {/* Navigation Arrows */}
           {totalSlides > 1 && (
             <>
               <button
                 onClick={prevSlide}
-                className="absolute left-0 sm:-left-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-3 rounded-full z-10"
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10
+                           bg-black/70 border border-gray-700 p-3 rounded-full"
               >
                 <ChevronLeft size={20} />
               </button>
 
               <button
                 onClick={nextSlide}
-                className="absolute right-0 sm:-right-4 top-1/2 -translate-y-1/2 bg-black/70 border border-gray-700 p-3 rounded-full z-10"
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10
+                           bg-black/70 border border-gray-700 p-3 rounded-full"
               >
                 <ChevronRight size={20} />
               </button>
             </>
           )}
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 px-3 sm:px-6">
+          {/* Product Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 px-3">
             {slideProducts.map((product, index) => {
-              const imgs = productToImageArray(product);
+              const images = productToImageArray(product);
               const isMiddle = index === middleIndex;
 
               return (
                 <div
                   key={product.id}
-                  className={`glass-panel rounded-2xl p-6 sm:p-6 transition-all duration-500 group ${
+                  className={`group glass-panel rounded-2xl p-6 transition-all duration-500 ${
                     isMiddle
                       ? "border-cyan-400/30 shadow-[0_0_25px_rgba(0,240,255,0.15)] md:-translate-y-4"
                       : "hover:border-cyan-400"
                   }`}
                 >
-                  {/* Image */}
+                  {/* Image Box */}
                   <div
-                    className={`relative overflow-hidden rounded-xl mb-5 bg-gradient-to-b from-gray-800 to-black transition-all duration-500 ${
-                      isMiddle
-                        ? "h-72 sm:h-72 md:h-80"
-                        : "h-64 sm:h-56 md:h-64"
-                    }`}
+                    className={`relative overflow-hidden rounded-xl mb-5
+                                bg-gradient-to-b from-gray-800 to-black
+                                ${isMiddle ? "h-80" : "h-64"}`}
                   >
-                    {isMiddle && imgs.length > 1 ? (
-                      <AutoSwiper images={imgs} />
+                    {isMiddle && images.length > 1 ? (
+                      <AutoSwiper images={images} />
                     ) : (
-                      imgs[0] && (
+                      images[0] && (
                         <Image
-                          src={imgs[0]}
+                          src={images[0]}
                           alt={product.name}
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                       )
                     )}
+
+                    {/* GET PRICE – ALWAYS VISIBLE */}
+                    <div className="absolute bottom-4 right-4">
+                      <button
+                        onClick={() =>
+                          router.push(
+                            `/get-price?product=${encodeURIComponent(
+                              product.name
+                            )}`
+                          )
+                        }
+                        className="px-4 py-2 text-xs font-bold rounded-full
+                                   bg-black/80 backdrop-blur-md
+                                   border border-white/20 text-white
+                                   hover:text-cyan-400 hover:border-cyan-400
+                                   transition-all
+                                   shadow-[0_0_15px_rgba(0,240,255,0.35)]"
+                      >
+                        Get Price
+                      </button>
+                    </div>
                   </div>
 
                   {/* Content */}
-                  <h3 className="text-2xl sm:text-xl md:text-2xl font-bold mb-3">
+                  <h3 className="text-2xl font-bold mb-3">
                     {product.name}
                   </h3>
 
-                  <p className="text-gray-400 text-sm mb-5">
+                  <p className="text-gray-400 text-sm mb-4">
                     {product.details}
                   </p>
 
@@ -165,7 +200,7 @@ const ProductExplorer = () => {
                     </span>
                   ) : (
                     <span className="text-cyan-400 font-semibold text-sm">
-                      {index === 0 ? "Most Popular" : "For Luxury"}
+                      Premium Choice
                     </span>
                   )}
                 </div>
@@ -175,13 +210,15 @@ const ProductExplorer = () => {
 
           {/* Dots */}
           {totalSlides > 1 && (
-            <div className="flex justify-center gap-2 mt-10">
+            <div className="flex justify-center gap-2 mt-12">
               {Array.from({ length: totalSlides }).map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i)}
                   className={`w-3 h-3 rounded-full ${
-                    i === currentSlide ? "bg-cyan-400" : "bg-gray-600"
+                    i === currentSlide
+                      ? "bg-cyan-400"
+                      : "bg-gray-600"
                   }`}
                 />
               ))}
@@ -190,12 +227,24 @@ const ProductExplorer = () => {
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-20">
+        <div className="text-center mt-20 flex flex-col sm:flex-row justify-center gap-4">
           <button
             onClick={() => router.push("/products")}
-            className="border border-gray-600 px-8 py-3 rounded-full hover:border-cyan-400 transition"
+            className="border border-gray-600 px-8 py-3 rounded-full
+                       hover:border-cyan-400 transition"
           >
             Explore All Bottles
+          </button>
+
+          <button
+            onClick={() => router.push("/get-price")}
+            className="px-8 py-3 rounded-full
+                       bg-gradient-to-r from-cyan-400 to-blue-500
+                       text-black font-semibold
+                       shadow-[0_0_20px_rgba(0,240,255,0.45)]
+                       hover:scale-105 transition"
+          >
+            Get Franchise
           </button>
         </div>
 

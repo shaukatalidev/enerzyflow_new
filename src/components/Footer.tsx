@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FaWhatsapp } from "react-icons/fa";
 
 const Footer = () => {
   const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,21 +51,62 @@ const Footer = () => {
 
       {/* ================= FOOTER CONTENT ================= */}
       <section className="container mx-auto px-6 py-20">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 ">
           {/* Product */}
-          <div>
-            <h3 className="font-semibold text-sm mb-4">Product</h3>
-            <ul className="space-y-3 text-gray-400 text-sm">
-              <li><Link href="#">Features</Link></li>
-              <li><Link href="#">Pricing</Link></li>
-              <li><Link href="#">Case studies</Link></li>
-              <li><Link href="#">Reviews</Link></li>
-              <li><Link href="#">Updates</Link></li>
-            </ul>
-          </div>
+          
+        
+<div className="footer-left flex flex-col gap-6 text-gray-400 text-sm">
+
+  {/* Logo */}
+  <Link href="/" aria-label="EnerzyFlow Home">
+    <Image
+      src="/images/logo_bottles/logo.png"
+      alt="EnerzyFlow"
+      width={120}
+      height={60}
+      priority
+    />
+  </Link>
+
+  {/* Phone */}
+  <a
+    href="tel:+919002520720"
+    className="flex items-center gap-2 hover:text-cyan-400 transition-colors"
+  >
+    📞 <span>+91 9002520720</span>
+  </a>
+
+  {/* WhatsApp */}
+  <a
+    href="https://wa.me/919002520720"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-2 hover:text-green-500 transition-colors"
+  >
+    <FaWhatsapp className="text-green-500 text-lg shrink-0" />
+    <span className="whitespace-nowrap">
+      9002520720 (9AM–9PM)
+    </span>
+  </a>
+
+  {/* Email */}
+  <a
+    href="mailto:enerzyflow@gmail.com"
+    className="flex items-center gap-2 hover:text-cyan-400 transition-colors"
+  >
+    ✉️ <span>enerzyflow@gmail.com</span>
+  </a>
+
+</div>
+
+
+
+
+
+
 
           {/* Company */}
-          <div>
+          <div className="ml-15">
             <h3 className="font-semibold text-sm mb-4">Company</h3>
             <ul className="space-y-3 text-gray-400 text-sm">
               <li><Link href="#">About</Link></li>

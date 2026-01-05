@@ -12,12 +12,28 @@ export const metadata: Metadata = {
   description:
     "Enerzy Flow is building next-generation sustainable hydration solutions powered by smart technology. Coming soon.",
   keywords: [
-    "Sustainable Hydration",
-    "Smart Water Solutions",
-    "Eco Friendly Hydration",
-    "Enerzy Flow",
-    "Hydration Technology",
-  ],
+  "Sustainable Hydration",
+  "Smart Water Solutions",
+  "Eco Friendly Hydration",
+  "Enerzy Flow",
+  "Hydration Technology",
+  "Smart Water Dispenser",
+  "Eco Hydration Systems",
+  "Intelligent Water Solutions",
+  "Smart Hydration Devices",
+  "Sustainable Water Technology",
+  "Water Conservation Tech",
+  "IoT Hydration Solutions",
+  "Green Hydration Systems",
+  "Next Generation Hydration",
+  "Smart Water Management",
+  "Eco-Friendly Water Dispenser",
+  "Hydration Innovation",
+  "Sustainable Water Solutions",
+  "Smart Drinking Systems",
+  "Energy Efficient Hydration"
+],
+
   openGraph: {
     title: "Sustainable Hydration Solutions | Enerzy Flow",
     description:

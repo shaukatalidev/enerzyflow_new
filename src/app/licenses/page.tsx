@@ -1,11 +1,11 @@
 
-
 import Licenses from '@/components/Licenses';
 import CustomCursor from '@/components/CustomCursor';
 import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://enerzyflow.com"),
   title: "Licenses & Certifications | Enerzy Flow",
   description:
     "Explore Enerzy Flow’s licenses, certifications, and regulatory approvals ensuring compliance, quality, and sustainability standards.",

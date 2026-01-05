@@ -11,22 +11,45 @@ export const metadata: Metadata = {
   title: "EnerzyFlow | The Hospitality OS | Premium Sustainable Branding",
   description:
     "EnerzyFlow turns premium sustainable water bottles into a powerful hospitality data engine. Capture 100% of guest data and automate upselling with our invisible OS.",
-  keywords: [
-    "Hospitality Operating System",
-    "Restaurant Digital Transformation",
-    "Smart Water Bottle Branding",
-    "Restaurant Guest Data Platform",
-    "Sustainable Water Bottles",
-    "Digital Concierge Software",
-     "EnergyFlow",
-    "Enerzy Flow",
-    "EnergiFlow",
-    "EnrezyFlow",
-    "EnerzyFlo",
-    "Hospitality OS",
-    "Restaurant SAAS",
-    "Smart Bottle QR"
-  ],
+ keywords: [
+  // Primary Industry Keywords
+  "Hospitality Operating System",
+  "Restaurant Digital Transformation",
+  "Smart Water Bottle Branding",
+  "Restaurant Guest Data Platform",
+  "Sustainable Water Bottles",
+  "Digital Concierge Software",
+  "Hospitality OS",
+  "Restaurant SAAS",
+  "Smart Bottle QR",
+  
+  // Brand & Misspellings (Phonetic & Typos)
+  "EnerzyFlow", "EnergyFlow", "Enerzy Flow", "Energy Flow", "EnergiFlow", 
+  "Energi Flow", "EnrgyFlow", "Enrgy Flow", "EnrezyFlow", "EnerzyFlo", 
+  "Enerzy-Flow", "Energy-Flow", "EnerzyFlows", "EnerzeeFlow", "Enerze Flow", 
+  "InerzyFlow", "InergyFlow", "EnerjyFlow", "Enerjy Flow", "EnarzyFlow", 
+  "Enarzy Flow", "EnerziFlow", "Enerzi Flow", "EneryFlow", "Enery Flow", 
+  "EnercyFlow", "Enercy Flow", "EnerzlyFlow", "EnerzyFloe", "EnerzyFloh", 
+  "Enerzy Vlow", "Enerzy Blow", "Enerzy Glow", "Enerzy Flw", "Enerzy Folw", 
+  "Enerzy Fowl", "Enerzy Floow", "Enerzy Phlow", "Enerzy Phlows", "Enerzy Pflow", 
+  "Enerzy Fllo", "EnurzyFlow", "Enurzy Flow", "EnerxyFlow", "Enerxy Flow", 
+  "EnerztFlow", "Enerzt Flow", "EnerzuFlow", "Enerzu Flow", "EnerzyFow", 
+  "EnerzyFllow", "EnerzyFlwo", "EnerzyFlou", "EnerzyFlouh", "EnezryFlow", 
+  "Enezry Flow", "EnezyFlow", "Enezy Flow", "EnarzyFlo",
+  
+  // Generic Typos & Phase Variations
+  "energy flo", "energy floe", "energy floh", "energy flw", "energy flowe", 
+  "energy flows", "energy floww", "energy fllow", "energy vlow", "energy blow", 
+  "energy glow", "energy slow", "energy folw", "energy flwo", "energy flou", 
+  "energy phlow", "energy pflow", "energy-flow", "energy_flow", "energyflow app", 
+  "energyflow water", "energyflow tech", "energyflow system", "energy flo tech", 
+  "energy flo system", "enegy flow", "enrgy flow", "enery flow", "energey flow", 
+  "enegry flow", "enirgy flow", "enurgy flow", "enrgyflow", "enegryflow", 
+  "energeyflow", "enirgyflow", "energy flow branding", "energy flow bottle", 
+  "energy flow hospitality", "energy flou system", "energy flo branding", 
+  "energy flow os", "energy flo os", "energy flowe system", "energy flowe branding", 
+  "energy flowe os", "energy flowe bottle", "energy flows system", "energy flows branding"
+],
   openGraph: {
     title: "EnerzyFlow – Hardware Locally, Software Globally",
     description:
