@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-
+import Link from 'next/link';
 
 import { motion } from 'framer-motion';
 import { Inter, Space_Grotesk } from 'next/font/google';
@@ -103,7 +103,7 @@ export default function FranchisePage() {
         }}
       />
 
-      {/* --- NAVIGATION --- */}
+    
       
 
       {/* --- HERO SECTION --- */}
@@ -128,14 +128,16 @@ export default function FranchisePage() {
             </p>
             
             <div className="flex flex-wrap gap-8 items-center">
-              <button 
-                onClick={scrollToApply}
-                className="bg-cyan-400 text-black font-bold py-4 px-10 rounded-full text-sm uppercase tracking-widest hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,240,255,0.4)] font-heading flex items-center gap-3"
-                onMouseEnter={() => setIsHovering(true)} 
-                onMouseLeave={() => setIsHovering(false)}
-              >
-                <span className='text-black'> Start Application  </span>
-              </button>
+              <Link
+  href="/franchise/apply"
+  className="bg-cyan-400 text-black font-bold py-4 px-10 rounded-full text-sm uppercase tracking-widest
+             hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,240,255,0.4)]
+             font-heading flex items-center gap-3"
+  onMouseEnter={() => setIsHovering(true)}
+  onMouseLeave={() => setIsHovering(false)}
+>
+  Start Application
+</Link>
               
               <div className="flex items-center gap-4">
                 <div className="text-right">
@@ -183,46 +185,87 @@ export default function FranchisePage() {
       </header>
 
       {/* --- THE MODEL --- */}
-      <section id="model" className="py-32 relative border-y border-white/5 bg-surface">
-        <div className="container mx-auto px-6 md:px-10">
-          <SectionHeading 
-            title="The Partnership" 
-            highlight="Model" 
-            subtitle="No factories. No production stress. Just the power of a national brand in your local market."
-          />
+      <section
+  id="model"
+  className="py-32 relative border-y border-white/5 bg-surface"
+>
+  <div className="container mx-auto px-6 md:px-10">
+    {/* Heading */}
+    <div className="text-center max-w-3xl mx-auto mb-24">
+      <h2 className="text-4xl md:text-5xl font-bold mb-6 font-heading">
+        The Partnership <span className="text-brand">Model</span>
+      </h2>
+      <p className="text-gray-400 text-lg leading-relaxed">
+        No factories. No production stress. Just the power of a national brand in
+        your local market.
+      </p>
+    </div>
+
+    {/* Cards */}
+    <div className="grid md:grid-cols-3 gap-10">
+      {/* Card 01 */}
+      <div className="glass-card p-10 rounded-3xl relative overflow-hidden  border border-white/20">
+        <span className="absolute -right-4 -top-4 text-9xl font-black text-white/5 select-none font-heading">
           
-          <div className="grid md:grid-cols-3 gap-10">
-            <GlassCard delay={0}>
-              <div className="absolute -right-4 -top-4 text-9xl font-black text-white/5 select-none font-heading"></div>
-              <div className="w-16 h-16 bg-brand/10 rounded-2xl flex items-center justify-center text-brand text-3xl mb-8 border border-brand/20">
-                <FaIndustry />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 font-heading">We Manufacture</h3>
-              <p className="text-gray-400 leading-relaxed">EnerzyFlow HQ handles all manufacturing, quality control, and premium label printing. You receive stock ready for elite venues.</p>
-            </GlassCard>
+        </span>
 
-            <GlassCard delay={0.2} className="border-brand/40 shadow-[0_0_30px_rgba(0,240,255,0.05)] bg-brand/5">
-              <div className="glass-card p-10 rounded-3xl relative overflow-hidden border-brand/40 shadow-[0_0_30px_rgba(0,240,255,0.05)] bg-brand/5">
-                    <div className="absolute -right-4 -top-4 text-9xl font-black text-brand/10 select-none font-heading"></div>
-                    <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center text-black text-3xl mb-8 shadow-[0_0_20px_rgba(0,240,255,0.4)]">
-                        <i className="fa-solid fa-user-tie"></i>
-                    </div>
-                    <h3 className="text-2xl font-bold mb-4 text-white font-heading">You Sell</h3>
-                    <p className="text-gray-300 leading-relaxed">You arrange on-field sales, collect orders from Hotels/Cafes, and manage distribution in your locked territory.</p>
-                </div>
-            </GlassCard>
-
-            <GlassCard delay={0.4}>
-              <div className="absolute -right-4 -top-4 text-9xl font-black text-white/5 select-none font-heading"></div>
-              <div className="w-16 h-16 bg-brand/10 rounded-2xl flex items-center justify-center text-brand text-3xl mb-8 border border-brand/20">
-                <FaBullhorn />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 font-heading">Support & Leads</h3>
-              <p className="text-gray-400 leading-relaxed">Powered by Central Marketing, we setup your city, provide verified leads, and offer 24/7 operational support.</p>
-            </GlassCard>
-          </div>
+        <div className="w-16 h-16 mb-8 rounded-2xl flex items-center justify-center text-brand text-3xl border border-brand/20 bg-brand/10">
+          <FaIndustry className="text-cyan-400 text-3xl"/>
         </div>
-      </section>
+
+        <h3 className="text-2xl font-bold mb-4 font-heading">
+          We Manufacture
+        </h3>
+
+        <p className="text-gray-400 leading-relaxed">
+          EnerzyFlow HQ manages manufacturing, quality control, and premium label
+          printing. You receive ready-to-sell stock for elite venues.
+        </p>
+      </div>
+
+      {/* Card 02 (Highlighted) */}
+      <div className="glass-card p-10 rounded-3xl relative overflow-hidden bg-brand/5 border border-brand/40 shadow-[0_0_30px_rgba(0,240,255,0.05)]">
+        <span className="absolute -right-4 -top-4 text-9xl font-black text-brand/10 select-none font-heading">
+          
+        </span>
+
+        <div className="w-16 h-16 mb-8 rounded-2xl flex items-center justify-center text-black text-3xl bg-brand shadow-[0_0_20px_rgba(0,240,255,0.4)]">
+          <FaUserTie className="text-cyan-400 text-3xl"/>
+        </div>
+
+        <h3 className="text-2xl font-bold mb-4 text-white font-heading">
+          You Sell
+        </h3>
+
+        <p className="text-gray-300 leading-relaxed">
+          You drive on-ground sales, collect orders from Hotels & Cafés, and
+          manage distribution within your exclusive territory.
+        </p>
+      </div>
+
+      {/* Card 03 */}
+      <div className="glass-card p-10 rounded-3xl relative overflow-hidden  border border-white/20">
+        <span className="absolute -right-4 -top-4 text-9xl font-black text-white/5 select-none font-heading">
+          
+        </span>
+
+        <div className="w-16 h-16 mb-8 rounded-2xl flex items-center justify-center text-brand text-3xl border border-brand/20 bg-brand/10">
+          <FaBullhorn className="text-cyan-400 text-3xl"/>
+        </div>
+
+        <h3 className="text-2xl font-bold mb-4 font-heading">
+          Support & Leads
+        </h3>
+
+        <p className="text-gray-400 leading-relaxed">
+          Central marketing powers your city launch, verified leads, branding,
+          and 24/7 operational support.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* --- FINANCIALS --- */}
       <section id="earnings" className="py-32 relative overflow-hidden">
@@ -253,8 +296,22 @@ export default function FranchisePage() {
                   className="p-8 rounded-2xl flex justify-between items-center group hover:bg-brand/10 transition-colors border border-white/10 bg-surface/60 backdrop-blur-md"
                 >
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1 font-heading">{item.label}</p>
-                    <p className="text-3xl font-bold text-white group-hover:text-brand transition font-heading">{item.value}</p>
+                    
+                    {item.label === 'Franchise Fee' ? (
+  <button
+    onClick={scrollToApply}
+    onMouseEnter={() => setIsHovering(true)}
+    onMouseLeave={() => setIsHovering(false)}
+    className="text-3xl font-bold text-white hover:underline transition font-heading"
+  >
+    {item.value}
+  </button>
+) : (
+  <p className="text-3xl font-bold text-white group-hover:text-brand transition font-heading">
+    {item.value}
+  </p>
+)}
+
                   </div>
                   {item.icon ? (
                     <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-white/5">
@@ -386,6 +443,7 @@ export default function FranchisePage() {
           </motion.form>
         </div>
       </section>
+      
 
       
       
