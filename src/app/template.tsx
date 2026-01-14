@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { useAuth } from './context/AuthContext';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { useEffect, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname } from "next/navigation";
+import { useAuth } from "./context/AuthContext";
 
-const protectedPaths = ['/dashboard', '/profile', '/order'];
+import { useEffect, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
+
+const protectedPaths = ["/dashboard"];
 
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isAuthenticated, isLoading, user, profileLoaded, isProfileComplete } = useAuth();
+  const { isAuthenticated, isLoading, user, profileLoaded, isProfileComplete } =
+    useAuth();
   const router = useRouter();
   const redirectAttempted = useRef(false);
 
-  const isProtectedRoute = useMemo(() => 
-    protectedPaths.some(path => pathname.startsWith(path)), 
+  const isProtectedRoute = useMemo(
+    () => protectedPaths.some((path) => pathname.startsWith(path)),
     [pathname]
   );
 
-  const isAuthPage = useMemo(() => 
-    pathname === '/login' || pathname === '/signup',
+  const isAuthPage = useMemo(
+    () => pathname === "/login" || pathname === "/signup",
     [pathname]
   );
 
@@ -40,32 +40,45 @@ export default function Template({ children }: { children: React.ReactNode }) {
 
     if (isProtectedRoute && !isAuthenticated) {
       redirectAttempted.current = true;
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     if (isAuthenticated && isAuthPage && user) {
-      
-      if (user.role === 'admin' || user.role === 'printing' || user.role === 'plant') {
+      if (
+        user.role === "admin" ||
+        user.role === "printing" ||
+        user.role === "plant"
+      ) {
         redirectAttempted.current = true;
-        router.push('/dashboard');
+        router.push("/dashboard");
         return;
       }
-      
+
       if (!profileLoaded) {
         return;
       }
-      
+
       if (isProfileComplete()) {
         redirectAttempted.current = true;
-        router.push('/dashboard');
+        router.push("/dashboard");
       } else {
         redirectAttempted.current = true;
-        router.push('/profile');
+        router.push("/profile");
       }
       return;
     }
-  }, [isAuthenticated, isLoading, isProtectedRoute, isAuthPage, pathname, router, user, profileLoaded, isProfileComplete]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    isProtectedRoute,
+    isAuthPage,
+    pathname,
+    router,
+    user,
+    profileLoaded,
+    isProfileComplete,
+  ]);
 
   if (isLoading) {
     return (
@@ -83,11 +96,5 @@ export default function Template({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow">{children}</main>
-      <Footer />
-    </div>
-  );
+  return <div>{children}</div>;
 }

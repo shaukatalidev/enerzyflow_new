@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useMemo, lazy, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/context/AuthContext';
+import { useEffect, useRef, useMemo, lazy, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
 
 // ✅ Dynamic imports for code splitting - lazy load dashboards
-const MainDashboard = lazy(() => import('./components/MainDashboard'));
-const PrintDashboard = lazy(() => import('./components/PrintDashboard'));
-const PlantDashboard = lazy(() => import('./components/PlantDashboard'));
-const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
+const MainDashboard = lazy(() => import("../../components/MainDashboard"));
+const PrintDashboard = lazy(() => import("../../components/PrintDashboard"));
+const PlantDashboard = lazy(() => import("../../components/PlantDashboard"));
+const SuperAdminDashboard = lazy(
+  () => import("../../components/SuperAdminDashboard")
+);
 
 // ✅ Reusable loading component
-const LoadingSpinner = ({ message = 'Loading dashboard...' }: { message?: string }) => (
+const LoadingSpinner = ({
+  message = "Loading dashboard...",
+}: {
+  message?: string;
+}) => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
     <div className="text-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -22,17 +28,19 @@ const LoadingSpinner = ({ message = 'Loading dashboard...' }: { message?: string
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isLoading, isAuthenticated, profileLoaded, isProfileComplete, user } = useAuth();
-  
+  const { isLoading, isAuthenticated, profileLoaded, isProfileComplete, user } =
+    useAuth();
+
   const redirectAttempted = useRef(false);
 
   // ✅ Memoize role checks to prevent recalculation
   const roleChecks = useMemo(() => {
     const role = user?.role;
-    const skipProfileCheck = role === 'admin' || role === 'printing' || role === 'plant';
-    
+    const skipProfileCheck =
+      role === "admin" || role === "printing" || role === "plant";
+
     return {
-      role: role || 'business_owner',
+      role: role || "business_owner",
       skipProfileCheck,
       needsProfile: !skipProfileCheck && profileLoaded && !isProfileComplete(),
     };
@@ -48,7 +56,7 @@ export default function DashboardPage() {
     // Redirect to login if not authenticated
     if (!isAuthenticated) {
       redirectAttempted.current = true;
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
@@ -65,9 +73,16 @@ export default function DashboardPage() {
     // Redirect to profile if incomplete
     if (roleChecks.needsProfile) {
       redirectAttempted.current = true;
-      router.push('/profile');
+      router.push("/profile");
     }
-  }, [isLoading, isAuthenticated, profileLoaded, roleChecks.skipProfileCheck, roleChecks.needsProfile, router]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    profileLoaded,
+    roleChecks.skipProfileCheck,
+    roleChecks.needsProfile,
+    router,
+  ]);
 
   // ✅ Early returns for loading states
   if (isLoading) {
@@ -99,13 +114,13 @@ export default function DashboardPage() {
 // ✅ Separate component for dashboard rendering (prevents re-render of parent)
 function DashboardRenderer({ role }: { role: string }) {
   switch (role) {
-    case 'admin':
+    case "admin":
       return <SuperAdminDashboard />;
-    case 'printing':
+    case "printing":
       return <PrintDashboard />;
-    case 'plant':
+    case "plant":
       return <PlantDashboard />;
-    case 'business_owner':
+    case "business_owner":
     default:
       return <MainDashboard />;
   }

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,9 @@ export default function GetPricePage() {
   });
 
   // Handle input/select changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -30,7 +32,6 @@ export default function GetPricePage() {
   return (
     <section className="min-h-screen bg-black text-white flex items-center justify-center px-4 py-24">
       <div className="w-full max-w-xl glass-panel rounded-3xl p-10 border border-cyan-400/20">
-
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-3">
@@ -43,7 +44,6 @@ export default function GetPricePage() {
 
         {/* Form */}
         <div className="space-y-6">
-
           <input
             type="text"
             name="name"
@@ -81,6 +81,7 @@ export default function GetPricePage() {
           />
 
           <select
+            aria-label="Select Bottle Type"
             name="product"
             value={form.product}
             onChange={handleChange}

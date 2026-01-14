@@ -13,9 +13,9 @@ import {
   Tag,
   Package,
 } from "lucide-react";
-import { orderService, CreateOrderRequest } from "../services/orderService";
-import { useAuth } from "../context/AuthContext";
-import { logoBottles } from "../../../public/images/logo_bottles";
+import { orderService, CreateOrderRequest } from "../../services/orderService";
+import { useAuth } from "../../context/AuthContext";
+import { logoBottles } from "../../../../public/images/logo_bottles";
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -140,7 +140,6 @@ const CATEGORY_OPTIONS = {
       icon: logoBottles.classic_200,
       ads_logo: logoBottles.classic_200_ads,
     },
-   
   ],
   250: [
     {
@@ -152,7 +151,6 @@ const CATEGORY_OPTIONS = {
       icon: logoBottles.celeb_250,
       ads_logo: logoBottles.celeb_250,
     },
-   
   ],
 } as const;
 
@@ -691,7 +689,7 @@ export default function CreateOrderPage() {
       setCreatedOrderId(result.order.order_id);
 
       setTimeout(() => {
-        router.push(`/order/${result.order.order_id}/invoice`);
+        router.push(`/dashboard/order/${result.order.order_id}/invoice`);
       }, 2000);
     } catch (err) {
       const errorMessage =

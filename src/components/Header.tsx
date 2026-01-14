@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Bell, X, Menu, Home } from "lucide-react";
 import { useAuth } from "../app/context/AuthContext";
 
 const Header = () => {
   const pathname = usePathname();
-  const router = useRouter();
 
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -70,52 +69,43 @@ const Header = () => {
                 height={48}
                 priority
               />
-              <span className="text-white font-bold text-xl">
-                EnerzyFlow
-              </span>
+              <span className="text-white font-bold text-xl">EnerzyFlow</span>
             </Link>
 
             {/* NAV */}
-            
-          {/* NAV */}
-<nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-  {[
-    { label: "About Us", href: "/about" },
-    { label: "Our Bottles", href: "/products" },
-    { label: "Partner", href: "/partner" },
-    { label: "Invest", href: "/invest" },
-    { label: "Solution", href: "/solutions" },
-    { label: "Licenses", href: "/licenses" },
-  ].map((item) => {
-    const isActive = pathname === item.href;
 
-    return (
-      <Link
-        key={item.label}
-        href={item.href}
-        className={`relative transition-colors
-          ${
-            isActive
-              ? "text-white"
-              : "text-gray-400 hover:text-white"
-          }
+            {/* NAV */}
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+              {[
+                { label: "About Us", href: "/about" },
+                { label: "Our Bottles", href: "/products" },
+                { label: "Partner", href: "/partner" },
+                { label: "Invest", href: "/invest" },
+                { label: "Solution", href: "/solutions" },
+                { label: "Licenses", href: "/licenses" },
+              ].map((item) => {
+                const isActive = pathname === item.href;
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`relative transition-colors
+          ${isActive ? "text-white" : "text-gray-400 hover:text-white"}
         `}
-      >
-        {item.label}
+                  >
+                    {item.label}
 
-        {/* UNDERLINE */}
-        <span
-          className={`absolute -bottom-1 left-0 h-[2px] bg-cyan-400 transition-all duration-300
-            ${
-              isActive ? "w-full" : "w-0 group-hover:w-full"
-            }
+                    {/* UNDERLINE */}
+                    <span
+                      className={`absolute -bottom-1 left-0 h-[2px] bg-cyan-400 transition-all duration-300
+            ${isActive ? "w-full" : "w-0 group-hover:w-full"}
           `}
-        />
-      </Link>
-    );
-  })}
-</nav>
-
+                    />
+                  </Link>
+                );
+              })}
+            </nav>
 
             {/* RIGHT INSIDE HEADER */}
             <div className="hidden md:flex items-center gap-4">
@@ -178,10 +168,7 @@ const Header = () => {
       {/* ================= MOBILE MENU ================= */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-black z-50 p-6 text-white">
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="mb-6"
-          >
+          <button onClick={() => setIsMobileMenuOpen(false)} className="mb-6">
             <X />
           </button>
 
@@ -202,11 +189,7 @@ const Header = () => {
             "solutions",
             "licenses",
           ].map((p) => (
-            <Link
-              key={p}
-              href={`/${p}`}
-              className="block py-2 text-gray-300"
-            >
+            <Link key={p} href={`/${p}`} className="block py-2 text-gray-300">
               {p}
             </Link>
           ))}

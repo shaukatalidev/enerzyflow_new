@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { profileService } from "@/app/services/profileService";
-import MyProfile from "@/app/profile/components/MyProfile";
+import MyProfile from "@/app/dashboard/profile/components/MyProfile";
 import toast from "react-hot-toast";
 
 interface Label {
@@ -54,55 +54,57 @@ const LoadingSpinner = memo(() => (
 LoadingSpinner.displayName = "LoadingSpinner";
 
 // ✅ Memoized Error Component
-const ErrorDisplay = memo(({
-  error,
-  onRetry,
-}: {
-  error: string;
-  onRetry: () => void;
-}) => (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div className="text-center max-w-md mx-auto p-6">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <svg
-          className="w-12 h-12 text-red-500 mx-auto mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <p className="text-red-700 font-semibold mb-2">Failed to Load Profile</p>
-        <p className="text-red-600 text-sm mb-4">{error}</p>
-        <button
-          onClick={onRetry}
-          className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors cursor-pointer"
-        >
-          Retry
-        </button>
+const ErrorDisplay = memo(
+  ({ error, onRetry }: { error: string; onRetry: () => void }) => (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center max-w-md mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <svg
+            className="w-12 h-12 text-red-500 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p className="text-red-700 font-semibold mb-2">
+            Failed to Load Profile
+          </p>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <button
+            onClick={onRetry}
+            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-));
+  )
+);
 
 ErrorDisplay.displayName = "ErrorDisplay";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loadProfile, profileLoaded, profileLoading, isAuthenticated } = useAuth();
-  
+  const { user, loadProfile, profileLoaded, profileLoading, isAuthenticated } =
+    useAuth();
+
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const loadAttempted = useRef(false);
 
   // ✅ Memoized access check
-  const isBusinessOwner = useMemo(() => user?.role === "business_owner", [user?.role]);
+  const isBusinessOwner = useMemo(
+    () => user?.role === "business_owner",
+    [user?.role]
+  );
 
   // ✅ Access control effect
   useEffect(() => {
@@ -181,53 +183,56 @@ export default function ProfilePage() {
   }, [mappedProfile]);
 
   // ✅ Memoized profile update handler
-  const handleProfileUpdate = useCallback(async (
-    updatedProfile: UserProfile,
-    profileImageUrl?: string,
-    logoUrl?: string,
-    labelsData?: Label[],
-    outletsData?: Outlet[]
-  ): Promise<ProfileUpdateResult> => {
-    try {
-      const result = await profileService.saveProfileWithImages(
-        {
-          profile: {
-            name: updatedProfile.name,
-            phone: updatedProfile.contactNo,
-            designation: updatedProfile.designation,
+  const handleProfileUpdate = useCallback(
+    async (
+      updatedProfile: UserProfile,
+      profileImageUrl?: string,
+      logoUrl?: string,
+      labelsData?: Label[],
+      outletsData?: Outlet[]
+    ): Promise<ProfileUpdateResult> => {
+      try {
+        const result = await profileService.saveProfileWithImages(
+          {
+            profile: {
+              name: updatedProfile.name,
+              phone: updatedProfile.contactNo,
+              designation: updatedProfile.designation,
+            },
+            company: {
+              name: updatedProfile.brandCompanyName,
+              address: updatedProfile.businessAddress,
+              outlets: outletsData,
+            },
           },
-          company: {
-            name: updatedProfile.brandCompanyName,
-            address: updatedProfile.businessAddress,
-            outlets: outletsData,
-          },
-        },
-        profileImageUrl,
-        logoUrl,
-        labelsData,
-        outletsData
-      );
+          profileImageUrl,
+          logoUrl,
+          labelsData,
+          outletsData
+        );
 
-      await loadProfile(true);
+        await loadProfile(true);
 
-      return {
-        blocked_labels: result.blocked_labels || [],
-      };
-    } catch (err) {
-      console.error("Error in handleProfileUpdate:", err);
+        return {
+          blocked_labels: result.blocked_labels || [],
+        };
+      } catch (err) {
+        console.error("Error in handleProfileUpdate:", err);
 
-      let errorMessage = "Failed to update profile";
+        let errorMessage = "Failed to update profile";
 
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      } else if (typeof err === "string") {
-        errorMessage = err;
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        } else if (typeof err === "string") {
+          errorMessage = err;
+        }
+
+        setError(errorMessage);
+        throw err;
       }
-
-      setError(errorMessage);
-      throw err;
-    }
-  }, [loadProfile]);
+    },
+    [loadProfile]
+  );
 
   // ✅ Memoized error clear handler
   const handleClearError = useCallback(() => setError(null), []);

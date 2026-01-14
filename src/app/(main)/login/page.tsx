@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import Image from "next/image";
 import toast from "react-hot-toast";
 
@@ -109,6 +109,7 @@ const OTPInput = memo(
     <div className="flex justify-center gap-2 sm:gap-3">
       {otp.map((digit, index) => (
         <input
+          aria-label={`OTP Digit ${index + 1}`}
           key={index}
           ref={(ref) => {
             otpRefs.current[index] = ref;
