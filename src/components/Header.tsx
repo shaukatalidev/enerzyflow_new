@@ -126,7 +126,16 @@ const Header = () => {
                   </button>
                 </>
               ) : (
-                <Link href="/login">
+                // <Link href="/login">
+                //   <button className="bg-cyan-500 text-black px-6 py-2 rounded-full font-medium">
+                //     Sign In
+                //   </button>
+                // </Link>
+                <Link
+                  href="https://discover.enerzyflow.com/login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <button className="bg-cyan-500 text-black px-6 py-2 rounded-full font-medium">
                     Sign In
                   </button>
