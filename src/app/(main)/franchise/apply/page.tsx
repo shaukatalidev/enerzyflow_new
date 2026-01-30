@@ -330,7 +330,7 @@ export default function FranchiseApplication() {
                 <p className="text-gray-400 text-sm leading-relaxed">
                   Are you ready to commit to a monthly target of{" "}
                   <b className="text-white">500 cases</b> and an initial setup
-                  fee of <b className="text-white">₹80,999</b>?
+                  fee of <b className="text-white">₹1.5 lakh</b>?
                 </p>
 
                 <div
