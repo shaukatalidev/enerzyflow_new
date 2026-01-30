@@ -176,7 +176,7 @@ export default function FranchisePage() {
                 <div className="h-8 w-px bg-white/20"></div>
                 <div className="text-left">
                   <p className="text-2xl font-bold text-cyan-400 leading-none font-heading">
-                    ₹150k
+                    ₹1.5 lakh
                   </p>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest font-heading">
                     One-time Fee
