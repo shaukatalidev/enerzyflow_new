@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 import { motion } from "framer-motion";
 import { Inter, Space_Grotesk } from "next/font/google";
@@ -16,6 +18,10 @@ import {
   FaRocket,
   FaShieldHalved,
 } from "react-icons/fa6";
+import {
+  checkService,
+  CheckApplicationData,
+} from "@/app/services/checkService";
 
 // --- FONT CONFIGURATION ---
 const inter = Inter({
@@ -85,12 +91,36 @@ const GlassCard = ({
   </motion.div>
 );
 
+// Form Data Interface
+interface CheckFormData {
+  name: string;
+  phone: string;
+  city: string;
+  experience: string;
+}
+
 // --- MAIN PAGE COMPONENT ---
 
 export default function FranchisePage() {
   // Custom Cursor State
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<CheckFormData>({
+    defaultValues: {
+      name: "",
+      phone: "",
+      city: "",
+      experience: "Yes, I am experienced",
+    },
+  });
 
   useEffect(() => {
     const moveCursor = (e: MouseEvent) => {
@@ -102,6 +132,37 @@ export default function FranchisePage() {
 
   const scrollToApply = () => {
     document.getElementById("apply")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const onSubmit = async (data: CheckFormData) => {
+    setIsSubmitting(true);
+
+    try {
+      const applicationData: CheckApplicationData = {
+        name: data.name,
+        phone: data.phone,
+        city: data.city,
+        experience: data.experience,
+      };
+
+      const response = await checkService.submitCheck(applicationData);
+
+      console.log("Check API Response:", response);
+
+      if (response.success || response) {
+        toast.success(response.message || "Interest submitted successfully!");
+        reset(); // Reset form after successful submission
+      } else {
+        toast.error("Unexpected response format");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to submit interest",
+      );
+      console.error("Error submitting interest:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -446,36 +507,92 @@ export default function FranchisePage() {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            onSubmit={handleSubmit(onSubmit)}
             className="p-10 md:p-16 rounded-[48px] grid md:grid-cols-2 gap-10 border border-brand/20 bg-surface/50 backdrop-blur-xl"
           >
-            {[
-              { label: "Full Name", type: "text", placeholder: "John Doe" },
-              { label: "Contact Number", type: "tel", placeholder: "+91" },
-              {
-                label: "Target City / Zone",
-                type: "text",
-                placeholder: "e.g. Surat, Pune, Ludhiana",
-                full: true,
-              },
-            ].map((field, idx) => (
-              <div
-                key={idx}
-                className={
-                  field.full ? "col-span-2" : "col-span-2 md:col-span-1"
-                }
-              >
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 font-heading">
-                  {field.label}
-                </label>
-                <input
-                  type={field.type}
-                  className="w-full rounded-2xl px-5 py-4 bg-white/5 border border-white/10 focus:border-brand focus:bg-brand/5 outline-none transition-all duration-300 text-white placeholder-gray-700"
-                  placeholder={field.placeholder}
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
-                />
-              </div>
-            ))}
+            {/* Full Name */}
+            <div className="col-span-2 md:col-span-1">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 font-heading">
+                Full Name
+              </label>
+              <input
+                type="text"
+                {...register("name", {
+                  required: "Full name is required",
+                  minLength: {
+                    value: 2,
+                    message: "Name must be at least 2 characters",
+                  },
+                })}
+                className={`w-full rounded-2xl px-5 py-4 bg-white/5 border ${
+                  errors.name ? "border-red-500" : "border-white/10"
+                } focus:border-brand focus:bg-brand/5 outline-none transition-all duration-300 text-white placeholder-gray-700`}
+                placeholder="John Doe"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+              />
+              {errors.name && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Contact Number */}
+            <div className="col-span-2 md:col-span-1">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 font-heading">
+                Contact Number
+              </label>
+              <input
+                type="tel"
+                {...register("phone", {
+                  required: "Contact number is required",
+                  pattern: {
+                    value: /^[+]?[0-9]{10,15}$/,
+                    message: "Please enter a valid phone number",
+                  },
+                })}
+                className={`w-full rounded-2xl px-5 py-4 bg-white/5 border ${
+                  errors.phone ? "border-red-500" : "border-white/10"
+                } focus:border-brand focus:bg-brand/5 outline-none transition-all duration-300 text-white placeholder-gray-700`}
+                placeholder="+91"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+              />
+              {errors.phone && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
+
+            {/* Target City / Zone */}
+            <div className="col-span-2">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 font-heading">
+                Target City / Zone
+              </label>
+              <input
+                type="text"
+                {...register("city", {
+                  required: "City is required",
+                  minLength: {
+                    value: 2,
+                    message: "City name must be at least 2 characters",
+                  },
+                })}
+                className={`w-full rounded-2xl px-5 py-4 bg-white/5 border ${
+                  errors.city ? "border-red-500" : "border-white/10"
+                } focus:border-brand focus:bg-brand/5 outline-none transition-all duration-300 text-white placeholder-gray-700`}
+                placeholder="e.g. Surat, Pune, Ludhiana"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+              />
+              {errors.city && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.city.message}
+                </p>
+              )}
+            </div>
 
             <div className="col-span-2">
               <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 font-heading">
@@ -483,17 +600,32 @@ export default function FranchisePage() {
               </label>
               <div className="relative">
                 <select
-                  className="w-full rounded-2xl px-5 py-4 bg-white/5 border border-white/10 focus:border-brand focus:bg-brand/5 outline-none transition-all duration-300 text-white appearance-none cursor-pointer"
+                  {...register("experience", {
+                    required: "Please select your experience level",
+                  })}
+                  className={`w-full rounded-2xl px-5 py-4 bg-white/5 border ${
+                    errors.experience ? "border-red-500" : "border-white/10"
+                  } focus:border-brand focus:bg-brand/5 outline-none transition-all duration-300 text-white appearance-none cursor-pointer`}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
+                  title="Select experience level"
                 >
-                  <option className="bg-black text-gray-300">
+                  <option
+                    className="bg-black text-gray-300"
+                    value="Yes, I am experienced"
+                  >
                     Yes, I am experienced
                   </option>
-                  <option className="bg-black text-gray-300">
+                  <option
+                    className="bg-black text-gray-300"
+                    value="No, but I have a network"
+                  >
                     No, but I have a network
                   </option>
-                  <option className="bg-black text-gray-300">
+                  <option
+                    className="bg-black text-gray-300"
+                    value="I am a first-time entrepreneur"
+                  >
                     I am a first-time entrepreneur
                   </option>
                 </select>
@@ -501,16 +633,48 @@ export default function FranchisePage() {
                   ▼
                 </div>
               </div>
+              {errors.experience && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.experience.message}
+                </p>
+              )}
             </div>
 
             <div className="col-span-2 mt-6">
               <button
-                type="button"
-                className="w-full bg-cyan-400 text-black font-black text-xl py-5 rounded-full shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(0,240,255,0.5)] transition-all font-heading uppercase tracking-wider"
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-cyan-400 text-black font-black text-xl py-5 rounded-full shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(0,240,255,0.5)] transition-all font-heading uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
               >
-                Submit Interest
+                {isSubmitting ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Interest"
+                )}
               </button>
               <p className="text-center text-[10px] text-gray-600 mt-6 tracking-widest uppercase flex items-center justify-center gap-2">
                 <FaShieldHalved /> Confidential Application. Our team will call
